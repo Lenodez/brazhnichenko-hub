@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>BrazhnichenkoHub</AssemblyName>
+    <RootNamespace>LocalAIHub.CrossPlatform</RootNamespace>
+    <Version>4.3.0</Version>
+    <AssemblyVersion>4.3.0.0</AssemblyVersion>
+    <FileVersion>4.3.0.0</FileVersion>
+    <InformationalVersion>4.3.0</InformationalVersion>
+    <Product>Brazhnichenko Hub</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\LocalAIHub\Services\*.cs" Link="Services\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="..\LocalAIHub\story_media.py" Condition="Exists('..\LocalAIHub\story_media.py')" CopyToOutputDirectory="PreserveNewest" Link="story_media.py" />
+    <None Include="..\LocalAIHub\ComfyUI-LocalAIHub-SVI\__init__.py" Condition="Exists('..\LocalAIHub\ComfyUI-LocalAIHub-SVI\__init__.py')" CopyToOutputDirectory="PreserveNewest" Link="ComfyUI-LocalAIHub-SVI\__init__.py" />
+    <None Include="..\LocalAIHub\Assets\app.png" Condition="Exists('..\LocalAIHub\Assets\app.png')" CopyToOutputDirectory="PreserveNewest" Link="wwwroot\app.png" />
+  </ItemGroup>
+</Project>

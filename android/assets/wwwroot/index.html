@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Brazhnichenko Hub Android</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+<div class="app">
+  <!-- COMPACT HEADER -->
+  <header class="header">
+    <div class="head-row">
+      <div class="head-left">
+        <button id="btnOpenChats" class="btn icon-sm mobile-only" title="Список чатов" aria-label="Чаты" onclick="toggleChatDrawer()">
+          <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="brand">
+          <span class="brand-full">Brazhnichenko Hub</span>
+          <span class="brand-short">Hub AI</span>
+          <span class="pill info mono ver-pill">v4.7</span>
+        </div>
+      </div>
+      <div class="head-right">
+        <button id="llmToggleBtn" class="llm-pill" onclick="toggleLlmPower()" title="Запустить или остановить локальную нейросеть">
+          <span class="dot"></span>
+          <span id="llmTopText" class="mono">LLM: выкл</span>
+        </button>
+        <button id="btnNewChatTop" class="btn icon-sm mobile-only" title="Новый чат" aria-label="Новый чат" onclick="newSession()">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Desktop / unfolded tablet telemetry strip (hidden on folded < 680px, shown in full on System tab) -->
+    <div class="tele-strip desktop-tele">
+      <div class="tele-pill">
+        <span class="k">Устройство / SoC</span>
+        <span id="devSoc" class="v">Определение...</span>
+      </div>
+      <div class="tele-pill">
+        <span class="k">RAM (ОЗУ)</span>
+        <span id="devRam" class="v mono">—</span>
+      </div>
+      <div class="tele-pill">
+        <span class="k">Память / Батарея</span>
+        <span id="devDisk" class="v mono">—</span>
+      </div>
+    </div>
+  </header>
+
+  <section id="jobsBar" class="jobs-bar"></section>
+
+  <!-- NON-INTRUSIVE UPDATE BANNER (GitHub Releases) -->
+  <section id="updateBanner" class="update-banner" style="display:none;">
+    <span id="updateBannerText" style="font-size:12.5px;font-weight:600;">Доступно обновление</span>
+    <div class="row">
+      <button id="btnBannerUpdate" class="btn primary sm" onclick="startAppUpdate()">Обновить</button>
+      <button class="btn sm" onclick="dismissUpdateBanner()">×</button>
+    </div>
+  </section>
+
+  <div class="workspace">
+  <main class="content">
+    <!-- TAB 1: CHAT 2.0 + VISION + DOCS + VOICE + ASSISTANT -->
+    <section id="view-chat" class="view active" style="overflow:hidden;">
+      <div class="chat-wrap">
+        <!-- Mobile drawer backdrop -->
+        <div id="chatDrawerBackdrop" class="backdrop" onclick="toggleChatDrawer(false)"></div>
+
+        <!-- Sessions sidebar (2-pane on >= 680px, slide-over drawer on < 680px) -->
+        <aside id="chatSide" class="chat-side">
+          <div class="drawer-head">
+            <strong>Чаты</strong>
+            <button class="btn icon-sm mobile-only" aria-label="Закрыть" onclick="toggleChatDrawer(false)">
+              <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <button class="btn primary" style="width:100%;" onclick="newSession(); toggleChatDrawer(false);">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Новый чат
+          </button>
+          <div id="sessionList" class="session-list"></div>
+          <div class="row" style="padding-top:4px;border-top:1px solid var(--b1);">
+            <button class="btn sm" style="flex:1;min-height:36px;" onclick="renameActiveSession()">Переименовать</button>
+            <button class="btn danger sm" style="flex:1;min-height:36px;" onclick="deleteActiveSession()">Удалить</button>
+          </div>
+        </aside>
+
+        <div class="chat-main">
+          <!-- SINGLE-ROW COMPACT CHAT BAR (40px vs 160px in v4.4!) -->
+          <div class="chat-bar">
+            <select id="modelSelect" class="model-sel" aria-label="Выбор модели" onchange="onModelSelectChanged()"></select>
+            <span id="visionPill" class="pill vision-badge" style="display:none;">Vision</span>
+            <button id="btnQuickCompact" class="btn warn-soft sm quick-compact" style="display:none;" onclick="compactActiveSession()" title="Контекст заполнен — сжать память">Сжать</button>
+            <button id="btnChatSheet" class="ctx-pill-btn" onclick="toggleChatSheet()" title="Параметры чата, роль и контекст">
+              <span id="ctxDot" class="ctx-dot"></span>
+              <span id="ctxMiniPct" class="mono">0%</span>
+              <svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            </button>
+          </div>
+
+          <!-- MESSAGES FEED (maximum vertical space!) -->
+          <div class="chat-feed-wrap">
+            <div id="chatMsgs" class="chat-msgs"></div>
+            <button id="btnScrollBottom" class="scroll-fab" aria-label="Вниз" onclick="scrollToBottom(true)">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+            </button>
+          </div>
+
+          <!-- ATTACHMENTS STRIP -->
+          <div id="attachStrip" class="attach-strip">
+            <img id="imgPreview" class="thumb" alt="Vision" style="display:none;" />
+            <span id="attachLabel" class="pill info"></span>
+            <button class="btn danger sm" onclick="clearAttachments()" style="margin-left:auto;">Убрать</button>
+          </div>
+
+          <!-- ASSIST CAPTURED SCREENSHOT OFFER BANNER -->
+          <div id="assistScreenOffer" class="assist-offer" style="display:none;">
+            <span class="muted">Захвачен скрин экрана ассистентом</span>
+            <div class="row">
+              <button class="btn info-soft sm" onclick="attachAssistScreen()">Прикрепить (Vision)</button>
+              <button class="btn sm" onclick="dismissAssistScreen()">×</button>
+            </div>
+          </div>
+
+          <!-- QUICK SCENARIO CHIPS (shown on empty chat or with attachment) -->
+          <div id="quickChips" class="quick-chips">
+            <button class="chip" onclick="applyQuickPrompt('Сделай краткую выжимку в 3-5 пунктах без воды:')">Суть в 3 пунктах</button>
+            <button class="chip" onclick="applyQuickPrompt('Скрой все персональные данные (ФИО, телефоны, паспорта, ИНН, адреса, карты) тегами [ФИО], [ТЕЛЕФОН], [ДОКУМЕНТ]:')">Скрыть PII</button>
+            <button class="chip" onclick="applyQuickPrompt('Преврати этот текст в структурированный чек-лист задач с приоритетами и сроками:')">В чек-лист</button>
+            <button class="chip" onclick="applyQuickPrompt('Проверь этот документ на скрытые риски, штрафы и подводные камни. Выдай короткий список:')">Риски договора</button>
+            <button class="chip" onclick="applyQuickPrompt('Переведи естественно на русский (или английский, если текст на русском) и объясни сложные термины:')">Перевести</button>
+            <button class="chip" onclick="applyQuickPrompt('Извлеки все реквизиты, суммы и даты с этого фото/документа в аккуратную таблицу Markdown:')">В таблицу</button>
+          </div>
+
+          <!-- UNIFIED MODERN COMPOSER CAPSULE -->
+          <div class="composer-box">
+            <input id="imgFile" type="file" accept="image/*" style="display:none" onchange="onPickImage(this.files[0])" />
+            <textarea id="chatInput" rows="1" placeholder="Спроси локальную нейросеть офлайн..."></textarea>
+            <div class="composer-bar">
+              <div class="composer-tools">
+                <button class="tool-btn" title="Камера Vision" aria-label="Камера Vision" onclick="openCamera()">
+                  <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </button>
+                <button class="tool-btn" title="Фото из галереи" aria-label="Фото" onclick="document.getElementById('imgFile').click()">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </button>
+                <button class="tool-btn" title="Документ (.pdf, .txt, .md)" aria-label="Документ" onclick="pickDocument()">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </button>
+                <button class="tool-btn" title="Голосовой ввод" aria-label="Микрофон" onclick="startVoiceInput()">
+                  <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </button>
+                <label id="webToggleLabel" class="web-toggle" title="Включить поиск в интернете для запроса">
+                  <input id="chkWebSearch" type="checkbox" onchange="onWebSearchToggle()" />
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                  <span>Сеть</span>
+                </label>
+              </div>
+              <div class="composer-send">
+                <button id="btnSend" class="send-btn" aria-label="Отправить" onclick="sendChat()">
+                  <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                </button>
+                <button id="btnAbort" class="send-btn abort" style="display:none;" aria-label="Остановить" onclick="abortChat()">
+                  <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: MODELS CATALOG -->
+    <section id="view-models" class="view">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Каталог офлайн-моделей (GGUF + Vision)</strong>
+          <button class="btn sm" onclick="loadCatalog()">Обновить</button>
+        </div>
+        <div class="muted">Модели хранятся на устройстве и работают без интернета. Совместимость рассчитана под реальную RAM.</div>
+        <div class="row model-filters">
+          <button class="chip active" data-filter="all" onclick="setModelFilter('all', this)">Все</button>
+          <button class="chip" data-filter="installed" onclick="setModelFilter('installed', this)">Скачанные</button>
+          <button class="chip" data-filter="vision" onclick="setModelFilter('vision', this)">Vision (Фото)</button>
+        </div>
+      </div>
+      <div id="catalogGrid" class="grid-models"></div>
+    </section>
+
+    <!-- TAB 3: HUGGING FACE SEARCH -->
+    <section id="view-hf" class="view">
+      <div class="card">
+        <strong>Поиск любых GGUF моделей на Hugging Face</strong>
+        <div class="row">
+          <input id="hfQuery" type="text" style="flex:1;min-width:0;" placeholder="Qwen3, Gemma 3 VL, Llama 3.2, DeepSeek..." onkeydown="if(event.key==='Enter') searchHf()" />
+          <button class="btn primary" onclick="searchHf()">Найти</button>
+        </div>
+      </div>
+      <div id="hfResults" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </section>
+
+    <!-- TAB 4: SYSTEM, TELEMETRY & DIGITAL ASSISTANT -->
+    <section id="view-system" class="view">
+      <!-- Full device telemetry card (clean, never truncated!) + Free RAM button -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Устройство и ресурсы</strong>
+          <button id="btnFreeRamSys" class="btn info-soft sm" onclick="freeRamNow(this)">
+            <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Освободить RAM
+          </button>
+        </div>
+        <div class="sys-tele-grid">
+          <div class="sys-tele-item">
+            <span class="k">Устройство / SoC</span>
+            <span id="sysDevSoc" class="v">—</span>
+          </div>
+          <div class="sys-tele-item">
+            <span class="k">RAM (ОЗУ)</span>
+            <span id="sysDevRam" class="v mono">—</span>
+          </div>
+          <div class="sys-tele-item">
+            <span class="k">Накопитель</span>
+            <span id="sysDevDisk" class="v mono">—</span>
+          </div>
+          <div class="sys-tele-item">
+            <span class="k">Батарея / Темп.</span>
+            <span id="sysDevBat" class="v mono">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Digital Assistant Card (Replace Google Assistant / Gemini) -->
+      <div class="card assist-card">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Системный ассистент (вместо Google)</strong>
+          <span id="assistStatusPill" class="pill">Проверка...</span>
+        </div>
+        <div class="muted">Вызов по зажатию кнопки питания, свайпу с угла или кнопке гарнитуры. Работает офлайн на NPU, 0% расхода батареи в фоне.</div>
+        <button class="btn primary" onclick="openAssistantSettings()">Выбрать Brazhnichenko Hub ассистентом</button>
+        <div class="toggle-list">
+          <label class="toggle-row">
+            <span>Сразу включать микрофон при вызове</span>
+            <input id="cfgAssistAutoVoice" type="checkbox" checked onchange="saveAssistSettings()" />
+          </label>
+          <label class="toggle-row">
+            <span>Авто-отправка голоса и озвучка ответа (TTS)</span>
+            <input id="cfgAssistAutoTts" type="checkbox" checked onchange="saveAssistSettings()" />
+          </label>
+          <label class="toggle-row">
+            <span>Автопоиск в сети при вызове ассистента</span>
+            <input id="cfgAssistWebSearch" type="checkbox" checked onchange="saveAssistSettings()" />
+          </label>
+          <label class="toggle-row">
+            <span>Авто-прикреплять скрин экрана (для Vision)</span>
+            <input id="cfgAssistAttachScreen" type="checkbox" onchange="saveAssistSettings()" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Hybrid Web Search Settings -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Гибридный веб-поиск</strong>
+          <span id="searchKeysPill" class="pill info">Бесплатный гибрид</span>
+        </div>
+        <div class="muted">Из коробки работает бесплатно без ключей (DuckDuckGo + Google News + Wikipedia). Опционально добавь ключ Tavily или Brave Search.</div>
+        <div class="sys-grid">
+          <div class="sys-field span-2">
+            <div class="muted">Приоритет поисковиков</div>
+            <select id="cfgSearchProvider" style="width:100%;">
+              <option value="auto">Авто (API ключ → DDG / Google News / Wiki)</option>
+              <option value="free">Только бесплатный (без ключей)</option>
+              <option value="tavily">Tavily API (+ бесплатный fallback)</option>
+              <option value="brave">Brave Search API (+ бесплатный fallback)</option>
+            </select>
+          </div>
+          <div class="sys-field">
+            <div class="muted">Tavily API ключ</div>
+            <input id="cfgTavilyKey" type="password" style="width:100%;" placeholder="tvly-... (опц.)" />
+          </div>
+          <div class="sys-field">
+            <div class="muted">Brave Search ключ</div>
+            <input id="cfgBraveKey" type="password" style="width:100%;" placeholder="BSA... (опц.)" />
+          </div>
+        </div>
+        <button class="btn primary" onclick="saveSearchSettings()">Сохранить настройки поиска</button>
+      </div>
+
+      <!-- Engine Settings -->
+      <div class="card">
+        <strong>Движок Snapdragon llama.cpp (Hexagon NPU + Adreno GPU)</strong>
+        <div class="sys-grid">
+          <div class="sys-field span-2">
+            <div class="muted">Ускоритель</div>
+            <select id="cfgBackend" style="width:100%;">
+              <option value="auto">Авто (Hexagon NPU → Adreno GPU → CPU)</option>
+              <option value="hexagon">Qualcomm Hexagon NPU (HTP0)</option>
+              <option value="opencl">Qualcomm Adreno GPU (OpenCL)</option>
+              <option value="cpu">CPU ARM64 (макс. совместимость)</option>
+              <option value="eco">CPU Эконом (4 потока)</option>
+            </select>
+          </div>
+          <div class="sys-field">
+            <div class="muted">Авто-выгрузка LLM</div>
+            <select id="cfgIdle" style="width:100%;">
+              <option value="0">Выкл (вручную)</option>
+              <option value="5">Через 5 мин</option>
+              <option value="10" selected>Через 10 мин</option>
+              <option value="15">Через 15 мин</option>
+              <option value="30">Через 30 мин</option>
+            </select>
+          </div>
+          <div class="sys-field">
+            <div class="muted">Контекст (токены)</div>
+            <select id="cfgCtx" style="width:100%;">
+              <option value="4096">4096</option>
+              <option value="8192">8192</option>
+              <option value="16384">16384</option>
+              <option value="32768">32768</option>
+            </select>
+          </div>
+          <div class="sys-field">
+            <div class="muted">Потоки CPU</div>
+            <input id="cfgThreads" type="number" inputmode="numeric" min="1" max="12" style="width:100%;" />
+          </div>
+          <div class="sys-field">
+            <div class="muted">HF токен</div>
+            <input id="cfgHfToken" type="password" style="width:100%;" placeholder="Опционально" />
+          </div>
+        </div>
+        <button class="btn primary" onclick="saveSettings()">Сохранить настройки движка</button>
+        <div id="modelsPathText" class="muted mono" style="word-break:break-all;font-size:11px;"></div>
+      </div>
+
+      <!-- In-App Auto-Updater (GitHub Releases) -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Обновления (GitHub Releases)</strong>
+          <span id="updVersionPill" class="pill mono">v4.7.0</span>
+        </div>
+        <div id="updStatusText" class="muted">Репозиторий: github.com/Lenodez/brazhnichenko-hub</div>
+        <div id="updProgWrap" style="display:none;flex-direction:column;gap:5px;">
+          <div class="row" style="justify-content:space-between;font-size:12px;">
+            <span id="updProgLabel">Скачивание APK...</span>
+            <span id="updProgPct" class="mono">0%</span>
+          </div>
+          <div class="bar-track"><div id="updProgFill" class="bar-fill" style="width:0%;"></div></div>
+        </div>
+        <div class="row">
+          <button id="btnCheckUpdate" class="btn" style="flex:1;" onclick="checkAppUpdate(false)">Проверить обновления</button>
+          <button id="btnInstallUpdate" class="btn primary" style="display:none;flex:1;" onclick="startAppUpdate()">Обновить APK</button>
+        </div>
+      </div>
+
+      <!-- Offline TTS -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Озвучка Android TTS (офлайн)</strong>
+          <button class="btn sm danger" onclick="stopSpeak()">Тишина</button>
+        </div>
+        <div class="row">
+          <input id="ttsBox" type="text" style="flex:1;min-width:0;" placeholder="Текст для локальной озвучки..." />
+          <button class="btn primary sm" onclick="speakDemo()">Озвучить</button>
+        </div>
+      </div>
+
+      <!-- Live Logs -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Живые логи llama-server</strong>
+          <button class="btn sm" onclick="loadLogs()">Обновить логи</button>
+        </div>
+        <pre id="logsBox" class="logs">(Нажми «Обновить логи»)</pre>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="chat" onclick="switchView('chat')">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Чат
+    </button>
+    <button class="nav-btn" data-view="models" onclick="switchView('models')">
+      <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg>
+      Модели
+    </button>
+    <button class="nav-btn" data-view="hf" onclick="switchView('hf')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Поиск HF
+    </button>
+    <button class="nav-btn" data-view="system" onclick="switchView('system')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9"/></svg>
+      Система
+    </button>
+  </nav>
+  </div>
+</div>
+
+<!-- MATERIAL 3 NATIVE-STYLE MODAL DIALOG (replaces browser confirm/prompt) -->
+<div id="modalBackdrop" class="backdrop" style="z-index:85;" onclick="closeM3Modal(null)"></div>
+<div id="m3Modal" class="m3-modal" role="dialog" aria-modal="true">
+  <strong id="m3ModalTitle" style="font-size:16px;">Подтверждение</strong>
+  <div id="m3ModalMsg" class="muted" style="font-size:13.5px;color:var(--t2);"></div>
+  <input id="m3ModalInput" type="text" style="display:none;width:100%;" />
+  <div class="row" style="justify-content:flex-end;margin-top:4px;">
+    <button id="m3ModalCancel" class="btn sm" onclick="closeM3Modal(null)">Отмена</button>
+    <button id="m3ModalOk" class="btn primary sm" onclick="confirmM3Modal()">ОК</button>
+  </div>
+</div>
+
+<!-- BOTTOM SHEET: CHAT SETTINGS, CONTEXT METER, MEMORY & ACTIONS -->
+<div id="chatSheetBackdrop" class="backdrop" onclick="toggleChatSheet(false)"></div>
+<div id="chatSheet" class="bottom-sheet" role="dialog" aria-label="Параметры чата и контекст">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <strong>Параметры чата и контекст</strong>
+    <button class="btn icon-sm" aria-label="Закрыть" onclick="toggleChatSheet(false)">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="sheet-body">
+    <!-- Context Meter -->
+    <div class="sheet-block">
+      <div class="ctx-row">
+        <span id="ctxLabel" class="mono">Контекст: 0 / 8 192 (0%)</span>
+        <span id="ctxRemain" class="mono muted">своб. 8 192</span>
+      </div>
+      <div class="ctx-bar"><div id="ctxFill" class="ctx-fill" style="width:0%;"></div></div>
+    </div>
+
+    <!-- Role & Temperature -->
+    <div class="sheet-grid">
+      <div class="sys-field">
+        <div class="muted">Роль / персона</div>
+        <select id="personaSelect" style="width:100%;" onchange="saveSessionMeta()">
+          <option value="default">Ассистент</option>
+          <option value="coder">Программист</option>
+          <option value="translator">Переводчик</option>
+          <option value="concise">Кратко</option>
+          <option value="privacy">Юрист / PII</option>
+          <option value="notes">Заметки → Задачи</option>
+          <option value="tutor">Репетитор языков</option>
+        </select>
+      </div>
+      <div class="sys-field">
+        <div class="muted">Температура: <span id="chatTempVal" class="mono" style="color:var(--t1);">0.70</span></div>
+        <div class="temp-slider-box">
+          <input id="chatTemp" type="range" min="0" max="1.5" step="0.05" value="0.7" oninput="document.getElementById('chatTempVal').textContent=Number(this.value).toFixed(2)" onchange="saveSessionMeta()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Grid (touch-friendly >= 42px) -->
+    <div class="sheet-actions">
+      <button id="btnCompact" class="btn" onclick="toggleChatSheet(false); compactActiveSession();">Сжать контекст</button>
+      <button id="btnMemory" class="btn" onclick="toggleMemoryEditor()">Память / Промпт</button>
+      <button class="btn" onclick="toggleChatSheet(false); regenerateLast();">Повторить ответ</button>
+      <button class="btn info-soft" onclick="freeRamNow(this)">Освободить RAM</button>
+      <button class="btn" onclick="toggleChatSheet(false); exportChatMarkdown();">Экспорт .md</button>
+      <button class="btn danger" onclick="toggleChatSheet(false); clearActiveSession();">Очистить чат</button>
+    </div>
+
+    <!-- Memory & Custom System Prompt Editor -->
+    <div id="ctxDrawer" class="ctx-drawer">
+      <div class="ctx-field">
+        <div class="muted">Системный промпт этого чата (дополнительные правила)</div>
+        <textarea id="ctxCustomSys" rows="2" placeholder="Например: Отвечай строго с примерами на Python и без воды..."></textarea>
+      </div>
+      <div class="ctx-field">
+        <div class="muted">Сжатая память диалога (подставляется модели после «Сжать»)</div>
+        <textarea id="ctxMemSummary" rows="3" placeholder="Пока пусто. Нажми «Сжать контекст», чтобы сжать длинный чат."></textarea>
+      </div>
+      <button class="btn primary" onclick="saveCtxDrawer()">Сохранить память и промпт</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>

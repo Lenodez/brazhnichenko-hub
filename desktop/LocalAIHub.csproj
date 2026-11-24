@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>LocalAIHub</AssemblyName>
+    <RootNamespace>LocalAIHub</RootNamespace>
+    <Version>4.2.3</Version>
+    <ApplicationTitle>Brazhnichenko Hub</ApplicationTitle>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Mcp\**;Installer\**;dist\**</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+    <Resource Include="Assets\app.png" />
+  </ItemGroup>
+</Project>

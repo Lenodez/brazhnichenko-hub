@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="sc_voice"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_voice"
+        android:shortcutShortLabel="@string/sc_voice_short"
+        android:shortcutLongLabel="@string/sc_voice_long">
+        <intent
+            android:action="com.brazhnichenko.hub.SHORTCUT_VOICE"
+            android:targetPackage="com.brazhnichenko.hub"
+            android:targetClass="com.brazhnichenko.hub.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="sc_camera"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_camera"
+        android:shortcutShortLabel="@string/sc_camera_short"
+        android:shortcutLongLabel="@string/sc_camera_long">
+        <intent
+            android:action="com.brazhnichenko.hub.SHORTCUT_CAMERA"
+            android:targetPackage="com.brazhnichenko.hub"
+            android:targetClass="com.brazhnichenko.hub.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="sc_doc"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_doc"
+        android:shortcutShortLabel="@string/sc_doc_short"
+        android:shortcutLongLabel="@string/sc_doc_long">
+        <intent
+            android:action="com.brazhnichenko.hub.SHORTCUT_DOC"
+            android:targetPackage="com.brazhnichenko.hub"
+            android:targetClass="com.brazhnichenko.hub.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="sc_new_chat"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_chat"
+        android:shortcutShortLabel="@string/sc_chat_short"
+        android:shortcutLongLabel="@string/sc_chat_long">
+        <intent
+            android:action="com.brazhnichenko.hub.SHORTCUT_NEW_CHAT"
+            android:targetPackage="com.brazhnichenko.hub"
+            android:targetClass="com.brazhnichenko.hub.MainActivity" />
+    </shortcut>
+</shortcuts>

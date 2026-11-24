@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Brazhnichenko Hub</string>
+    <string name="process_text_label">Спросить в Hub AI</string>
+    <string name="tile_label">Local AI</string>
+    <string name="widget_desc">Быстрый запуск локальной AI (Чат, Камера Vision, Документ, Голос)</string>
+    <string name="sc_voice_short">Голосовой вопрос</string>
+    <string name="sc_voice_long">Задать вопрос локальной AI голосом</string>
+    <string name="sc_camera_short">Камера Vision</string>
+    <string name="sc_camera_long">Сфотографировать для офлайн-Vision</string>
+    <string name="sc_doc_short">Документ PDF</string>
+    <string name="sc_doc_long">Разобрать PDF или текст офлайн</string>
+    <string name="sc_chat_short">Новый чат</string>
+    <string name="sc_chat_long">Начать новый офлайн-чат</string>
+</resources>

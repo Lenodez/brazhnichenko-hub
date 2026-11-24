@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/widget_bg"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/widget_ask"
+        android:layout_width="0dp"
+        android:layout_height="42dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_input_bg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="Hub AI"
+            android:src="@drawable/ic_sc_chat" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Спросить локальную AI..."
+                android:textColor="#EDF2FA"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Brazhnichenko Hub · Офлайн"
+                android:textColor="#94A0B8"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/widget_camera"
+        android:layout_width="40dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/widget_btn_bg"
+        android:contentDescription="Камера Vision"
+        android:padding="9dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_sc_camera" />
+
+    <ImageButton
+        android:id="@+id/widget_doc"
+        android:layout_width="40dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="5dp"
+        android:background="@drawable/widget_btn_bg"
+        android:contentDescription="Документ PDF"
+        android:padding="9dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_sc_doc" />
+
+    <ImageButton
+        android:id="@+id/widget_voice"
+        android:layout_width="40dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="5dp"
+        android:background="@drawable/widget_btn_primary"
+        android:contentDescription="Голосовой вопрос"
+        android:padding="9dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_sc_voice" />
+
+</LinearLayout>

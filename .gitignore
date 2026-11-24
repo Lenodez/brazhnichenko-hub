@@ -1,0 +1,33 @@
+# Build outputs & binaries
+build/
+dist/
+bin/
+obj/
+*.apk
+*.aab
+*.exe
+*.msi
+*.tar.gz
+*.zip
+*.gguf
+
+# Keystores, signing secrets & environment files
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pass
+.env
+.env.*
+local.properties
+
+# IDE & OS
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+.DS_Store
+__pycache__/
+*.pyc

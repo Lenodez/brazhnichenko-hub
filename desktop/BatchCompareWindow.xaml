@@ -1,0 +1,32 @@
+<Window x:Class="LocalAIHub.BatchCompareWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Сравнение вариаций (Сетка 2×2) — Brazhnichenko Hub"
+        Width="1120" Height="780" MinWidth="760" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgCanvasBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource UiFontFamily}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+            <Button DockPanel.Dock="Right" Style="{StaticResource DarkButton}" Padding="10,5" Click="CloseBtn_Click">
+                <StackPanel Orientation="Horizontal">
+                    <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconClose}" Margin="0,0,6,0"/>
+                    <TextBlock Text="Закрыть (Esc)" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Path Style="{StaticResource UiIcon18}" Data="{StaticResource IconGallery}" Stroke="{StaticResource AccentBrush}" Margin="0,0,9,0"/>
+                <TextBlock x:Name="GridTitleText" Text="Сравнение батч-вариаций" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DockPanel>
+
+        <UniformGrid x:Name="CellsGrid" Grid.Row="1" Columns="2"/>
+    </Grid>
+</Window>

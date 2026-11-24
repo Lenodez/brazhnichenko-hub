@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>LocalAIHub-Setup</AssemblyName>
+    <RootNamespace>LocalAIHub.Installer</RootNamespace>
+    <ApplicationTitle>Local AI Hub — Установщик</ApplicationTitle>
+    <ApplicationIcon>..\Assets\app.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="..\Assets\app.ico" Link="Assets\app.ico" />
+    <Resource Include="..\Assets\app.png" Link="Assets\app.png" />
+    <EmbeddedResource Include="Resources\payload.zip" LogicalName="LocalAIHub.Installer.payload.zip" />
+  </ItemGroup>
+</Project>

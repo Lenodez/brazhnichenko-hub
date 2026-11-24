@@ -1,0 +1,110 @@
+<UserControl x:Class="LocalAIHub.Views.GalleryTabView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"><Grid PreviewKeyDown="GalleryGrid_PreviewKeyDown">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: Filter pills + Search + Sort + Refresh -->
+                    <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                        <WrapPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                            <Button x:Name="GalleryFilterAllBtn" Content="Все готовые" Style="{StaticResource PrimaryButton}" Padding="11,5" FontSize="12" Margin="0,0,6,0" Click="GalleryFilterBtn_Click" Tag="all" x:FieldModifier="internal" />
+                            <Button x:Name="GalleryFilterPhotoBtn" Style="{StaticResource DarkButton}" Padding="11,5" FontSize="12" Margin="0,0,6,0" Click="GalleryFilterBtn_Click" Tag="photo" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconPhoto}" Margin="0,0,6,0" /><TextBlock Text="Фото" VerticalAlignment="Center" /></StackPanel></Button>
+                            <Button x:Name="GalleryFilterVideoBtn" Style="{StaticResource DarkButton}" Padding="11,5" FontSize="12" Margin="0,0,6,0" Click="GalleryFilterBtn_Click" Tag="video" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconVideo}" Margin="0,0,6,0" /><TextBlock Text="Видео" VerticalAlignment="Center" /></StackPanel></Button>
+                            <Button x:Name="GalleryFilterFavBtn" Style="{StaticResource DarkButton}" Padding="11,5" FontSize="12" Margin="0,0,6,0" Click="GalleryFilterBtn_Click" Tag="fav" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconStar}" Margin="0,0,6,0" /><TextBlock Text="Избранное" VerticalAlignment="Center" /></StackPanel></Button>
+                            <Button x:Name="GalleryFilterTempBtn" Style="{StaticResource DarkButton}" Padding="11,5" FontSize="12" Margin="0,0,6,0" Click="GalleryFilterBtn_Click" Tag="temp" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconTrash}" Margin="0,0,6,0" /><TextBlock Text="Временные / Input" VerticalAlignment="Center" /></StackPanel></Button>
+                        </WrapPanel>
+
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                            <TextBox x:Name="GallerySearchBox" Width="175" Height="28" VerticalContentAlignment="Center" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" Padding="8,0" FontSize="12" Margin="0,0,6,0" ToolTip="Фильтр по имени файла или папке" TextChanged="GallerySearchBox_TextChanged" x:FieldModifier="internal" />
+                            <ComboBox x:Name="GallerySortCombo" Width="140" Height="28" FontSize="12" SelectedIndex="0" Margin="0,0,6,0" SelectionChanged="GallerySortCombo_Changed" x:FieldModifier="internal">
+                                <ComboBoxItem Content="Сначала новые" Tag="newest" />
+                                <ComboBoxItem Content="Сначала старые" Tag="oldest" />
+                                <ComboBoxItem Content="Сначала тяжёлые" Tag="largest" />
+                            </ComboBox>
+                            <Button Content="↻ Обновить" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,6,0" Click="GalleryRefreshBtn_Click" />
+                            <Button Content="Папка" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Click="StudioOpenOutputFolderBtn_Click" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Row 1: Bulk cleanup toolbar + Stats -->
+                    <Border Grid.Row="1" Background="#151B28" BorderBrush="#2A344B" BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,0,0,9">
+                        <DockPanel>
+                            <TextBlock x:Name="GalleryStatsText" Text="Сканирование..." FontSize="12" Foreground="#9BA8C4" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0" x:FieldModifier="internal" />
+                            <WrapPanel VerticalAlignment="Center">
+                                <Button x:Name="GallerySelectAllBtn" Content="Выбрать видимые" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,6,0" Click="GallerySelectAllBtn_Click" x:FieldModifier="internal" />
+                                <Button x:Name="GallerySelectTrashBtn" Content="Выбрать всё кроме ★" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,6,0" ToolTip="Отметить все видимые файлы, кроме добавленных в Избранное ⭐" Click="GallerySelectTrashBtn_Click" x:FieldModifier="internal" />
+                                <Button x:Name="GalleryClearSelBtn" Content="Снять выбор" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,8,0" Click="GalleryClearSelBtn_Click" x:FieldModifier="internal" />
+                                <Button x:Name="GalleryDeleteSelectedBtn" Content="В корзину (0)" Style="{StaticResource DangerButton}" Padding="11,5" FontSize="12" Margin="0,0,8,0" IsEnabled="False" Click="GalleryDeleteSelectedBtn_Click" x:FieldModifier="internal" />
+                                <Button x:Name="GalleryCleanTempBtn" Content="Очистить временные" Style="{StaticResource DarkButton}" Padding="11,5" FontSize="12" ToolTip="Отправить в Корзину кэш ComfyUI\input, studio_frames и video_frames (готовые фото и видео не трогает)" Click="GalleryCleanTempBtn_Click" x:FieldModifier="internal" />
+                            </WrapPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Row 2: Left Thumbnail Grid + Right Large Preview / Video Player -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="460" />
+                            <ColumnDefinition Width="380" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: Cards WrapPanel -->
+                        <Border Grid.Column="0" Background="#0E121B" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,12,0">
+                            <ScrollViewer x:Name="GalleryScroll" VerticalScrollBarVisibility="Auto" x:FieldModifier="internal">
+                                <StackPanel>
+                                    <WrapPanel x:Name="GalleryItemsPanel" x:FieldModifier="internal" />
+                                    <Button x:Name="GalleryLoadMoreBtn" Content="Показать ещё..." Style="{StaticResource DarkButton}" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,10,0,6" Padding="18,7" Click="GalleryLoadMoreBtn_Click" x:FieldModifier="internal" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <!-- Right: Large Preview & Quick Actions -->
+                        <Border Grid.Column="1" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="14">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                                    <TextBlock Text="Просмотр (← / → листать • F ⭐ • Del в корзину)" FontSize="13" FontWeight="SemiBold" Foreground="#C8D4EA" VerticalAlignment="Center" />
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                        <Button Content="◀" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" Margin="0,0,4,0" Click="GalleryPrevBtn_Click" />
+                                        <Button Content="▶" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" Click="GalleryNextBtn_Click" />
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <Border Grid.Row="1" Background="{StaticResource WellBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                                    <Grid>
+                                        <Image x:Name="GalleryPreviewImage" Stretch="Uniform" Visibility="Collapsed" Cursor="Hand" MouseLeftButtonUp="GalleryPreviewImage_Click" ToolTip="Кликни, чтобы открыть на весь экран" x:FieldModifier="internal" />
+                                        <MediaElement x:Name="GalleryVideoPlayer" LoadedBehavior="Manual" UnloadedBehavior="Manual" Stretch="Uniform" Visibility="Collapsed" MediaEnded="GalleryVideoPlayer_MediaEnded" x:FieldModifier="internal" />
+                                        <TextBlock x:Name="GalleryPreviewPlaceholder" Text="Выбери фото или видео слева&#xA;для просмотра и быстрой чистки" TextAlignment="Center" Foreground="#6B7794" FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Center" x:FieldModifier="internal" />
+                                    </Grid>
+                                </Border>
+
+                                <StackPanel Grid.Row="2" Margin="0,8,0,8">
+                                    <TextBlock x:Name="GalleryMetaTitleText" Text="Файл не выбран" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" x:FieldModifier="internal" />
+                                    <TextBlock x:Name="GalleryMetaSubText" Text="—" FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0" x:FieldModifier="internal" />
+                                    <Border x:Name="GalleryMetaPromptBorder" Visibility="Collapsed" Background="#101522" BorderBrush="#26334F" BorderThickness="1" CornerRadius="6" Padding="8,5" Margin="0,5,0,0" x:FieldModifier="internal">
+                                        <TextBlock x:Name="GalleryMetaPromptText" FontSize="11" Foreground="#C5D5F0" TextWrapping="Wrap" MaxHeight="62" TextTrimming="CharacterEllipsis" x:FieldModifier="internal" />
+                                    </Border>
+                                </StackPanel>
+
+                                <WrapPanel Grid.Row="3">
+                                    <Button x:Name="GalleryDeleteCurrentBtn" Style="{StaticResource DangerButton}" Padding="11,6" FontSize="12" Margin="0,0,6,6" Visibility="Collapsed" Click="GalleryDeleteCurrentBtn_Click" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconTrash}" Margin="0,0,6,0" /><TextBlock Text="В корзину (Del)" VerticalAlignment="Center" /></StackPanel></Button>
+                                    <Button x:Name="GalleryToggleFavBtn" Content="☆ В избранное" Style="{StaticResource DarkButton}" Padding="10,6" FontSize="12" Margin="0,0,6,6" Visibility="Collapsed" Click="GalleryToggleFavBtn_Click" x:FieldModifier="internal" />
+                                    <Button x:Name="GalleryRestoreStudioBtn" Style="{StaticResource SuccessButton}" Padding="10,6" FontSize="12" Margin="0,0,6,6" Visibility="Collapsed" ToolTip="Восстановить промпт, модель, Seed и LoRA этого кадра в Студии" Click="GalleryRestoreStudioBtn_Click" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconRestore}" Margin="0,0,6,0" /><TextBlock Text="В Студию" VerticalAlignment="Center" /></StackPanel></Button>
+                                    <Button x:Name="GalleryCopyImageBtn" Style="{StaticResource DarkButton}" Padding="10,6" FontSize="12" Margin="0,0,6,6" Visibility="Collapsed" ToolTip="Скопировать фото в буфер обмена" Click="GalleryCopyImageBtn_Click" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconCopy}" Margin="0,0,6,0" /><TextBlock Text="Копировать" VerticalAlignment="Center" /></StackPanel></Button>
+                                    <Button x:Name="GalleryPlayPauseBtn" Content="⏸ Пауза" Style="{StaticResource PrimaryButton}" Padding="11,6" FontSize="12" Margin="0,0,6,6" Visibility="Collapsed" Click="GalleryPlayPauseBtn_Click" x:FieldModifier="internal" />
+                                    <Button x:Name="GalleryOpenExternalBtn" Content="Открыть ↗" Style="{StaticResource DarkButton}" Padding="10,6" FontSize="12" Margin="0,0,6,6" Visibility="Collapsed" Click="GalleryOpenExternalBtn_Click" x:FieldModifier="internal" />
+                                    <Button x:Name="GalleryRevealBtn" Content="В папке" Style="{StaticResource DarkButton}" Padding="10,6" FontSize="12" Margin="0,0,6,6" Visibility="Collapsed" Click="GalleryRevealBtn_Click" x:FieldModifier="internal" />
+                                    <Button x:Name="GallerySendToVideoBtn" Content="→ Оживить в Видео" Style="{StaticResource DarkButton}" Padding="10,6" FontSize="12" Margin="0,0,6,6" Visibility="Collapsed" Click="GallerySendToVideoBtn_Click" x:FieldModifier="internal" />
+                                    <Button x:Name="GallerySendToUpscaleBtn" Content="→ Апскейл ×4" Style="{StaticResource DarkButton}" Padding="10,6" FontSize="12" Margin="0,0,6,6" Visibility="Collapsed" Click="GallerySendToUpscaleBtn_Click" x:FieldModifier="internal" />
+                                    <Button x:Name="GallerySendToPhotoRefBtn" Content="→ Референс Фото" Style="{StaticResource DarkButton}" Padding="10,6" FontSize="12" Margin="0,0,0,6" Visibility="Collapsed" Click="GallerySendToPhotoRefBtn_Click" x:FieldModifier="internal" />
+                                </WrapPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid></UserControl>

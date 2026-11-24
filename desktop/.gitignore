@@ -1,0 +1,17 @@
+# Build outputs & local app staging
+bin/
+obj/
+app/
+dist/
+
+# Installer build & staging artifacts
+Installer/stage/
+Installer/build_out/
+Installer/Resources/payload.zip
+
+# IDE & test artifacts
+*.user
+*.suo
+*.userosscache
+.vs/
+TestResults/

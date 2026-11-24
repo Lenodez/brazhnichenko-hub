@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brazhnichenko Hub</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+<div class="app-shell">
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <img src="/app.png" alt="Hub" class="brand-logo" onerror="this.style.display='none'" />
+      <h1>Brazhnichenko Hub</h1>
+      <span id="versionPill" class="pill accent mono">v4.3.0</span>
+      <span id="platformPill" class="pill mono">Cross-Platform</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn primary" onclick="openAssistantTab()">
+        <svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg>
+        Спросить AI
+      </button>
+      <button class="btn danger" onclick="stopAllGpu()">
+        <svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+        Освободить GPU
+      </button>
+    </div>
+  </header>
+
+  <!-- LIVE TELEMETRY -->
+  <section class="telemetry-grid">
+    <div class="tele-card">
+      <div class="tele-top">
+        <span id="gpuNameText" class="tele-label">Определение GPU / Apple Silicon...</span>
+        <span id="gpuValText" class="tele-val mono">—</span>
+      </div>
+      <div class="tele-bottom">
+        <div class="bar-track"><div id="gpuBar" class="bar-fill" style="width:0%"></div></div>
+        <svg id="gpuSpark" class="sparkline" viewBox="0 0 72 20"></svg>
+      </div>
+    </div>
+    <div class="tele-card">
+      <div class="tele-top">
+        <span id="ramLabelText" class="tele-label">Память (RAM)</span>
+        <span id="ramValText" class="tele-val mono">—</span>
+      </div>
+      <div class="tele-bottom">
+        <div class="bar-track"><div id="ramBar" class="bar-fill" style="width:0%"></div></div>
+        <svg id="ramSpark" class="sparkline" viewBox="0 0 72 20"></svg>
+      </div>
+    </div>
+    <div class="tele-card">
+      <div class="tele-top">
+        <span id="diskLabelText" class="tele-label">Диск</span>
+        <span id="diskValText" class="tele-val mono">—</span>
+      </div>
+      <div class="tele-bottom">
+        <div class="bar-track"><div id="diskBar" class="bar-fill success" style="width:0%"></div></div>
+        <span id="llmQuickStatus" class="pill mono">LLM: выкл</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACTIVE DOWNLOAD / GENERATION JOBS -->
+  <section id="jobsBar" class="jobs-bar"></section>
+
+  <!-- MAIN NAVIGATION -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="chat" onclick="switchTab('chat')">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Чат
+    </button>
+    <button class="nav-tab" data-tab="models" onclick="switchTab('models')">
+      <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
+      Модели и Mac M1–M6 / GPU
+    </button>
+    <button class="nav-tab" data-tab="photo" onclick="switchTab('photo')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      Фото
+    </button>
+    <button class="nav-tab" data-tab="video" onclick="switchTab('video')">
+      <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Видео и Голос
+    </button>
+    <button class="nav-tab" data-tab="gallery" onclick="switchTab('gallery')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Галерея
+    </button>
+    <button class="nav-tab" data-tab="system" onclick="switchTab('system')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09c-.66 0-1.25.4-1.51 1z"/></svg>
+      Система
+    </button>
+  </nav>
+
+  <!-- ==================== TAB 1: CHAT (LOCAL LLM 2.0 + RAG ASSISTANT) ==================== -->
+  <section id="tab-chat" class="tab-view active">
+    <div class="subtabs">
+      <button id="subChatLlmBtn" class="subtab active" onclick="switchChatSub('llm')">Локальная LLM (Чат 2.0 + Vision)</button>
+      <button id="subChatAsstBtn" class="subtab" onclick="switchChatSub('assistant')">AI-Помощник по Хабу (RAG Mac M1–M6 + NVIDIA)</button>
+    </div>
+
+    <!-- Local LLM Chat 2.0 -->
+    <div id="chatSubLlm" class="stack">
+      <div class="panel row" style="justify-content:space-between;">
+        <div class="row">
+          <span class="muted">Модель LLM:</span>
+          <select id="llmModelSelect" style="min-width:290px;"></select>
+          <span id="visionBadge" class="pill">Только текст</span>
+          <span id="llmStatusPill" class="pill">Остановлена</span>
+        </div>
+        <div class="row">
+          <button id="btnStartLlm" class="btn success sm" onclick="startSelectedLlm()">Запустить LLM</button>
+          <button id="btnStopLlm" class="btn danger sm" onclick="stopService('qwen')">Остановить</button>
+          <button class="btn sm" onclick="applyAntiLoop()">Анти-луп</button>
+        </div>
+      </div>
+
+      <div class="chat-layout">
+        <aside class="chat-sidebar">
+          <button class="btn primary" onclick="createNewSession()">+ Новый чат</button>
+          <input id="sessionSearch" type="text" placeholder="Поиск диалогов..." oninput="renderSessions()" />
+          <div id="sessionList" class="session-list"></div>
+          <div class="row">
+            <button class="btn sm" style="flex:1" onclick="clearCurrentSession()">Очистить</button>
+            <button class="btn danger sm" style="flex:1" onclick="deleteCurrentSession()">Удалить</button>
+          </div>
+        </aside>
+
+        <div class="chat-main">
+          <div class="row" style="justify-content:space-between;">
+            <div class="row">
+              <span class="muted">Персона:</span>
+              <select id="personaSelect" onchange="updateCurrentSessionMeta()"></select>
+            </div>
+            <div class="row">
+              <span class="muted">Темп.:</span>
+              <input id="tempRange" type="range" min="0" max="1.5" step="0.05" value="0.7" oninput="document.getElementById('tempVal').textContent=Number(this.value).toFixed(2)" onchange="updateCurrentSessionMeta()" />
+              <span id="tempVal" class="mono">0.70</span>
+              <span id="chatSpeedBadge" class="pill info mono" style="display:none;"></span>
+            </div>
+          </div>
+
+          <div id="chatMessages" class="chat-messages"></div>
+
+          <div id="visionPreviewRow" class="row" style="display:none;">
+            <img id="visionPreviewImg" class="vision-thumb" alt="Vision" />
+            <span class="muted">Изображение прикреплено для Vision LLM</span>
+            <button class="btn danger sm" onclick="clearVisionAttachment()">Убрать</button>
+          </div>
+
+          <div class="chat-input-bar">
+            <input id="visionFileInput" type="file" accept="image/*" style="display:none" onchange="handleVisionFile(this.files[0])" />
+            <button class="btn" title="Прикрепить картинку (Vision)" onclick="document.getElementById('visionFileInput').click()">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            </button>
+            <textarea id="chatInput" rows="2" placeholder="Напиши сообщение (Enter — отправить, Shift+Enter — перенос, Ctrl+V — вставить картинку)..." onkeydown="onChatKeyDown(event)"></textarea>
+            <button id="btnSendChat" class="btn primary" onclick="sendChatMessage()">Отправить</button>
+            <button id="btnStopChat" class="btn danger" style="display:none;" onclick="abortChatStream()">Стоп</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RAG AI Assistant -->
+    <div id="chatSubAssistant" class="panel stack" style="display:none;">
+      <div class="panel-title">
+        <span>AI-Помощник по Хабу (База знаний Apple Silicon M1–M6 + NVIDIA GTX 10–RTX 50 + Vision + Каталог)</span>
+        <button class="btn sm" onclick="clearAssistant()">Очистить</button>
+      </div>
+      <div class="row">
+        <button class="btn sm" onclick="askAssistantQuick('Какие модели лучше всего подойдут под мой текущий компьютер?')">Под мой Mac / ПК</button>
+        <button class="btn sm" onclick="askAssistantQuick('Какие текстовые модели потянет MacBook Pro M4 Pro 48 ГБ?')">Mac M4 Pro 48 ГБ</button>
+        <button class="btn sm" onclick="askAssistantQuick('Сравни Apple M1 Max 64 ГБ и M5 Max 64 ГБ для локальных LLM')">M1 Max vs M5 Max</button>
+        <button class="btn sm" onclick="askAssistantQuick('Как включить анализ картинок (Vision / mmproj) в чате?')">Как включить Vision?</button>
+        <button class="btn sm" onclick="askAssistantQuick('Почему Qwen ходит по кругу и как починить?')">Qwen ходит по кругу</button>
+      </div>
+      <div id="assistantMessages" class="chat-messages" style="height:400px;"></div>
+      <div class="chat-input-bar">
+        <input id="assistantInput" type="text" style="flex:1" placeholder="Спроси про Apple M1–M6, VRAM/Unified Memory, Vision, ошибки или подбор моделей..." onkeydown="if(event.key==='Enter') askAssistant()" />
+        <button id="btnAskAsst" class="btn primary" onclick="askAssistant()">Спросить</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB 2: MODELS + APPLE SILICON M1-M6 & NVIDIA SIMULATOR ==================== -->
+  <section id="tab-models" class="tab-view">
+    <div class="sim-banner">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div style="font-size:15px;font-weight:600;">Умный подбор моделей под железо: Apple Silicon (M1–M6) и NVIDIA (GTX 10–RTX 50)</div>
+          <div class="muted">Автоматически определяет твой Mac/ПК или позволяет смоделировать любой Mac (M1–M6 + 8–512 ГБ Unified Memory) и сразу увидеть реальную скорость (tok/s).</div>
+        </div>
+        <div class="row">
+          <button id="simModeAuto" class="btn sm primary" onclick="setSimMode('auto')">Мой компьютер (Авто)</button>
+          <button id="simModeApple" class="btn sm" onclick="setSimMode('apple')">Apple Silicon M1–M6</button>
+          <button id="simModeNvidia" class="btn sm" onclick="setSimMode('nvidia')">NVIDIA GPU</button>
+        </div>
+      </div>
+
+      <!-- Apple Silicon M1-M6 Selector -->
+      <div id="appleSelectorRow" class="stack" style="display:none;">
+        <div class="row">
+          <span class="muted">Поколение:</span>
+          <div id="appleGenChips" class="ram-chips"></div>
+        </div>
+        <div class="row">
+          <span class="muted">Чип:</span>
+          <select id="appleChipSelect" style="min-width:220px;" onchange="onAppleChipChanged()"></select>
+          <span class="muted">Unified Memory:</span>
+          <div id="appleRamChips" class="ram-chips"></div>
+        </div>
+      </div>
+
+      <!-- NVIDIA Selector -->
+      <div id="nvidiaSelectorRow" class="row" style="display:none;">
+        <span class="muted">Видеокарта:</span>
+        <select id="nvidiaGpuSelect" style="min-width:260px;" onchange="runHardwareSimulation()"></select>
+        <span class="muted">ОЗУ ПК:</span>
+        <select id="nvidiaRamSelect" onchange="runHardwareSimulation()">
+          <option value="16">16 ГБ RAM</option>
+          <option value="32" selected>32 ГБ RAM</option>
+          <option value="64">64 ГБ RAM</option>
+          <option value="128">128 ГБ RAM</option>
+        </select>
+      </div>
+
+      <!-- Computed Hardware Profile Summary -->
+      <div class="hw-specs-strip">
+        <div class="spec-box"><div class="k">Процессор / GPU</div><div id="simChipLabel" class="v">—</div></div>
+        <div class="spec-box"><div class="k">Память GPU / Metal</div><div id="simVramLabel" class="v mono">—</div></div>
+        <div class="spec-box"><div class="k">ПСП и особенности</div><div id="simBwLabel" class="v mono">—</div></div>
+        <div class="spec-box"><div class="k">Рекомендуемый формат</div><div id="simFormatLabel" class="v">—</div></div>
+      </div>
+      <div id="simSummaryText" class="muted"></div>
+    </div>
+
+    <!-- Catalog / HF Search Sub-tabs -->
+    <div class="row" style="justify-content:space-between;">
+      <div class="subtabs" style="margin:0;">
+        <button class="subtab active" data-cat="text" onclick="setCatalogCategory('text', this)">Текстовые LLM и Vision</button>
+        <button class="subtab" data-cat="photo" onclick="setCatalogCategory('photo', this)">Фото и Апскейл</button>
+        <button class="subtab" data-cat="video" onclick="setCatalogCategory('video', this)">Видео и Звук</button>
+        <button class="subtab" data-cat="hf" onclick="setCatalogCategory('hf', this)">Поиск Hugging Face</button>
+      </div>
+      <button class="btn sm" onclick="loadCatalog()">Обновить статус</button>
+    </div>
+
+    <div id="catalogGrid" class="grid-2"></div>
+
+    <!-- Hugging Face Search View -->
+    <div id="hfSearchPane" class="panel stack" style="display:none;">
+      <div class="row">
+        <input id="hfQueryInput" type="text" style="flex:1" placeholder="Например: Qwen3 GGUF, Gemma 3 VL, DeepSeek R1, Llama 4..." onkeydown="if(event.key==='Enter') searchHuggingFace()" />
+        <select id="hfCatSelect">
+          <option value="all">Все типы</option>
+          <option value="text">GGUF (LLM)</option>
+          <option value="photo">Фото (Safetensors)</option>
+          <option value="video">Видео</option>
+        </select>
+        <button class="btn primary" onclick="searchHuggingFace()">Найти на HF</button>
+      </div>
+      <div id="hfResultsList" class="stack"></div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB 3: PHOTO STUDIO ==================== -->
+  <section id="tab-photo" class="tab-view">
+    <div class="panel stack">
+      <div class="panel-title">
+        <span>Фото-студия (ComfyUI • Metal MPS / CUDA)</span>
+        <span class="muted">Z-Image Turbo · FLUX 3 Klein · Qwen-Image 2.1</span>
+      </div>
+      <div class="row">
+        <select id="photoEngine">
+          <option value="flux3">FLUX 3 Klein (Универсал / Фотореализм)</option>
+          <option value="zimage">Z-Image Turbo (Быстро, 8 шагов)</option>
+          <option value="qwen21">Qwen-Image 2.1 (Текст и Дизайн)</option>
+        </select>
+        <select id="photoSize">
+          <option value="1024x1024">1024 × 1024 (1:1)</option>
+          <option value="1280x720">1280 × 720 (16:9)</option>
+          <option value="768x1024">768 × 1024 (3:4)</option>
+        </select>
+        <input id="photoSeed" type="number" value="-1" style="width:120px" title="Seed (-1 = случайный)" />
+      </div>
+      <textarea id="photoPrompt" rows="4" placeholder="Опиши кадр на английском или русском (например: Cinematic portrait of a futuristic architect in Tokyo rain, 35mm lens)..."></textarea>
+      <div class="row">
+        <button class="btn success" onclick="generatePhoto()">Сгенерировать фото</button>
+        <span class="muted">Результат появится в «Галерее» и в полосе прогресса сверху.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB 4: VIDEO & LOCAL VOICE ==================== -->
+  <section id="tab-video" class="tab-view">
+    <div class="grid-2">
+      <div class="panel stack">
+        <div class="panel-title"><span>Видео-студия (Wan 2.2 / LTX-2.5)</span></div>
+        <div class="row">
+          <select id="videoEngine">
+            <option value="wan14b_fp8">Wan 2.2 14B FP8 (Кино-видео)</option>
+            <option value="wan14b_q4">Wan 2.2 14B Q4 GGUF (Компактный)</option>
+            <option value="ltx25">LTX-2.5 (Видео + синхронный звук)</option>
+          </select>
+          <select id="videoSize">
+            <option value="832x480">832 × 480 (16:9)</option>
+            <option value="480x832">480 × 832 (9:16)</option>
+            <option value="640x640">640 × 640 (1:1)</option>
+          </select>
+          <select id="videoDur">
+            <option value="3">3 сек</option>
+            <option value="4" selected>4 сек</option>
+            <option value="5">5 сек</option>
+          </select>
+        </div>
+        <textarea id="videoPrompt" rows="4" placeholder="Опиши движение, камеру и сцену..."></textarea>
+        <button class="btn success" onclick="generateVideo()">Сгенерировать видео</button>
+      </div>
+
+      <div class="panel stack">
+        <div class="panel-title"><span>Локальная озвучка (Linux espeak-ng / macOS say / Windows SAPI / Piper HD)</span></div>
+        <div class="row">
+          <select id="ttsVoiceSelect" style="flex:1"></select>
+        </div>
+        <textarea id="ttsText" rows="4" placeholder="Введи текст для 100% локальной офлайн-озвучки..."></textarea>
+        <div class="row">
+          <button class="btn primary" onclick="synthesizeTts()">Озвучить локально</button>
+          <audio id="ttsAudio" controls style="height:34px;flex:1;display:none;"></audio>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB 5: GALLERY ==================== -->
+  <section id="tab-gallery" class="tab-view">
+    <div class="row" style="justify-content:space-between;">
+      <div class="subtabs" style="margin:0;">
+        <button class="subtab active" onclick="loadGallery('all', this)">Все</button>
+        <button class="subtab" onclick="loadGallery('photo', this)">Фото</button>
+        <button class="subtab" onclick="loadGallery('video', this)">Видео</button>
+        <button class="subtab" onclick="loadGallery('fav', this)">Избранное</button>
+      </div>
+      <button class="btn sm" onclick="loadGallery(currentGalleryFilter)">Обновить</button>
+    </div>
+    <div id="galleryGrid" class="gallery-grid"></div>
+  </section>
+
+  <!-- ==================== TAB 6: SYSTEM & RUNTIMES ==================== -->
+  <section id="tab-system" class="tab-view">
+    <div class="grid-2">
+      <div class="panel stack">
+        <div class="panel-title"><span>Движки и модули (1 клик)</span></div>
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <strong>llama.cpp (CUDA / ROCm / Vulkan / Apple Metal)</strong>
+            <div id="rtLlamaStatus" class="muted">Проверка...</div>
+          </div>
+          <button class="btn success sm" onclick="installRuntime('llama')">Установить / Обновить</button>
+        </div>
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <strong>ComfyUI (CUDA / Metal MPS / Portable)</strong>
+            <div id="rtComfyStatus" class="muted">Проверка...</div>
+          </div>
+          <button class="btn success sm" onclick="installRuntime('comfyui')">Установить ComfyUI</button>
+        </div>
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <strong>Whisper STT (микрофон) & Piper HD TTS</strong>
+            <div id="rtVoiceStatus" class="muted">Проверка...</div>
+          </div>
+          <div class="row">
+            <button class="btn sm" onclick="installRuntime('whisper')">Whisper</button>
+            <button class="btn sm" onclick="installRuntime('piper')">Piper HD</button>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn sm" onclick="openFolder('llm_models')">Папка LLM</button>
+          <button class="btn sm" onclick="openFolder('comfy_models')">Папка ComfyUI</button>
+          <button class="btn sm" onclick="window.location='/api/backup/export'">Экспорт профиля (.zip)</button>
+        </div>
+      </div>
+
+      <div class="panel stack">
+        <div class="panel-title"><span>Hugging Face и Настройки LLM</span></div>
+        <div class="row">
+          <input id="hfTokenInput" type="password" style="flex:1" placeholder="hf_... (для закрытых моделей вроде LTX-2.5)" />
+          <button class="btn primary sm" onclick="saveHfToken()">Подключить HF</button>
+        </div>
+        <div class="grid-2">
+          <div><div class="muted">LLM Контекст (0 = авто)</div><input id="cfgCtx" type="number" style="width:100%" /></div>
+          <div><div class="muted">Авто-выгрузка (мин, 0 = выкл)</div><input id="cfgIdle" type="number" style="width:100%" /></div>
+          <div><div class="muted">Температура</div><input id="cfgTemp" type="number" step="0.05" style="width:100%" /></div>
+          <div><div class="muted">Presence Penalty (Анти-луп)</div><input id="cfgPres" type="number" step="0.1" style="width:100%" /></div>
+        </div>
+        <div class="row">
+          <button class="btn primary sm" onclick="saveSettings()">Сохранить настройки</button>
+          <button class="btn sm" onclick="applyAntiLoop()">Профиль Qwen Анти-луп</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel stack">
+        <div class="panel-title">
+          <span>MCP-сервер (Claude Desktop, Cursor, Antigravity)</span>
+          <button class="btn sm" onclick="copyMcpJson()">Скопировать JSON</button>
+        </div>
+        <pre id="mcpJsonBox" class="code-box"></pre>
+      </div>
+      <div class="panel stack">
+        <div class="panel-title">
+          <span>Живые логи сервисов</span>
+          <div class="row">
+            <button class="btn sm" onclick="loadLogs('qwen')">LLM</button>
+            <button class="btn sm" onclick="loadLogs('comfyui')">ComfyUI</button>
+          </div>
+        </div>
+        <pre id="logsBox" class="code-box">(Выбери сервис для просмотра логов)</pre>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>
