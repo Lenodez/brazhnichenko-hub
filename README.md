@@ -43,11 +43,11 @@
 
 <p align="center">
   <img src="docs/screenshots/android-chat.png" width="48%" alt="Чат, источники и 2-панельный режим Industrial Mono" />
-  <img src="docs/screenshots/android-context-sheet.png" width="48%" alt="Шторка контекста, роли и температуры" />
+  <img src="docs/screenshots/android-context-v5.png" width="48%" alt="Шторка контекста, роли и температуры" />
 </p>
 <p align="center">
   <img src="docs/screenshots/android-models.png" width="48%" alt="Каталог офлайн-моделей GGUF и Vision" />
-  <img src="docs/screenshots/android-system-assistant.png" width="48%" alt="Системный ассистент и телеметрия устройства" />
+  <img src="docs/screenshots/android-assistant-v5.png" width="48%" alt="Системный ассистент и телеметрия устройства" />
 </p>
 
 ---
