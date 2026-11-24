@@ -84,6 +84,11 @@
                                 <StackPanel>
                                     <ToggleButton x:Name="HeaderSite"
                                                   IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Content="{TemplateBinding Header}"
+                                                  ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                  Foreground="{TemplateBinding Foreground}"
+                                                  FontSize="{TemplateBinding FontSize}"
+                                                  FontWeight="{TemplateBinding FontWeight}"
                                                   Cursor="Hand"
                                                   FocusVisualStyle="{x:Null}">
                                         <ToggleButton.Template>
@@ -92,6 +97,7 @@
                                                         Background="Transparent"
                                                         CornerRadius="7"
                                                         Padding="10,7"
+                                                        TextElement.Foreground="{TemplateBinding Foreground}"
                                                         SnapsToDevicePixels="True">
                                                     <DockPanel>
                                                         <Path x:Name="Chevron"
@@ -111,6 +117,7 @@
                                                             </Path.RenderTransform>
                                                         </Path>
                                                         <ContentPresenter Content="{TemplateBinding Content}"
+                                                                          ContentTemplate="{TemplateBinding ContentTemplate}"
                                                                           VerticalAlignment="Center"
                                                                           HorizontalAlignment="Left"/>
                                                     </DockPanel>
@@ -118,6 +125,7 @@
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
                                                         <Setter TargetName="HdrBd" Property="Background" Value="#182032"/>
+                                                        <Setter TargetName="HdrBd" Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                                                         <Setter TargetName="Chevron" Property="Stroke" Value="{StaticResource TextPrimaryBrush}"/>
                                                     </Trigger>
                                                     <Trigger Property="IsKeyboardFocused" Value="True">
@@ -143,7 +151,6 @@
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
                                         </ToggleButton.Template>
-                                        <ContentPresenter ContentSource="Header" Content="{TemplateBinding Header}"/>
                                     </ToggleButton>
                                     <Border x:Name="ExpandSite"
                                             Visibility="Collapsed"

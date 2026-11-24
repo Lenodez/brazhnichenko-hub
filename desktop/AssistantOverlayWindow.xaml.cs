@@ -586,8 +586,10 @@ public partial class AssistantOverlayWindow : Window
         host.Children.Add(new Expander
         {
             Header = $"Источники ({sr.Results.Count}) · {sr.Provider}",
+            Style = System.Windows.Application.Current?.TryFindResource("StudioExpanderStyle") as Style,
             Foreground = new SolidColorBrush(MediaColor.FromRgb(125, 211, 252)),
             FontSize = 11.5,
+            Margin = new Thickness(0, 6, 0, 0),
             Content = list
         });
     }
