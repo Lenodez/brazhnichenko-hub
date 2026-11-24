@@ -32,7 +32,7 @@ public partial class MainWindow
     private static readonly ConcurrentQueue<string> _thumbCacheOrder = new();
     private static readonly SemaphoreSlim _thumbSem = new(4, 4);
     private static readonly SemaphoreSlim _videoThumbSem = new(2, 2);
-    private const int GalleryThumbCacheMaxEntries = 400;
+    private const int GalleryThumbCacheMaxEntries = 140;
 
     private static string VideoThumbCacheDir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -162,6 +162,26 @@ public partial class MainWindow
     {
         StopGalleryVideoPlayback();
         CancelGalleryThumbLoads();
+    }
+
+    internal static void ClearGalleryThumbCache()
+    {
+        _thumbCache.Clear();
+        while (_thumbCacheOrder.TryDequeue(out _)) { }
+    }
+
+    private void ReleaseGalleryUiMemory()
+    {
+        StopGalleryVideo();
+        if (GalleryPreviewImage is not null)
+            GalleryPreviewImage.Source = null;
+        if (GalleryItemsPanel is not null)
+            GalleryItemsPanel.Children.Clear();
+        _galleryCardBorders.Clear();
+        _galleryCardChecks.Clear();
+        _galleryCardFavBtns.Clear();
+        if (_thumbCache.Count > 60)
+            ClearGalleryThumbCache();
     }
 
     private async Task RefreshGalleryAsync(bool preserveSelection = false)
@@ -834,16 +854,20 @@ public partial class MainWindow
             GallerySendToUpscaleBtn.Visibility = Visibility.Visible;
             GallerySendToPhotoRefBtn.Visibility = Visibility.Visible;
 
-            var bmp = LoadGalleryThumbNoLock(path, 0);
+            var bmp = LoadGalleryThumbNoLock(path, 1024);
             GalleryPreviewImage.Source = bmp;
             GalleryPreviewImage.Visibility = bmp is not null ? Visibility.Visible : Visibility.Collapsed;
-            string dims = bmp is not null ? $"{bmp.PixelWidth}×{bmp.PixelHeight} • " : "";
+            var origDims = ReadImageDimensionsFast(path);
+            string dims = origDims is { Width: > 0, Height: > 0 }
+                ? $"{origDims.Value.Width}×{origDims.Value.Height} • "
+                : (bmp is not null ? $"{bmp.PixelWidth}×{bmp.PixelHeight} • " : "");
             GalleryMetaTitleText.Text = item.FileName;
             GalleryMetaSubText.Text = $"Фото • {dims}{FormatSizeShort(item.LengthBytes)} • {item.LastWriteTime:dd.MM.yyyy HH:mm}\nПапка: {item.FolderTag}";
 
             if (GalleryLightboxOverlay?.Visibility == Visibility.Visible)
             {
-                if (bmp is not null) OpenGalleryLightbox(path, bmp);
+                var fullBmp = LoadGalleryThumbNoLock(path, 2048) ?? bmp;
+                if (fullBmp is not null) OpenGalleryLightbox(path, fullBmp);
                 else CloseGalleryLightbox();
             }
         }
@@ -1010,6 +1034,19 @@ public partial class MainWindow
         ShowToast($"🗑 {msg}", "info");
 
         ApplyGalleryFilterAndRender(nextPath ?? _galleryCurrentPath);
+    }
+
+    private static (int Width, int Height)? ReadImageDimensionsFast(string path)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var dec = BitmapDecoder.Create(fs, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
+            if (dec.Frames.Count > 0)
+                return (dec.Frames[0].PixelWidth, dec.Frames[0].PixelHeight);
+        }
+        catch { }
+        return null;
     }
 
     private static BitmapImage? LoadGalleryThumbNoLock(string path, int decodeWidth)

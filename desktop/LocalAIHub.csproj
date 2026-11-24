@@ -8,7 +8,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>LocalAIHub</AssemblyName>
     <RootNamespace>LocalAIHub</RootNamespace>
-    <Version>4.9.1</Version>
+    <Version>4.9.2</Version>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
     <ApplicationTitle>Brazhnichenko Hub</ApplicationTitle>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <DefaultItemExcludes>$(DefaultItemExcludes);Mcp\**;Installer\**;dist\**</DefaultItemExcludes>

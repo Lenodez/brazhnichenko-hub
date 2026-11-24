@@ -17,23 +17,38 @@ public partial class BeforeAfterWindow : Window
         InitializeComponent();
         CompareTitleText.Text = title;
 
-        var bmpBefore = LoadBmp(beforePath);
-        var bmpAfter = LoadBmp(afterPath);
+        var bmpBefore = LoadBmp(beforePath, 1600);
+        var bmpAfter = LoadBmp(afterPath, 1600);
         BeforeImage.Source = bmpBefore;
         AfterImage.Source = bmpAfter;
 
-        BeforeBadgeText.Text = $"ДО • {bmpBefore.PixelWidth}×{bmpBefore.PixelHeight}";
-        AfterBadgeText.Text = $"ПОСЛЕ • {bmpAfter.PixelWidth}×{bmpAfter.PixelHeight}";
+        var d1 = ReadDimsFast(beforePath) ?? (bmpBefore.PixelWidth, bmpBefore.PixelHeight);
+        var d2 = ReadDimsFast(afterPath) ?? (bmpAfter.PixelWidth, bmpAfter.PixelHeight);
+        BeforeBadgeText.Text = $"ДО • {d1.Width}×{d1.Height}";
+        AfterBadgeText.Text = $"ПОСЛЕ • {d2.Width}×{d2.Height}";
         CompareSubtitleText.Text = $"{Path.GetFileName(beforePath)}  →  {Path.GetFileName(afterPath)}";
 
         Loaded += (_, _) => UpdateSplitVisual();
     }
 
-    private static BitmapImage LoadBmp(string path)
+    private static (int Width, int Height)? ReadDimsFast(string path)
+    {
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var dec = BitmapDecoder.Create(fs, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
+            if (dec.Frames.Count > 0) return (dec.Frames[0].PixelWidth, dec.Frames[0].PixelHeight);
+        }
+        catch { }
+        return null;
+    }
+
+    private static BitmapImage LoadBmp(string path, int decodeWidth = 1600)
     {
         var bmp = new BitmapImage();
         bmp.BeginInit();
         bmp.CacheOption = BitmapCacheOption.OnLoad;
+        if (decodeWidth > 0) bmp.DecodePixelWidth = decodeWidth;
         bmp.UriSource = new Uri(path, UriKind.Absolute);
         bmp.EndInit();
         bmp.Freeze();

@@ -53,6 +53,7 @@ public partial class BatchCompareWindow : Window
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
                 bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.DecodePixelWidth = 900;
                 bmp.UriSource = new Uri(path, UriKind.Absolute);
                 bmp.EndInit();
                 bmp.Freeze();

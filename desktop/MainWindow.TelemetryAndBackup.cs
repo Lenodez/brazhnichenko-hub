@@ -89,6 +89,7 @@ public partial class MainWindow
         var pc = new PointCollection(pts.Count);
         foreach (var (x, y) in pts)
             pc.Add(new System.Windows.Point(x, y));
+        pc.Freeze();
         return pc;
     }
 

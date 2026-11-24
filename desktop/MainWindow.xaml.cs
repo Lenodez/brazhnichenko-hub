@@ -46,6 +46,12 @@ public partial class MainWindow : Window
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr hIcon);
 
+    [DllImport("psapi.dll")]
+    private static extern bool EmptyWorkingSet(IntPtr hProcess);
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SolidColorBrush> FrozenBrushCache = new(StringComparer.OrdinalIgnoreCase);
+    private DateTime _lastBackgroundPollUtc = DateTime.MinValue;
+
     private sealed class ServiceCardUi
     {
         public required Border CardBorder;
@@ -327,6 +333,21 @@ public partial class MainWindow : Window
         Activate();
         Topmost = false;
         Focus();
+        _ = RefreshStatusAsync();
+    }
+
+    internal static void TrimProcessMemory(bool clearThumbCache = false)
+    {
+        if (clearThumbCache)
+            ClearGalleryThumbCache();
+        try
+        {
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, blocking: false, compacting: true);
+            GC.WaitForPendingFinalizers();
+            using var proc = System.Diagnostics.Process.GetCurrentProcess();
+            EmptyWorkingSet(proc.Handle);
+        }
+        catch { }
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -336,6 +357,7 @@ public partial class MainWindow : Window
         {
             e.Cancel = true;
             Hide();
+            TrimProcessMemory(clearThumbCache: true);
             return;
         }
         _pollTimer.Stop();
@@ -597,6 +619,34 @@ public partial class MainWindow : Window
     private async Task RefreshStatusAsync()
     {
         if (_pollInFlight) return;
+
+        bool uiHidden = !IsVisible || WindowState == WindowState.Minimized;
+        if (uiHidden)
+        {
+            // When minimized or in tray, skip UI/nvidia-smi polling every 2.5s.
+            // Only check LLM idle auto-unload every 30s if enabled.
+            if (HubConfig.Current.LlmIdleUnloadMinutes <= 0 ||
+                (DateTime.UtcNow - _lastBackgroundPollUtc).TotalSeconds < 30)
+            {
+                return;
+            }
+            _lastBackgroundPollUtc = DateTime.UtcNow;
+            _pollInFlight = true;
+            try
+            {
+                var qwenSvc = _manager.GetService("qwen");
+                if (await _manager.IsRunningAsync(qwenSvc))
+                {
+                    var statuses = new Dictionary<string, bool> { ["qwen"] = true };
+                    var m = await _manager.GetSystemMetricsAsync();
+                    await CheckLlmIdleAutoUnloadAsync(statuses, m);
+                }
+            }
+            catch { }
+            finally { _pollInFlight = false; }
+            return;
+        }
+
         _pollInFlight = true;
         try
         {
@@ -861,7 +911,8 @@ public partial class MainWindow : Window
         try
         {
             await _manager.StopAllGpuAsync();
-            StatusFooterText.Text = "Все GPU-сервисы остановлены. Видеокарта свободна.";
+            TrimProcessMemory(clearThumbCache: true);
+            StatusFooterText.Text = "Все GPU-сервисы остановлены, кэш памяти очищен.";
         }
         catch (Exception ex)
         {
@@ -1173,9 +1224,9 @@ public partial class MainWindow : Window
     {
         if (!IsLoaded || !ReferenceEquals(e.OriginalSource, MainTabs)) return;
 
-        // Stop gallery video playback whenever leaving the Gallery tab
+        // Stop gallery video playback and release heavy gallery previews whenever leaving the Gallery tab
         if (!ReferenceEquals(MainTabs.SelectedItem, GalleryTab))
-            StopGalleryVideo();
+            ReleaseGalleryUiMemory();
 
         // Auto-sync models installed externally (e.g. via MCP from ChatGPT/Claude/Antigravity)
         if (ReferenceEquals(MainTabs.SelectedItem, PhotoTab) || ReferenceEquals(MainTabs.SelectedItem, VideoTab))
@@ -1306,5 +1357,10 @@ public partial class MainWindow : Window
     }
 
     private static MediaBrush BrushFromHex(string hex) =>
-        new SolidColorBrush((MediaColor)System.Windows.Media.ColorConverter.ConvertFromString(hex));
+        FrozenBrushCache.GetOrAdd(hex, static h =>
+        {
+            var b = new SolidColorBrush((MediaColor)System.Windows.Media.ColorConverter.ConvertFromString(h));
+            b.Freeze();
+            return b;
+        });
 }

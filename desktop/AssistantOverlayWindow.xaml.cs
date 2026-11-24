@@ -182,6 +182,10 @@ public partial class AssistantOverlayWindow : Window
             _recording = false;
             MicBtnText.Text = "Голос";
         }
+        // Release screenshot base64 & preview bitmap while hidden
+        _capturedScreenBase64 = null;
+        ScreenPreviewImg.Source = null;
+        ScreenStripBorder.Visibility = Visibility.Collapsed;
         Hide();
     }
 

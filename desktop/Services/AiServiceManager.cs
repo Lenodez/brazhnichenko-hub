@@ -58,6 +58,7 @@ public sealed class GeneratedStoryScenario
 
 public sealed class AiServiceManager
 {
+    private static readonly HttpClient LongHttp = new() { Timeout = TimeSpan.FromMinutes(5) };
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMilliseconds(1500) };
     private string? _lastStartedQwenModel;
 
@@ -1016,14 +1017,13 @@ public sealed class AiServiceManager
         }
 
         onProgress?.Invoke("Режиссёр собирает кинематографический промпт...");
-        using var longHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(240) };
         var msgs = new List<object>
         {
             new { role = "system", content = systemInstruction + "\n\nCRITICAL: Do NOT count words and do NOT rewrite drafts repeatedly. If you are a thinking model, keep internal thoughts to 2 short bullet points max, then immediately output ONLY the final English prompt." },
             new { role = "user", content = userPayload.ToString() }
         };
         string result = await PostChatWithThinkingRecoveryAsync(
-            longHttp,
+            LongHttp,
             endpointUrl,
             msgs,
             desiredOutputTokens: 700,
@@ -1085,9 +1085,8 @@ public sealed class AiServiceManager
             msgs.Add(new { role, content });
         msgs.Add(new { role = "user", content = userMessage });
 
-        using var longHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(240) };
         string reply = await PostChatWithThinkingRecoveryAsync(
-            longHttp,
+            LongHttp,
             endpointUrl,
             msgs,
             desiredOutputTokens: 900,
@@ -1147,9 +1146,8 @@ public sealed class AiServiceManager
             msgs.Add(new { role, content });
         msgs.Add(new { role = "user", content = userMessage });
 
-        using var longHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(240) };
         string reply = await PostChatWithThinkingRecoveryAsync(
-            longHttp,
+            LongHttp,
             url,
             msgs,
             desiredOutputTokens: 900,
@@ -1279,14 +1277,13 @@ public sealed class AiServiceManager
             userPayload.AppendLine("Внеси запрошенные изменения в указанные этапы (или стиль), сохранив остальные удачные этапы и общую согласованность (style_lock, character_lock, environment_lock).");
         }
 
-        using var longHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(300) };
         var scenarioMsgs = new List<object>
         {
             new { role = "system", content = systemPrompt + "\n\n(If you are a thinking model: do NOT count words; keep <think> very concise, max 3-4 short lines, then immediately output the valid JSON.)" },
             new { role = "user", content = userPayload.ToString() }
         };
         string text = await PostChatWithThinkingRecoveryAsync(
-            longHttp,
+            LongHttp,
             url,
             scenarioMsgs,
             desiredOutputTokens: 2600,
