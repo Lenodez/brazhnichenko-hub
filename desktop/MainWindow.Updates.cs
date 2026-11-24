@@ -11,7 +11,7 @@ public partial class MainWindow
 
     private void InitAutoUpdaterUi()
     {
-        AppVersionBadgeText.Text = $"v{AppUpdateService.CurrentVersion} • Brazhnichenko Hub";
+        AppVersionBadgeText.Text = $"v{AppUpdateService.CurrentVersion}";
         UpdateSettingsTitleText.Text = $"Обновления Brazhnichenko Hub (текущая версия v{AppUpdateService.CurrentVersion})";
         LoadUpdateServerFields();
     }
@@ -95,13 +95,13 @@ public partial class MainWindow
         string notesShort = string.IsNullOrWhiteSpace(res.Notes) ? "" : $" — {res.Notes}";
         string sizeStr = res.SizeBytes > 0 ? $" ({res.SizeBytes / (1024.0 * 1024.0):F1} МБ)" : "";
 
-        UpdateBannerText.Text = $"✨ Доступна новая версия Brazhnichenko Hub v{res.LatestVersion}{sizeStr}{notesShort}";
-        UpdateNowBannerBtn.Content = $"⬇ Обновить до v{res.LatestVersion}";
+        UpdateBannerText.Text = $"Доступна новая версия Brazhnichenko Hub v{res.LatestVersion}{sizeStr}{notesShort}";
+        UpdateNowBannerBtn.Content = $"Обновить до v{res.LatestVersion}";
         UpdateBanner.Visibility = Visibility.Visible;
 
         UpdateSettingsStatusText.Text = $"Доступно обновление v{res.LatestVersion}{sizeStr}: {(string.IsNullOrWhiteSpace(res.Notes) ? "улучшения и исправления" : res.Notes)}";
-        UpdateSettingsStatusText.Foreground = BrushFromHex("#6AE89E");
-        UpdateSettingsInstallBtn.Content = $"⬇ Обновить до v{res.LatestVersion}";
+        UpdateSettingsStatusText.Foreground = BrushFromHex("#34D399");
+        UpdateSettingsInstallBtn.Content = $"Обновить до v{res.LatestVersion}";
         UpdateSettingsInstallBtn.Visibility = Visibility.Visible;
     }
 
@@ -114,31 +114,31 @@ public partial class MainWindow
         _updateBusy = true;
         UpdateCheckBtn.IsEnabled = false;
         UpdateSettingsStatusText.Text = "Проверяю наличие обновлений на сервере...";
-        UpdateSettingsStatusText.Foreground = BrushFromHex("#A5B4CF");
-        StatusFooterText.Text = "Проверка обновлений Local AI Hub...";
+        UpdateSettingsStatusText.Foreground = BrushFromHex("#A1A1AA");
+        StatusFooterText.Text = "Проверка обновлений Brazhnichenko Hub...";
         try
         {
             var res = await _updater.CheckForUpdateAsync();
             if (!res.Success)
             {
                 UpdateSettingsStatusText.Text = $"Не удалось связаться с сервером обновлений: {res.ErrorMessage}";
-                UpdateSettingsStatusText.Foreground = BrushFromHex("#F5CB5C");
+                UpdateSettingsStatusText.Foreground = BrushFromHex("#F59E0B");
                 StatusFooterText.Text = "Сервер обновлений временно недоступен.";
             }
             else if (res.HasUpdate)
             {
                 _availableUpdate = res;
                 ShowAvailableUpdateUi(res);
-                StatusFooterText.Text = $"Найдено обновление Local AI Hub v{res.LatestVersion}!";
+                StatusFooterText.Text = $"Найдено обновление Brazhnichenko Hub v{res.LatestVersion}.";
             }
             else
             {
                 _availableUpdate = null;
                 UpdateBanner.Visibility = Visibility.Collapsed;
                 UpdateSettingsInstallBtn.Visibility = Visibility.Collapsed;
-                UpdateSettingsStatusText.Text = $"✓ У тебя уже самая свежая версия v{res.CurrentVersion} (на сервере v{res.LatestVersion}).";
-                UpdateSettingsStatusText.Foreground = BrushFromHex("#6AE89E");
-                StatusFooterText.Text = $"Local AI Hub v{res.CurrentVersion} актуален.";
+                UpdateSettingsStatusText.Text = $"✓ Установлена актуальная версия v{res.CurrentVersion} (на сервере v{res.LatestVersion}).";
+                UpdateSettingsStatusText.Foreground = BrushFromHex("#34D399");
+                StatusFooterText.Text = $"Brazhnichenko Hub v{res.CurrentVersion} актуален.";
             }
         }
         finally

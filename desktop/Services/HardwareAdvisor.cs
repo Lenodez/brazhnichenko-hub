@@ -455,7 +455,7 @@ public static class HardwareAdvisor
 
                 return new(
                     ModelFitLevel.Ideal,
-                    "★ 100% в видеопамяти",
+                    "■ 100% VRAM",
                     $"Целиком помещается в твои {vram:F0} ГБ VRAM (весит {model.TotalSizeGB:0.##} ГБ) — максимальная скорость и мгновенный отклик.",
                     speed,
                     ModelPlacementGroup.FullVram);
@@ -474,8 +474,8 @@ public static class HardwareAdvisor
                         : "~20–30 tok/s (MoE + ОЗУ)";
                     return new(
                         ModelFitLevel.GoodWithOffload,
-                        "⚡ VRAM + ОЗУ (MoE быстро)",
-                        $"Влезет в связку {vram:F0} ГБ VRAM + {ram:F0} ГБ ОЗУ (~{inRamGb:F0} ГБ в RAM). Т.к. это MoE (активно ~3B параметров), скорость останется комфортной!",
+                        "◧ VRAM + ОЗУ (MoE)",
+                        $"Влезет в связку {vram:F0} ГБ VRAM + {ram:F0} ГБ ОЗУ (~{inRamGb:F0} ГБ в RAM). Т.к. это MoE (активно ~3B параметров), скорость останется высокой.",
                         speed,
                         ModelPlacementGroup.VramPlusRam);
                 }
@@ -486,8 +486,8 @@ public static class HardwareAdvisor
                     string speed = ramFrac < 0.25 ? "~8–14 tok/s (Dense + ОЗУ)" : "~3–6 tok/s (Dense + ОЗУ)";
                     return new(
                         ModelFitLevel.Tight,
-                        "🐢 VRAM + ОЗУ (медленно)",
-                        $"Запустится через --fit on (~{inRamGb:F0} ГБ слоёв в ОЗУ из {ram:F0} ГБ). Для плотной модели скорость просядет до {speed.Split('(')[0].Trim()} — подходит, если важнее макс. качество и готов подождать.",
+                        "◧ VRAM + ОЗУ (Dense)",
+                        $"Запустится через --fit on (~{inRamGb:F0} ГБ слоёв в ОЗУ из {ram:F0} ГБ). Для плотной модели скорость составит {speed.Split('(')[0].Trim()} — подходит, если важнее макс. качество.",
                         speed,
                         ModelPlacementGroup.VramPlusRam);
                 }
@@ -495,7 +495,7 @@ public static class HardwareAdvisor
 
             // Case C: Too heavy even for VRAM + RAM (would heavily swap to SSD)
             string whyHeavy = $"Весит {model.TotalSizeGB:0.##} ГБ — не поместится в {vram:F0} ГБ VRAM + {ram:F0} ГБ ОЗУ без тяжёлого свопа на SSD (нужно от {model.MinVramGB} ГБ VRAM и {model.MinRamGB}+ ГБ RAM).";
-            return new(ModelFitLevel.Unsupported, "✕ Уйдёт в swap", whyHeavy, "< 2 tok/s (swap)", ModelPlacementGroup.TooHeavy);
+            return new(ModelFitLevel.Unsupported, "□ SWAP", whyHeavy, "< 2 tok/s (swap)", ModelPlacementGroup.TooHeavy);
         }
 
         // ===================== 2. ФОТО И ВИДЕО (ComfyUI / DynamicVRAM) =====================
@@ -504,7 +504,7 @@ public static class HardwareAdvisor
             string why = vram < model.MinVramGB - 0.8
                 ? $"Нужно от {model.MinVramGB} ГБ VRAM (у тебя {vram:F0} ГБ)."
                 : $"Нужно от {model.MinRamGB} ГБ RAM (у тебя {ram:F0} ГБ).";
-            return new(ModelFitLevel.Unsupported, "✕ Не влезет", why, "—", ModelPlacementGroup.TooHeavy);
+            return new(ModelFitLevel.Unsupported, "□ НЕ ВЛЕЗЕТ", why, "—", ModelPlacementGroup.TooHeavy);
         }
 
         // Peak active working set (for video bundles, only 1 branch T2V or I2V loads at a time, not all 66 GB)
@@ -518,7 +518,7 @@ public static class HardwareAdvisor
         {
             return new(
                 ModelFitLevel.GoodWithOffload,
-                "✓ Подойдёт (эмуляция FP8)",
+                "◧ ЭМУЛЯЦИЯ FP8",
                 $"На {hw.MatchedWiki?.Architecture ?? "этой карте"} нет аппаратного FP8 (появился в RTX 40/50) — будет работать через DynamicVRAM + ОЗУ, но на 30/20 серии часто выгоднее GGUF Q4_K_M.",
                 model.Category == "video" ? "~2–3 мин / 5с" : "~20–40 с",
                 mediaPlacement);
@@ -528,7 +528,7 @@ public static class HardwareAdvisor
         {
             return new(
                 ModelFitLevel.Tight,
-                "⚠ Медленно (нет BF16)",
+                "▲ НЕТ BF16",
                 $"На {hw.MatchedWiki?.Architecture ?? "Pascal/Turing"} нет нативного BF16 — модель запустится через FP16/FP32, но будет заметно медленнее.",
                 "Медленно",
                 mediaPlacement);
@@ -541,7 +541,7 @@ public static class HardwareAdvisor
                 "photo" => mediaFitsFullVram ? "~8–18 с / кадр (VRAM)" : "~15–30 с / кадр (VRAM + ОЗУ)",
                 _ => hasFp8 ? "~60–95 с / 5с (DynamicVRAM)" : "~90–140 с / 5с (DynamicVRAM)"
             };
-            string badge = mediaFitsFullVram ? "★ 100% в видеопамяти" : "⚡ Рекомендуем (DynamicVRAM + ОЗУ)";
+            string badge = mediaFitsFullVram ? "■ 100% VRAM" : "■ DYNAMIC VRAM";
             return new(
                 ModelFitLevel.Ideal,
                 badge,
@@ -555,7 +555,7 @@ public static class HardwareAdvisor
             string speed = model.Category == "photo" ? "~20–45 с / кадр (VRAM + ОЗУ)" : "~2–3,5 мин / 5с (DynamicVRAM)";
             return new(
                 ModelFitLevel.GoodWithOffload,
-                "✓ VRAM + ОЗУ (оффлоад)",
+                "◧ VRAM + ОЗУ",
                 $"Запустится за счёт {ram:F0} ГБ ОЗУ, но для максимальной скорости лучше {model.IdealVramGB}+ ГБ VRAM.",
                 speed,
                 ModelPlacementGroup.VramPlusRam);
@@ -563,7 +563,7 @@ public static class HardwareAdvisor
 
         return new(
             ModelFitLevel.Tight,
-            "⚠ Впритык (VRAM + ОЗУ)",
+            "▲ ВПРИТЫК",
             $"Мало запаса по памяти (рекомендуется {model.IdealVramGB} ГБ VRAM и {model.IdealRamGB} ГБ RAM).",
             "Медленно / риск OOM",
             ModelPlacementGroup.VramPlusRam);
@@ -589,8 +589,8 @@ public static class HardwareAdvisor
                 int hi = Math.Max(lo + 5, (int)(estTok * 1.15));
                 return new(
                     ModelFitLevel.Ideal,
-                    "★ 100% в Metal GPU",
-                    $"Целиком помещается в Unified Memory ({unified:F0} ГБ → ~{metalBudget:F0} ГБ Metal на {chip}, {bw} ГБ/с). Отличная скорость без свопа!",
+                    "■ 100% METAL GPU",
+                    $"Целиком помещается в Unified Memory ({unified:F0} ГБ → ~{metalBudget:F0} ГБ Metal на {chip}, {bw} ГБ/с). Отличная скорость без свопа.",
                     $"~{lo}–{hi} tok/s (Metal)",
                     ModelPlacementGroup.FullVram);
             }
@@ -601,7 +601,7 @@ public static class HardwareAdvisor
                 double estTok = Math.Clamp((bw * 0.55) / activeGB, 5, 80);
                 return new(
                     ModelFitLevel.Tight,
-                    "⚠ Впритык по Metal-памяти",
+                    "▲ ВПРИТЫК (METAL)",
                     $"Весит {model.TotalSizeGB:0.##} ГБ при лимите Metal ~{metalBudget:F0} ГБ из {unified:F0} ГБ Unified RAM — закрой лишние вкладки браузера или уменьши контекст.",
                     $"~{Math.Max(4, (int)(estTok * 0.8))}–{Math.Max(8, (int)(estTok * 1.1))} tok/s",
                     ModelPlacementGroup.VramPlusRam);
@@ -609,7 +609,7 @@ public static class HardwareAdvisor
 
             return new(
                 ModelFitLevel.Unsupported,
-                "✕ Не влезет в Unified RAM",
+                "□ НЕ ВЛЕЗЕТ",
                 $"Весит {model.TotalSizeGB:0.##} ГБ — превышает доступный бюджет Metal (~{metalBudget:F0} ГБ из {unified:F0} ГБ). Нужен Mac с {Math.Ceiling((model.TotalSizeGB + 4) / 0.75 / 8) * 8:0}+ ГБ памяти.",
                 "< 2 tok/s (swap)",
                 ModelPlacementGroup.TooHeavy);
@@ -621,7 +621,7 @@ public static class HardwareAdvisor
         {
             return new(
                 ModelFitLevel.Unsupported,
-                "✕ Мало Unified RAM для MPS",
+                "□ МАЛО UNIFIED RAM",
                 $"Для {model.Name} в ComfyUI MPS на macOS нужно от {neededUnified:0} ГБ Unified Memory (у тебя {unified:F0} ГБ).",
                 "—",
                 ModelPlacementGroup.TooHeavy);
@@ -632,7 +632,7 @@ public static class HardwareAdvisor
             string speed = bw >= 400 ? "~15–35 с / кадр (MPS)" : bw >= 200 ? "~30–60 с / кадр (MPS)" : "~60–110 с / кадр (MPS)";
             return new(
                 ModelFitLevel.Ideal,
-                "★ Подойдёт (ComfyUI MPS)",
+                "■ COMFYUI MPS",
                 $"Работает на {chip} ({unified:F0} ГБ Unified, {bw} ГБ/с) через PyTorch Metal/MPS.",
                 speed,
                 ModelPlacementGroup.FullVram);
@@ -641,7 +641,7 @@ public static class HardwareAdvisor
         string vidSpeed = bw >= 400 ? "~3–6 мин / 4с (MPS)" : "~6–12 мин / 4с (MPS)";
         return new(
             model.PrefersFp8 ? ModelFitLevel.Tight : ModelFitLevel.GoodWithOffload,
-            model.PrefersFp8 ? "⚠ MPS (лучше GGUF Q4)" : "✓ Подойдёт (MPS)",
+            model.PrefersFp8 ? "▲ MPS (ЛУЧШЕ Q4)" : "◧ COMFYUI MPS",
             model.PrefersFp8
                 ? $"На macOS MPS нет аппаратного NVIDIA FP8 — на {chip} видео Wan 2.2 лучше запускать в кванте GGUF Q4/Q6."
                 : $"Запустится на {chip} ({unified:F0} ГБ Unified) через PyTorch MPS.",

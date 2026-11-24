@@ -1622,11 +1622,18 @@ async function checkAppUpdate(silent) {
       return;
     }
     latestUpdateInfo = d;
+    const directLink = document.getElementById('btnDirectApkLink');
     if (d.hasUpdate) {
       if (txt) txt.textContent = `Доступна новая версия v${d.latestVersion} (${d.apkSizeMB} МБ). ${d.notes ? d.notes.split('\n')[0] : ''}`;
       if (instBtn) {
         instBtn.style.display = 'inline-flex';
+        instBtn.disabled = false;
         instBtn.textContent = `Обновить до v${d.latestVersion}`;
+        instBtn.onclick = startAppUpdate;
+      }
+      if (directLink && d.apkUrl) {
+        directLink.href = d.apkUrl;
+        directLink.style.display = 'inline-block';
       }
       const banner = document.getElementById('updateBanner');
       const bText = document.getElementById('updateBannerText');
@@ -1638,6 +1645,7 @@ async function checkAppUpdate(silent) {
     } else {
       if (txt) txt.textContent = `Установлена актуальная версия v${d.currentVersion} (GitHub: v${d.latestVersion})`;
       if (instBtn) instBtn.style.display = 'none';
+      if (directLink) directLink.style.display = 'none';
       if (!silent) toast(`У тебя последняя версия v${d.currentVersion}`);
     }
   } catch (e) {
@@ -1661,19 +1669,28 @@ async function startAppUpdate() {
   dismissUpdateBanner();
   switchView('system');
   const progWrap = document.getElementById('updProgWrap');
+  const instBtn = document.getElementById('btnInstallUpdate');
   if (progWrap) progWrap.style.display = 'flex';
+  if (instBtn) {
+    instBtn.disabled = true;
+    instBtn.textContent = 'Скачивание...';
+  }
   const res = await fetch('/api/update/download', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apkUrl: latestUpdateInfo.apkUrl, version: latestUpdateInfo.latestVersion })
   });
   if (!res.ok) {
+    if (instBtn) {
+      instBtn.disabled = false;
+      instBtn.textContent = 'Повторить обновление';
+    }
     toast('Не удалось начать загрузку обновления');
     return;
   }
   toast('Скачиваю обновление v' + latestUpdateInfo.latestVersion + '...');
   clearInterval(updatePollTimer);
-  updatePollTimer = setInterval(pollUpdateProgress, 500);
+  updatePollTimer = setInterval(pollUpdateProgress, 450);
 }
 
 async function pollUpdateProgress() {
@@ -1685,34 +1702,80 @@ async function pollUpdateProgress() {
     const pct = document.getElementById('updProgPct');
     const fill = document.getElementById('updProgFill');
     const instBtn = document.getElementById('btnInstallUpdate');
+    const directLink = document.getElementById('btnDirectApkLink');
     if (wrap) wrap.style.display = 'flex';
     if (fill) fill.style.width = `${st.percent || 0}%`;
-    if (pct) pct.textContent = `${st.percent || 0}%${st.speedMBs > 0 ? ' · ' + st.speedMBs + ' МБ/с' : ''}`;
+    if (pct) pct.textContent = `${st.percent || 0}%${st.speedMBs > 0 && st.state === 'downloading' ? ' · ' + st.speedMBs + ' МБ/с' : ''}`;
+    if (directLink && st.apkUrl) {
+      directLink.href = st.apkUrl;
+      directLink.style.display = 'inline-block';
+    }
+
     if (st.state === 'downloading') {
       if (lbl) lbl.textContent = 'Скачивание APK...';
-    } else if (st.state === 'ready') {
-      clearInterval(updatePollTimer);
-      if (lbl) lbl.textContent = 'APK скачан — открыт установщик Android';
       if (instBtn) {
         instBtn.style.display = 'inline-flex';
-        instBtn.textContent = 'Установить APK';
+        instBtn.disabled = true;
+        instBtn.textContent = 'Скачивание...';
+      }
+    } else if (st.state === 'need_permission') {
+      clearInterval(updatePollTimer);
+      if (lbl) lbl.textContent = 'Разреши установку обновлений в открывшемся окне Android';
+      if (instBtn) {
+        instBtn.style.display = 'inline-flex';
+        instBtn.disabled = false;
+        instBtn.textContent = 'Установить скачанный APK';
+        instBtn.onclick = installDownloadedUpdate;
+      }
+    } else if (st.state === 'ready' || st.state === 'installing') {
+      clearInterval(updatePollTimer);
+      if (lbl) {
+        lbl.textContent = st.state === 'installing'
+          ? 'Открыто системное окно обновления Android — подтверди установку'
+          : 'APK проверен и готов к установке';
+      }
+      if (instBtn) {
+        instBtn.style.display = 'inline-flex';
+        instBtn.disabled = false;
+        instBtn.textContent = 'Установить скачанный APK';
         instBtn.onclick = installDownloadedUpdate;
       }
     } else if (st.state === 'error') {
       clearInterval(updatePollTimer);
       if (lbl) lbl.textContent = 'Ошибка: ' + (st.error || 'сбой загрузки');
-      toast('Ошибка загрузки обновления: ' + (st.error || ''));
+      if (instBtn) {
+        instBtn.style.display = 'inline-flex';
+        instBtn.disabled = false;
+        instBtn.textContent = 'Скачать заново';
+        instBtn.onclick = startAppUpdate;
+      }
+      toast('Ошибка обновления: ' + (st.error || ''));
     }
   } catch (e) { }
 }
 
 async function installDownloadedUpdate() {
-  const res = await fetch('/api/update/install', { method: 'POST' });
-  const d = await res.json();
-  if (d.needsPermission) {
-    toast(d.message || 'Разреши установку обновлений и нажми снова');
-  } else if (!d.ok) {
-    toast(d.error || 'Не удалось запустить установщик');
+  haptic('confirm');
+  try {
+    if (window.AndroidHub && typeof window.AndroidHub.installUpdate === 'function') {
+      const raw = window.AndroidHub.installUpdate();
+      const d = JSON.parse(raw || '{}');
+      if (d.needsPermission) {
+        toast(d.message || 'Разреши установку обновлений — она продолжится автоматически');
+      } else if (!d.ok) {
+        toast(d.error || 'Не удалось запустить системный установщик');
+      }
+      return;
+    }
+    const res = await fetch('/api/update/install', { method: 'POST' });
+    const d = await res.json();
+    if (d.needsPermission || d.backgroundNotified) {
+      toast(d.message || 'Разреши установку обновлений и нажми снова');
+    } else if (!d.ok) {
+      toast(d.error || 'Не удалось запустить установщик');
+    }
+  } catch (e) {
+    toast('Ошибка вызова установщика: ' + e.message);
   }
 }
 

@@ -395,11 +395,11 @@ public partial class MainWindow
         var card = new Border
         {
             Width = 158,
-            Background = BrushFromHex(isCurrent ? "#1D2840" : "#151A25"),
-            BorderBrush = BrushFromHex(isCurrent ? "#5B8CFF" : isChecked ? "#E07A5F" : isFav ? "#B8942E" : "#262F42"),
+            Background = BrushFromHex(isCurrent ? "#1A1A20" : "#121215"),
+            BorderBrush = BrushFromHex(isCurrent ? "#FF521B" : isChecked ? "#E4E4E8" : isFav ? "#F59E0B" : "#28282E"),
             BorderThickness = new Thickness(isCurrent ? 1.5 : 1),
-            CornerRadius = new CornerRadius(9),
-            Padding = new Thickness(6),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(5),
             Margin = new Thickness(0, 0, 8, 8),
             Cursor = System.Windows.Input.Cursors.Hand
         };
@@ -410,7 +410,7 @@ public partial class MainWindow
         var thumbGrid = new Grid
         {
             Height = 104,
-            Background = BrushFromHex("#0A0D13"),
+            Background = BrushFromHex("#070708"),
             ClipToBounds = true
         };
 
@@ -437,19 +437,20 @@ public partial class MainWindow
                 {
                     new TextBlock
                     {
-                        Text = item.Kind == "video" ? "🎬" : "🖼",
-                        FontSize = 26,
-                        HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                        Opacity = item.Kind == "video" ? 0.9 : 0.45
+                        Text = item.Kind == "video" ? "▶" : "□",
+                        FontSize = 20,
+                        FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                        Foreground = BrushFromHex("#71717A"),
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Center
                     },
                     new TextBlock
                     {
                         Text = Path.GetExtension(item.FileName).TrimStart('.').ToUpperInvariant() + $" • {item.SizeMB:F1} МБ",
-                        FontSize = 10.5,
-                        Foreground = BrushFromHex("#9EC0FF"),
+                        FontSize = 10,
+                        FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                        Foreground = BrushFromHex("#A1A1AA"),
                         HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                        Margin = new Thickness(0, 3, 0, 0),
-                        Opacity = item.Kind == "video" ? 0.95 : 0.65
+                        Margin = new Thickness(0, 3, 0, 0)
                     }
                 }
             };
@@ -480,8 +481,10 @@ public partial class MainWindow
         {
             thumbGrid.Children.Add(new Border
             {
-                Background = BrushFromHex("#CC0D1320"),
-                CornerRadius = new CornerRadius(4),
+                Background = BrushFromHex("#D909090B"),
+                BorderBrush = BrushFromHex("#2E2E36"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(2),
                 Padding = new Thickness(5, 1, 5, 1),
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Bottom,
@@ -489,9 +492,10 @@ public partial class MainWindow
                 Child = new TextBlock
                 {
                     Text = "▶ VIDEO",
-                    FontSize = 9.5,
+                    FontSize = 9,
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                     FontWeight = FontWeights.Bold,
-                    Foreground = BrushFromHex("#6AE89E")
+                    Foreground = BrushFromHex("#F4F4F6")
                 }
             });
         }
@@ -525,9 +529,9 @@ public partial class MainWindow
             Padding = new Thickness(0),
             FontSize = 13,
             FontWeight = FontWeights.Bold,
-            Background = BrushFromHex("#CC2A1519"),
-            Foreground = BrushFromHex("#FF9EA8"),
-            BorderBrush = BrushFromHex("#7D3232"),
+            Background = BrushFromHex("#D9181214"),
+            Foreground = BrushFromHex("#F87171"),
+            BorderBrush = BrushFromHex("#522428"),
             BorderThickness = new Thickness(1),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
@@ -544,14 +548,14 @@ public partial class MainWindow
         // Favorite toggle star bottom-right
         var favBtn = new System.Windows.Controls.Button
         {
-            Content = isFav ? "⭐" : "☆",
+            Content = isFav ? "★" : "☆",
             Width = 24,
             Height = 22,
             Padding = new Thickness(0),
             FontSize = 12,
-            Background = BrushFromHex("#CC0D1320"),
-            Foreground = BrushFromHex(isFav ? "#F5CB5C" : "#8C96AD"),
-            BorderBrush = BrushFromHex(isFav ? "#B8942E" : "#32405C"),
+            Background = BrushFromHex("#D909090B"),
+            Foreground = BrushFromHex(isFav ? "#F59E0B" : "#A1A1AA"),
+            BorderBrush = BrushFromHex(isFav ? "#8A621A" : "#2E2E36"),
             BorderThickness = new Thickness(1),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Bottom,
@@ -568,7 +572,7 @@ public partial class MainWindow
 
         root.Children.Add(new Border
         {
-            CornerRadius = new CornerRadius(6),
+            CornerRadius = new CornerRadius(3),
             ClipToBounds = true,
             Child = thumbGrid
         });
@@ -578,7 +582,7 @@ public partial class MainWindow
         {
             Text = item.FileName,
             FontSize = 11,
-            Foreground = BrushFromHex("#DCE5F7"),
+            Foreground = BrushFromHex("#E4E4E8"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             Margin = new Thickness(1, 5, 1, 1),
             ToolTip = item.FullPath
@@ -587,7 +591,8 @@ public partial class MainWindow
         {
             Text = $"{item.FolderTag} • {FormatSizeShort(item.LengthBytes)}",
             FontSize = 10,
-            Foreground = BrushFromHex("#7E8BA6"),
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            Foreground = BrushFromHex("#71717A"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             Margin = new Thickness(1, 0, 1, 0)
         });
@@ -725,8 +730,8 @@ public partial class MainWindow
         bool isCurrent = string.Equals(_galleryCurrentPath, path, StringComparison.OrdinalIgnoreCase);
         bool isChecked = _gallerySelectedPaths.Contains(path);
         bool isFav = GalleryFavoritesStore.IsFavorite(path);
-        card.Background = BrushFromHex(isCurrent ? "#1D2840" : "#151A25");
-        card.BorderBrush = BrushFromHex(isCurrent ? "#5B8CFF" : isChecked ? "#E07A5F" : isFav ? "#B8942E" : "#262F42");
+        card.Background = BrushFromHex(isCurrent ? "#1A1A20" : "#121215");
+        card.BorderBrush = BrushFromHex(isCurrent ? "#FF521B" : isChecked ? "#E4E4E8" : isFav ? "#F59E0B" : "#28282E");
         card.BorderThickness = new Thickness(isCurrent ? 1.5 : 1);
     }
 
@@ -735,9 +740,9 @@ public partial class MainWindow
         bool isFav = GalleryFavoritesStore.IsFavorite(path);
         if (_galleryCardFavBtns.TryGetValue(path, out var btn))
         {
-            btn.Content = isFav ? "⭐" : "☆";
-            btn.Foreground = BrushFromHex(isFav ? "#F5CB5C" : "#8C96AD");
-            btn.BorderBrush = BrushFromHex(isFav ? "#B8942E" : "#32405C");
+            btn.Content = isFav ? "★" : "☆";
+            btn.Foreground = BrushFromHex(isFav ? "#F59E0B" : "#A1A1AA");
+            btn.BorderBrush = BrushFromHex(isFav ? "#8A621A" : "#2E2E36");
             btn.ToolTip = isFav ? "Убрать из избранного (F)" : "В избранное — защитить от чистки (F)";
         }
         UpdateCardHighlight(path);
@@ -756,8 +761,8 @@ public partial class MainWindow
         GalleryToggleFavBtn.Content = isFav ? "★ В избранном" : "☆ В избранное";
         if (isFav)
         {
-            GalleryToggleFavBtn.Foreground = BrushFromHex("#F5CB5C");
-            GalleryToggleFavBtn.BorderBrush = BrushFromHex("#B8942E");
+            GalleryToggleFavBtn.Foreground = BrushFromHex("#F59E0B");
+            GalleryToggleFavBtn.BorderBrush = BrushFromHex("#8A621A");
         }
         else
         {
@@ -777,7 +782,7 @@ public partial class MainWindow
 
         string name = Path.GetFileName(path);
         ShowToast(
-            nowFav ? $"⭐ Добавлено в избранное: {name}" : $"☆ Убрано из избранного: {name}",
+            nowFav ? $"★ Добавлено в избранное: {name}" : $"☆ Убрано из избранного: {name}",
             nowFav ? "success" : "info");
 
         if (_galleryFilter == "fav" && !nowFav)
@@ -1031,7 +1036,7 @@ public partial class MainWindow
             ? $"Отправлен в Корзину: {Path.GetFileName(paths[0])}"
             : $"Отправлено в Корзину файлов: {paths.Count}";
         StatusFooterText.Text = msg;
-        ShowToast($"🗑 {msg}", "info");
+        ShowToast(msg, "info");
 
         ApplyGalleryFilterAndRender(nextPath ?? _galleryCurrentPath);
     }
@@ -1137,7 +1142,7 @@ public partial class MainWindow
         UpdateGalleryStatsAndButtons();
 
         int n = _gallerySelectedPaths.Count;
-        ShowToast($"Выбрано {n} файлов для чистки (⭐ избранные защищены)", "info");
+        ShowToast($"Выбрано {n} файлов для чистки (★ избранные защищены)", "info");
     }
 
     internal void GalleryToggleFavBtn_Click(object sender, RoutedEventArgs e)

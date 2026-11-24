@@ -10,14 +10,14 @@
 
 ## Скачать готовые сборки (Все платформы)
 
-Перейди в [**Releases → Latest (`v4.9.0`)**](https://github.com/Lenodez/brazhnichenko-hub/releases/latest) и выбери файл под свою систему:
+Перейди в [**Releases → Latest (`v5.0.0`)**](https://github.com/Lenodez/brazhnichenko-hub/releases/latest) и выбери файл под свою систему:
 
 | Платформа | Файл в Releases | Описание |
 |---|---|---|
-| **Android (ARM64 NPU/GPU)** | `BrazhnichenkoHub-Android-arm64.apk` | Snapdragon Hexagon NPU + Adreno GPU + CPU, системный ассистент с отдельной моделью, офлайн-голос (Sherpa-ONNX), автообновление |
-| **Windows (x64)** | `LocalAIHub-Setup.exe` | Нативное WPF приложение (.NET 11): безопасный системный ассистент ПК (хоткей + трей + Vision экрана), локальные LLM, поиск в сети, ComfyUI, автообновление |
-| **macOS (Apple Silicon M1–M4)** | `BrazhnichenkoHub-macOS-arm64.tar.gz` | Готовый `Brazhnichenko Hub.app` бандл (self-contained) |
-| **Linux (x64)** | `BrazhnichenkoHub-linux-x64.tar.gz` | Self-contained сборка + `run.sh` и `install-desktop.sh` |
+| **Android (ARM64 NPU/GPU)** | `BrazhnichenkoHub-Android-arm64.apk` | Snapdragon Hexagon NPU + Adreno GPU + CPU, системный ассистент с отдельной моделью, офлайн-голос (Sherpa-ONNX), улучшенное автообновление для Android 14–17 |
+| **Windows (x64)** | `LocalAIHub-Setup.exe` | Нативное WPF приложение (.NET 11) в новом дизайне **Industrial Mono**: левый Navigation Rail, безопасный ассистент экрана, локальные LLM, поиск в сети, ComfyUI, оптимизация RAM |
+| **macOS (Apple Silicon M1–M4)** | `BrazhnichenkoHub-macOS-arm64.tar.gz` | Готовый `Brazhnichenko Hub.app` бандл в дизайне **Industrial Mono** (self-contained) |
+| **Linux (x64)** | `BrazhnichenkoHub-linux-x64.tar.gz` | Self-contained сборка в дизайне **Industrial Mono** + `run.sh` и `install-desktop.sh` |
 | **Linux (ARM64)** | `BrazhnichenkoHub-linux-arm64.tar.gz` | Self-contained сборка для ARM64 устройств и серверов |
 
 > **Автообновление:** и на **Android**, и на **Windows** дальнейшие релизы проверяются и устанавливаются в 1 клик прямо из приложения через `GitHub Releases`.
@@ -80,7 +80,7 @@ brazhnichenko-hub/
 3. Для подписи своим ключом опционально укажи `HUB_KEYSTORE_PATH`, `HUB_KEYSTORE_ALIAS`, `HUB_KEYSTORE_PASS` (иначе скрипт создаст локальный self-signed ключ автоматически).
 4. Запусти:
    ```powershell
-   pwsh -ExecutionPolicy Bypass -File .\desktop\Build-Android.ps1 -Version "4.9.0"
+   pwsh -ExecutionPolicy Bypass -File .\desktop\Build-Android.ps1 -Version "5.0.0"
    ```
    Готовый APK появится в `desktop\dist\BrazhnichenkoHub-Android-arm64.apk`.
 

@@ -22,8 +22,8 @@
                 </StackPanel>
             </Button>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Path Style="{StaticResource UiIcon18}" Data="{StaticResource IconGallery}" Stroke="{StaticResource AccentBrush}" Margin="0,0,9,0"/>
-                <TextBlock x:Name="GridTitleText" Text="Сравнение батч-вариаций" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <Border Width="3" Height="14" Background="{StaticResource SignalOrangeBrush}" Margin="0,0,10,0"/>
+                <TextBlock x:Name="GridTitleText" Text="СРАВНЕНИЕ БАТЧ-ВАРИАЦИЙ" FontSize="12" FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" VerticalAlignment="Center"/>
             </StackPanel>
         </DockPanel>
 

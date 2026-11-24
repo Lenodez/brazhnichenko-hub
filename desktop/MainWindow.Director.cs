@@ -71,10 +71,10 @@ public partial class MainWindow
         {
             border = new Border
             {
-                Background = BrushFromHex("#223254"),
-                BorderBrush = BrushFromHex("#3A5894"),
+                Background = BrushFromHex("#1A1A20"),
+                BorderBrush = BrushFromHex("#30303A"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(9, 9, 2, 9),
+                CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(10, 6, 10, 6),
                 Margin = new Thickness(60, 0, 0, 7),
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
@@ -82,7 +82,7 @@ public partial class MainWindow
                 Child = new TextBlock
                 {
                     Text = message,
-                    Foreground = BrushFromHex("#FFFFFF"),
+                    Foreground = BrushFromHex("#F4F4F6"),
                     FontSize = 12.5,
                     LineHeight = 18,
                     TextWrapping = TextWrapping.Wrap
@@ -93,19 +93,19 @@ public partial class MainWindow
         {
             border = new Border
             {
-                Background = BrushFromHex("#151E30"),
-                BorderBrush = BrushFromHex("#2A3957"),
+                Background = BrushFromHex("#121215"),
+                BorderBrush = BrushFromHex("#26262E"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(9),
+                CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(10, 6, 10, 6),
                 Margin = new Thickness(0, 0, 60, 7),
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 Child = new TextBlock
                 {
                     Text = message,
-                    Foreground = BrushFromHex("#9EC0FF"),
-                    FontSize = 11.5,
-                    FontStyle = FontStyles.Italic,
+                    Foreground = BrushFromHex("#A1A1AA"),
+                    FontSize = 11,
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                     TextWrapping = TextWrapping.Wrap
                 }
             };
@@ -115,20 +115,21 @@ public partial class MainWindow
             var stack = new StackPanel();
             stack.Children.Add(new TextBlock
             {
-                Text = isError ? "Ошибка Режиссёра" : "AI-Режиссёр",
-                FontSize = 10.5,
+                Text = isError ? "ОШИБКА РЕЖИССЁРА" : "РЕЖИССЁР",
+                FontSize = 10,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontWeight = FontWeights.SemiBold,
-                Foreground = BrushFromHex(isError ? "#F28B82" : "#7FA8FF"),
+                Foreground = BrushFromHex(isError ? "#F87171" : "#FF521B"),
                 Margin = new Thickness(0, 0, 0, 3)
             });
-            stack.Children.Add(MarkdownUiRenderer.Build(message, fontSize: 12.5, foregroundHex: isError ? "#FFD2CE" : "#E3ECFA"));
+            stack.Children.Add(MarkdownUiRenderer.Build(message, fontSize: 12.5, foregroundHex: isError ? "#FECACA" : "#E4E4E8"));
 
             border = new Border
             {
-                Background = BrushFromHex(isError ? "#26161B" : "#141C2B"),
-                BorderBrush = BrushFromHex(isError ? "#7A343D" : "#293854"),
+                Background = BrushFromHex(isError ? "#241214" : "#111114"),
+                BorderBrush = BrushFromHex(isError ? "#69282E" : "#26262E"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(9, 9, 9, 2),
+                CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(11, 7, 11, 7),
                 Margin = new Thickness(0, 0, 36, 7),
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
@@ -237,7 +238,7 @@ public partial class MainWindow
             _photoDirectorChat.Add(("user", userMsg));
             _photoDirectorChat.Add(("assistant", reply));
             AppendDirectorBubble(PhotoDirectorMessagesPanel, PhotoDirectorChatScroll, "assistant", reply);
-            StatusFooterText.Text = "Режиссёр ответил — напиши ответ/правку или жми «✨ Применить в этапы».";
+            StatusFooterText.Text = "Режиссёр ответил — напиши ответ/правку или жми «Применить в этапы».";
             PhotoDirectorReplyBox.Focus();
         }
         catch (Exception ex)
@@ -320,7 +321,7 @@ public partial class MainWindow
 
             PhotoDirectorChatPanel.Visibility = Visibility.Visible;
             string summaryNotes = string.Join("\n", sc.Stages.Select(s => $"- **Этап {s.Index}:** {(string.IsNullOrWhiteSpace(s.NoteRu) ? "готово" : s.NoteRu)}"));
-            string doneMsg = $"✓ Сценарий **«{sc.TitleRu}»** загружен ({_photoStages.Count} кад.):\n{summaryNotes}\n\nЕсли хочешь изменить конкретный кадр — напиши ниже и жми **«✨ Применить в этапы»**.";
+            string doneMsg = $"✓ Сценарий **«{sc.TitleRu}»** загружен ({_photoStages.Count} кад.):\n{summaryNotes}\n\nЕсли хочешь изменить конкретный кадр — напиши ниже и жми **«Применить в этапы»**.";
             _photoDirectorChat.Add(("assistant", doneMsg));
             AppendDirectorBubble(PhotoDirectorMessagesPanel, PhotoDirectorChatScroll, "assistant", doneMsg);
             StatusFooterText.Text = $"✓ Сценарий «{sc.TitleRu}» загружен ({_photoStages.Count} кадров)!";
@@ -419,7 +420,7 @@ public partial class MainWindow
             _videoDirectorChat.Add(("user", userMsg));
             _videoDirectorChat.Add(("assistant", reply));
             AppendDirectorBubble(VideoDirectorMessagesPanel, VideoDirectorChatScroll, "assistant", reply);
-            StatusFooterText.Text = "Режиссёр ответил — напиши ответ/правку или жми «✨ Обновить этапы».";
+            StatusFooterText.Text = "Режиссёр ответил — напиши ответ/правку или жми «Обновить этапы».";
             VideoDirectorReplyBox.Focus();
         }
         catch (Exception ex)
@@ -514,7 +515,7 @@ public partial class MainWindow
 
             VideoDirectorChatPanel.Visibility = Visibility.Visible;
             string summaryNotes = string.Join("\n", sc.Stages.Select(s => $"- **Этап {s.Index}:** {(string.IsNullOrWhiteSpace(s.NoteRu) ? "готово" : s.NoteRu)}"));
-            string doneMsg = $"✓ Сценарий **«{sc.TitleRu}»** загружен ({_videoStages.Count} сц.):\n{summaryNotes}\n\nХочешь поменять какую-то сцену? Напиши правку ниже и жми **«✨ Обновить этапы»**.";
+            string doneMsg = $"✓ Сценарий **«{sc.TitleRu}»** загружен ({_videoStages.Count} сц.):\n{summaryNotes}\n\nХочешь поменять какую-то сцену? Напиши правку ниже и жми **«Обновить этапы»**.";
             _videoDirectorChat.Add(("assistant", doneMsg));
             AppendDirectorBubble(VideoDirectorMessagesPanel, VideoDirectorChatScroll, "assistant", doneMsg);
             StatusFooterText.Text = $"✓ Сценарий «{sc.TitleRu}» загружен ({_videoStages.Count} сцен)!";

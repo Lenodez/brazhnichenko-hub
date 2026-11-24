@@ -56,7 +56,7 @@ public partial class MainWindow
                 VramSparkline.Points = ToPointCollection(_vramHistory.ComputeSparklinePoints(64, 26, 0, 100, 2));
                 VramSparkline.Stroke = vp > 85 ? BrushFromHex("#EF4444")
                                      : vp > 60 ? BrushFromHex("#F59E0B")
-                                     : BrushFromHex("#22C55E");
+                                     : BrushFromHex("#FF521B");
             }
         }
 

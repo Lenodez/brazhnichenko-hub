@@ -145,19 +145,19 @@ public partial class MainWindow
         GenTitleText.Text = title;
         GenStageText.Text = "Подготовка к запуску...";
         GenPercentText.Text = "0%";
-        GenPercentText.Foreground = BrushFromHex("#4DD9D5");
+        GenPercentText.Foreground = BrushFromHex("#FF521B");
         GenProgressBar.IsIndeterminate = true;
         GenProgressBar.Value = 0;
-        GenProgressBar.Foreground = BrushFromHex("#5B8CFF");
+        GenProgressBar.Foreground = BrushFromHex("#FF521B");
         GenStepText.Text = "—";
         GenSpeedText.Text = "замер...";
         GenElapsedText.Text = "00:00";
         GenEtaText.Text = "расчёт...";
         CancelGenerationBtn.Visibility = Visibility.Visible;
         CancelGenerationBtn.IsEnabled = true;
-        GenPulseDot.Fill = BrushFromHex("#4DD9D5");
+        GenPulseDot.Fill = BrushFromHex("#FF521B");
         GenPulseDot.Opacity = 1.0;
-        GenProgressCard.BorderBrush = BrushFromHex("#3B5B99");
+        GenProgressCard.BorderBrush = BrushFromHex("#3F3F48");
         GenProgressCard.Visibility = Visibility.Visible;
 
         _pollTimer.Interval = TimeSpan.FromSeconds(1.2);
@@ -232,11 +232,11 @@ public partial class MainWindow
         {
             GenProgressBar.IsIndeterminate = false;
             GenProgressBar.Value = 100;
-            GenProgressBar.Foreground = BrushFromHex("#2ECC71");
+            GenProgressBar.Foreground = BrushFromHex("#34D399");
             GenPercentText.Text = "100%";
-            GenPercentText.Foreground = BrushFromHex("#2ECC71");
-            GenPulseDot.Fill = BrushFromHex("#2ECC71");
-            GenProgressCard.BorderBrush = BrushFromHex("#256B45");
+            GenPercentText.Foreground = BrushFromHex("#34D399");
+            GenPulseDot.Fill = BrushFromHex("#34D399");
+            GenProgressCard.BorderBrush = BrushFromHex("#265944");
             GenStageText.Text = summary;
             GenEtaText.Text = "00:00";
             if (_genStopwatch is not null)
@@ -249,8 +249,8 @@ public partial class MainWindow
         else
         {
             GenProgressBar.IsIndeterminate = false;
-            GenPulseDot.Fill = BrushFromHex("#E74C3C");
-            GenProgressCard.BorderBrush = BrushFromHex("#7D3232");
+            GenPulseDot.Fill = BrushFromHex("#EF4444");
+            GenProgressCard.BorderBrush = BrushFromHex("#69282E");
             GenStageText.Text = summary;
             await Task.Delay(3000);
             if (_genHudVersion == myVer && !_storyBusy)
@@ -280,10 +280,10 @@ public partial class MainWindow
 
         var card = new Border
         {
-            Background = BrushFromHex("#151C2B"),
-            BorderBrush = active ? BrushFromHex("#5B8CFF") : BrushFromHex("#2A3245"),
+            Background = BrushFromHex("#121215"),
+            BorderBrush = active ? BrushFromHex("#FF521B") : BrushFromHex("#28282E"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10),
+            CornerRadius = new CornerRadius(4),
             Padding = new Thickness(14),
             Margin = new Thickness(0, 0, 0, 12)
         };
@@ -298,17 +298,18 @@ public partial class MainWindow
         var hdr = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
         hdr.Children.Add(new TextBlock
         {
-            Text = "Шаг 0 (необязательно) — Генерация персонажа / стартового кадра",
-            FontSize = 14,
+            Text = "ШАГ 0 — СТАРТОВЫЙ КАДР / ЯКОРЬ ПЕРСОНАЖА",
+            FontSize = 11.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushFromHex("#8AB4FF")
+            Foreground = BrushFromHex("#FF521B")
         });
 
         var useChk = new System.Windows.Controls.CheckBox
         {
             Content = "Передать этот кадр в Этап 1 (I2V)",
             IsChecked = _videoProject.UseStarterFrame,
-            Foreground = BrushFromHex("#C8D4EA"),
+            Foreground = BrushFromHex("#D4D4D8"),
             FontSize = 11.5,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center
@@ -325,9 +326,9 @@ public partial class MainWindow
             AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap,
             Height = 56,
-            Background = BrushFromHex("#0B0D12"),
-            Foreground = BrushFromHex("#E6EBF5"),
-            BorderBrush = BrushFromHex("#2A3245"),
+            Background = BrushFromHex("#09090B"),
+            Foreground = BrushFromHex("#F4F4F6"),
+            BorderBrush = BrushFromHex("#28282E"),
             Padding = new Thickness(8, 6, 8, 6),
             FontSize = 12.5,
             Margin = new Thickness(0, 0, 0, 8)
@@ -378,7 +379,7 @@ public partial class MainWindow
 
         var pasteStarterBtn = new System.Windows.Controls.Button
         {
-            Content = "📋 Из буфера",
+            Content = "Из буфера",
             Style = (Style)FindResource("DarkButton"),
             Margin = new Thickness(0, 0, 7, 0),
             IsEnabled = !_storyBusy,
@@ -412,10 +413,10 @@ public partial class MainWindow
         // Right preview
         var previewBorder = new Border
         {
-            Background = BrushFromHex("#0B0D12"),
-            BorderBrush = BrushFromHex("#2A3245"),
+            Background = BrushFromHex("#070708"),
+            BorderBrush = BrushFromHex("#28282E"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
+            CornerRadius = new CornerRadius(4),
             Height = 124,
             Cursor = System.Windows.Input.Cursors.Hand
         };
@@ -432,7 +433,7 @@ public partial class MainWindow
             {
                 Text = "Нажми, чтобы\nвыбрать фото\nс диска",
                 TextAlignment = TextAlignment.Center,
-                Foreground = BrushFromHex("#6B7794"),
+                Foreground = BrushFromHex("#71717A"),
                 FontSize = 11.5,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center
@@ -523,12 +524,12 @@ public partial class MainWindow
 
             var card = new Border
             {
-                Background = BrushFromHex("#171B24"),
+                Background = BrushFromHex("#121215"),
                 BorderBrush = !string.IsNullOrEmpty(st.OutputVideoPath) && File.Exists(st.OutputVideoPath)
-                    ? BrushFromHex("#256B45")
-                    : BrushFromHex("#2A3245"),
+                    ? BrushFromHex("#265944")
+                    : BrushFromHex("#28282E"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(10),
+                CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(14),
                 Margin = new Thickness(0, 0, 0, 10)
             };
@@ -543,10 +544,11 @@ public partial class MainWindow
             var hdr = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
             hdr.Children.Add(new TextBlock
             {
-                Text = isFirst ? "Этап 1 — Старт видео-истории" : $"Этап {idx + 1} — Продолжение цепочки",
-                FontSize = 14,
+                Text = isFirst ? "ЭТАП 01 — СТАРТ ВИДЕО-ИСТОРИИ" : $"ЭТАП {idx + 1:00} — ПРОДОЛЖЕНИЕ ЦЕПОЧКИ",
+                FontSize = 11.5,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontWeight = FontWeights.SemiBold,
-                Foreground = isFirst ? BrushFromHex("#4DD9D5") : BrushFromHex("#E6EBF5")
+                Foreground = isFirst ? BrushFromHex("#F4F4F6") : BrushFromHex("#D4D4D8")
             });
 
             string refBadgeText;
@@ -575,11 +577,13 @@ public partial class MainWindow
 
             var refBadge = new Border
             {
-                Background = BrushFromHex("#1F2533"),
-                CornerRadius = new CornerRadius(8),
+                Background = BrushFromHex("#19191E"),
+                BorderBrush = BrushFromHex("#2C2C34"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
                 Padding = new Thickness(8, 2, 8, 2),
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
-                Child = new TextBlock { Text = refBadgeText, FontSize = 11, Foreground = BrushFromHex("#9BA9C4") }
+                Child = new TextBlock { Text = refBadgeText, FontSize = 10.5, FontFamily = new System.Windows.Media.FontFamily("Consolas"), Foreground = BrushFromHex("#A1A1AA") }
             };
             hdr.Children.Add(refBadge);
             left.Children.Add(hdr);
@@ -592,7 +596,7 @@ public partial class MainWindow
                 {
                     Text = "Референсы:",
                     FontSize = 11.5,
-                    Foreground = BrushFromHex("#8C96AD"),
+                    Foreground = BrushFromHex("#A1A1AA"),
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0, 0, 8, 0)
                 };
@@ -634,7 +638,7 @@ public partial class MainWindow
                     {
                         Text = "Промпт моста FLUX 3 (стартовый фото-кадр: 1-й реф = Шаг 0, 2-й реф = последний кадр; пусто = авто):",
                         FontSize = 11,
-                        Foreground = BrushFromHex("#8AB4FF"),
+                        Foreground = BrushFromHex("#A1A1AA"),
                         Margin = new Thickness(0, 0, 0, 4)
                     });
                     var bridgeBox = new System.Windows.Controls.TextBox
@@ -643,9 +647,9 @@ public partial class MainWindow
                         AcceptsReturn = true,
                         TextWrapping = TextWrapping.Wrap,
                         Height = 48,
-                        Background = BrushFromHex("#0D1320"),
-                        Foreground = BrushFromHex("#D6E4FF"),
-                        BorderBrush = BrushFromHex("#35528A"),
+                        Background = BrushFromHex("#0D0D10"),
+                        Foreground = BrushFromHex("#E4E4E8"),
+                        BorderBrush = BrushFromHex("#3A3A44"),
                         Padding = new Thickness(8, 5, 8, 5),
                         FontSize = 12,
                         Margin = new Thickness(0, 0, 0, 7)
@@ -662,9 +666,9 @@ public partial class MainWindow
                 AcceptsReturn = true,
                 TextWrapping = TextWrapping.Wrap,
                 Height = 64,
-                Background = BrushFromHex("#0B0D12"),
-                Foreground = BrushFromHex("#E6EBF5"),
-                BorderBrush = BrushFromHex("#2A3245"),
+                Background = BrushFromHex("#09090B"),
+                Foreground = BrushFromHex("#F4F4F6"),
+                BorderBrush = BrushFromHex("#28282E"),
                 Padding = new Thickness(8, 6, 8, 6),
                 FontSize = 12.5,
                 Margin = new Thickness(0, 0, 0, 8)
@@ -720,7 +724,7 @@ public partial class MainWindow
 
             var pasteImgBtn = new System.Windows.Controls.Button
             {
-                Content = "📋 Из буфера",
+                Content = "Из буфера",
                 Style = (Style)FindResource("DarkButton"),
                 Margin = new Thickness(0, 0, 7, 0),
                 IsEnabled = !_storyBusy,
@@ -760,10 +764,10 @@ public partial class MainWindow
             // Right preview box
             var previewBorder = new Border
             {
-                Background = BrushFromHex("#0B0D12"),
-                BorderBrush = BrushFromHex("#2A3245"),
+                Background = BrushFromHex("#070708"),
+                BorderBrush = BrushFromHex("#28282E"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
+                CornerRadius = new CornerRadius(4),
                 Height = 132,
                 Cursor = System.Windows.Input.Cursors.Hand
             };
@@ -788,7 +792,7 @@ public partial class MainWindow
                 {
                     Text = "Нажми, чтобы\nвыбрать фото\nс диска",
                     TextAlignment = TextAlignment.Center,
-                    Foreground = BrushFromHex("#6B7794"),
+                    Foreground = BrushFromHex("#71717A"),
                     FontSize = 11.5,
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = System.Windows.HorizontalAlignment.Center

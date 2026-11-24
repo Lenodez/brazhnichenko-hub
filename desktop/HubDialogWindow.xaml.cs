@@ -82,22 +82,22 @@ public partial class HubDialogWindow : Window
             case MessageBoxImage.Error:
                 geomKey = "IconError";
                 strokeHex = "#EF4444";
-                bgHex = "#38191E";
+                bgHex = "#291215";
                 break;
             case MessageBoxImage.Warning:
                 geomKey = "IconAlert";
                 strokeHex = "#F59E0B";
-                bgHex = "#332712";
+                bgHex = "#261E0D";
                 break;
             case MessageBoxImage.Question:
-                geomKey = "IconSparkles";
-                strokeHex = "#5B8CFF";
-                bgHex = "#182747";
+                geomKey = "IconInfo";
+                strokeHex = "#FF521B";
+                bgHex = "#26130C";
                 break;
             default:
                 geomKey = "IconInfo";
-                strokeHex = "#5B8CFF";
-                bgHex = "#182747";
+                strokeHex = "#E4E4E7";
+                bgHex = "#1A1A1F";
                 break;
         }
 

@@ -222,18 +222,14 @@ public partial class MainWindow : Window
             {
                 g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 g.Clear(System.Drawing.Color.Transparent);
-                using var bg = new SolidBrush(System.Drawing.Color.FromArgb(255, 45, 110, 245));
-                using var ring = new System.Drawing.Pen(System.Drawing.Color.FromArgb(255, 130, 195, 255), 2f);
+                using var bg = new SolidBrush(System.Drawing.Color.FromArgb(255, 18, 18, 21));
+                using var ring = new System.Drawing.Pen(System.Drawing.Color.FromArgb(255, 68, 68, 78), 1.8f);
+                using var innerRing = new System.Drawing.Pen(System.Drawing.Color.FromArgb(255, 228, 228, 232), 1.5f);
+                using var coreDot = new SolidBrush(System.Drawing.Color.FromArgb(255, 255, 82, 27));
                 g.FillEllipse(bg, 2, 2, 28, 28);
                 g.DrawEllipse(ring, 2, 2, 28, 28);
-                // Crisp 4-point sparkle star in center
-                var pts = new PointF[]
-                {
-                    new(16, 6), new(18.6f, 13.4f), new(26, 16), new(18.6f, 18.6f),
-                    new(16, 26), new(13.4f, 18.6f), new(6, 16), new(13.4f, 13.4f)
-                };
-                using var star = new SolidBrush(System.Drawing.Color.White);
-                g.FillPolygon(star, pts);
+                g.DrawEllipse(innerRing, 8, 8, 16, 16);
+                g.FillEllipse(coreDot, 12.5f, 12.5f, 7f, 7f);
             }
             IntPtr hIcon = bmp.GetHicon();
             try
@@ -407,12 +403,12 @@ public partial class MainWindow : Window
         {
             var cardBorder = new Border
             {
-                Background = BrushFromHex("#171B24"),
-                BorderBrush = BrushFromHex("#2A3245"),
+                Background = BrushFromHex("#121215"),
+                BorderBrush = BrushFromHex("#28282E"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(12),
-                Padding = new Thickness(16),
-                Margin = new Thickness(6)
+                CornerRadius = new CornerRadius(5),
+                Padding = new Thickness(14),
+                Margin = new Thickness(5)
             };
 
             var root = new StackPanel();
@@ -422,47 +418,53 @@ public partial class MainWindow : Window
             var statusText = new TextBlock
             {
                 Text = "Проверка...",
-                FontSize = 11.5,
+                FontSize = 11,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontWeight = FontWeights.SemiBold,
-                Foreground = BrushFromHex("#8C96AD")
+                Foreground = BrushFromHex("#A1A1AA")
             };
             var statusBadge = new Border
             {
-                Background = BrushFromHex("#1F2533"),
-                CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(9, 3, 9, 3),
+                Background = BrushFromHex("#19191E"),
+                BorderBrush = BrushFromHex("#2A2A32"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(8, 3, 8, 3),
                 VerticalAlignment = VerticalAlignment.Top,
                 Child = statusText
             };
             DockPanel.SetDock(statusBadge, Dock.Right);
             top.Children.Add(statusBadge);
 
-            var (glyph, accentBg, accentFg) = svc.Id switch
+            string iconGeomKey = svc.Id switch
             {
-                "qwen" => ("\uE8BD", "#1B2C4A", "#6EA8FE"),
-                "claude" => ("\uE943", "#2E2247", "#B892FF"),
-                "comfyui" => ("\uE790", "#173739", "#4DD9D5"),
-                "swarmui" => ("\uF0E2", "#33261A", "#FFB35C"),
-                _ => ("\uE770", "#1F2533", "#8C96AD")
+                "qwen" => "IconChat",
+                "claude" => "IconTerminal",
+                "comfyui" => "IconImage",
+                "swarmui" => "IconLayers",
+                _ => "IconSliders"
+            };
+
+            var iconPath = new System.Windows.Shapes.Path
+            {
+                Style = TryFindResource("UiIcon16") as Style,
+                Data = TryFindResource(iconGeomKey) as Geometry,
+                Stroke = BrushFromHex("#E4E4E8"),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
             };
 
             var iconBadge = new Border
             {
-                Width = 38,
-                Height = 38,
-                CornerRadius = new CornerRadius(10),
-                Background = BrushFromHex(accentBg),
-                Margin = new Thickness(0, 0, 12, 0),
+                Width = 34,
+                Height = 34,
+                CornerRadius = new CornerRadius(4),
+                Background = BrushFromHex("#18181D"),
+                BorderBrush = BrushFromHex("#2C2C34"),
+                BorderThickness = new Thickness(1),
+                Margin = new Thickness(0, 0, 11, 0),
                 VerticalAlignment = VerticalAlignment.Top,
-                Child = new TextBlock
-                {
-                    Text = glyph,
-                    FontFamily = new System.Windows.Media.FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
-                    FontSize = 18,
-                    Foreground = BrushFromHex(accentFg),
-                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
+                Child = iconPath
             };
             DockPanel.SetDock(iconBadge, Dock.Left);
             top.Children.Add(iconBadge);
@@ -471,17 +473,17 @@ public partial class MainWindow : Window
             titleStack.Children.Add(new TextBlock
             {
                 Text = svc.Name,
-                FontSize = 16,
+                FontSize = 14.5,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = BrushFromHex("#E6EBF5")
+                Foreground = BrushFromHex("#F4F4F6")
             });
             titleStack.Children.Add(new TextBlock
             {
                 Text = svc.Description,
-                FontSize = 12,
-                Foreground = BrushFromHex("#8C96AD"),
+                FontSize = 11.5,
+                Foreground = BrushFromHex("#A1A1AA"),
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 3, 8, 0)
+                Margin = new Thickness(0, 2, 8, 0)
             });
             top.Children.Add(titleStack);
             root.Children.Add(top);
@@ -489,10 +491,10 @@ public partial class MainWindow : Window
             // Meta row: port & folder
             var meta = new TextBlock
             {
-                Text = $"Порт: {svc.Port}   •   Папка: {svc.Folder}",
+                Text = $"ПОРТ :{svc.Port}  •  {svc.Folder}",
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-                FontSize = 11.5,
-                Foreground = BrushFromHex("#7B86A0"),
+                FontSize = 11,
+                Foreground = BrushFromHex("#71717A"),
                 Margin = new Thickness(0, 6, 0, 10),
                 TextWrapping = TextWrapping.Wrap
             };
@@ -504,9 +506,10 @@ public partial class MainWindow : Window
                 var modelRow = new DockPanel { Margin = new Thickness(0, 0, 0, 10) };
                 var lbl = new TextBlock
                 {
-                    Text = "Веса:",
-                    FontSize = 12,
-                    Foreground = BrushFromHex("#8C96AD"),
+                    Text = "ВЕСА:",
+                    FontSize = 10.5,
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    Foreground = BrushFromHex("#71717A"),
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0, 0, 8, 0)
                 };
@@ -520,13 +523,12 @@ public partial class MainWindow : Window
                     FontSize = 12,
                     Padding = new Thickness(6, 4, 6, 4)
                 };
-                _llmModelCombo.SelectionChanged += (_, _) =>
+                _llmModelCombo.SelectionChanged += async (_, _) =>
                 {
                     if (_suppressLlmChange) return;
                     if (_llmModelCombo.SelectedValue is string chosen && !string.IsNullOrWhiteSpace(chosen))
                     {
-                        _manager.SetActiveLlmFileName(chosen);
-                        StatusFooterText.Text = $"Выбрана модель LLM: {chosen} (применится при следующем запуске Qwen/Claude).";
+                        await ApplySelectedLlmWeightsAsync(chosen);
                     }
                 };
                 modelRow.Children.Add(_llmModelCombo);
@@ -666,7 +668,7 @@ public partial class MainWindow : Window
                 GpuExtraText.Text = $"{m.Gpu.UtilPct}% • {Math.Round(m.Gpu.TempC)}°C";
                 VramText.Text = $"{usedG:F1} / {totalG:F1} ГБ ({pct:0}%)";
                 VramBar.Value = pct;
-                VramBar.Foreground = pct > 85 ? BrushFromHex("#EF4444") : pct > 60 ? BrushFromHex("#F59E0B") : BrushFromHex("#22C55E");
+                VramBar.Foreground = pct > 85 ? BrushFromHex("#EF4444") : pct > 60 ? BrushFromHex("#F59E0B") : BrushFromHex("#FF521B");
                 GenGpuLiveText.Text = $"{usedG:F1}/{totalG:F1} ГБ • {m.Gpu.UtilPct}% • {Math.Round(m.Gpu.TempC)}°C";
             }
 
@@ -689,7 +691,7 @@ public partial class MainWindow : Window
                     DiskBar.Value = usedPct;
                     DiskBar.Foreground = m.DiskFreeDGB < 15 ? BrushFromHex("#EF4444")
                                        : m.DiskFreeDGB < 35 ? BrushFromHex("#F59E0B")
-                                       : BrushFromHex("#22C55E");
+                                       : BrushFromHex("#D4D4D8");
                 }
             }
             catch { }
@@ -709,18 +711,18 @@ public partial class MainWindow : Window
                 if (busy is not null)
                 {
                     ui.StatusText.Text = busy;
-                    ui.StatusText.Foreground = BrushFromHex("#F1C40F");
-                    ui.StatusBadge.Background = BrushFromHex("#332D14");
-                    ui.CardBorder.BorderBrush = BrushFromHex("#7D661A");
+                    ui.StatusText.Foreground = BrushFromHex("#F59E0B");
+                    ui.StatusBadge.Background = BrushFromHex("#241D0E");
+                    ui.CardBorder.BorderBrush = BrushFromHex("#6B5218");
                     ui.StartBtn.IsEnabled = false;
                     ui.StopBtn.IsEnabled = false;
                 }
                 else if (running)
                 {
-                    ui.StatusText.Text = "● Работает";
-                    ui.StatusText.Foreground = BrushFromHex("#2ECC71");
-                    ui.StatusBadge.Background = BrushFromHex("#143322");
-                    ui.CardBorder.BorderBrush = BrushFromHex("#256B45");
+                    ui.StatusText.Text = "● РАБОТАЕТ";
+                    ui.StatusText.Foreground = BrushFromHex("#34D399");
+                    ui.StatusBadge.Background = BrushFromHex("#11241C");
+                    ui.CardBorder.BorderBrush = BrushFromHex("#265944");
                     ui.StartBtn.Visibility = Visibility.Collapsed;
                     ui.OpenBtn.Visibility = svc.Id == "claude" ? Visibility.Collapsed : Visibility.Visible;
                     ui.StopBtn.Visibility = Visibility.Visible;
@@ -728,10 +730,10 @@ public partial class MainWindow : Window
                 }
                 else if (!runtimeReady)
                 {
-                    ui.StatusText.Text = "⚠ Нужен движок";
-                    ui.StatusText.Foreground = BrushFromHex("#F5CB5C");
-                    ui.StatusBadge.Background = BrushFromHex("#332D14");
-                    ui.CardBorder.BorderBrush = BrushFromHex("#7D661A");
+                    ui.StatusText.Text = "▲ НУЖЕН ДВИЖОК";
+                    ui.StatusText.Foreground = BrushFromHex("#F59E0B");
+                    ui.StatusBadge.Background = BrushFromHex("#241D0E");
+                    ui.CardBorder.BorderBrush = BrushFromHex("#6B5218");
                     ui.StartBtn.Content = svc.Id == "comfyui" ? "Установить ComfyUI" : "Установить llama.cpp";
                     ui.StartBtn.Style = (Style)FindResource("SuccessButton");
                     ui.StartBtn.Visibility = Visibility.Visible;
@@ -741,10 +743,10 @@ public partial class MainWindow : Window
                 }
                 else if (svc.Id == "qwen" && !hasLlmModels)
                 {
-                    ui.StatusText.Text = "○ Нет весов";
-                    ui.StatusText.Foreground = BrushFromHex("#8AB4FF");
-                    ui.StatusBadge.Background = BrushFromHex("#1B2C4A");
-                    ui.CardBorder.BorderBrush = BrushFromHex("#35528A");
+                    ui.StatusText.Text = "○ НЕТ ВЕСОВ";
+                    ui.StatusText.Foreground = BrushFromHex("#E4E4E8");
+                    ui.StatusBadge.Background = BrushFromHex("#19191E");
+                    ui.CardBorder.BorderBrush = BrushFromHex("#383842");
                     ui.StartBtn.Content = "Выбрать модель →";
                     ui.StartBtn.Style = (Style)FindResource("PrimaryButton");
                     ui.StartBtn.Visibility = Visibility.Visible;
@@ -754,10 +756,10 @@ public partial class MainWindow : Window
                 }
                 else
                 {
-                    ui.StatusText.Text = "○ Остановлен";
-                    ui.StatusText.Foreground = BrushFromHex("#8C96AD");
-                    ui.StatusBadge.Background = BrushFromHex("#1F2533");
-                    ui.CardBorder.BorderBrush = BrushFromHex("#2A3245");
+                    ui.StatusText.Text = "○ ОСТАНОВЛЕН";
+                    ui.StatusText.Foreground = BrushFromHex("#71717A");
+                    ui.StatusBadge.Background = BrushFromHex("#18181C");
+                    ui.CardBorder.BorderBrush = BrushFromHex("#28282E");
                     ui.StartBtn.Content = "Запустить (авто-GPU)";
                     ui.StartBtn.Style = (Style)FindResource("PrimaryButton");
                     ui.StartBtn.Visibility = Visibility.Visible;
@@ -775,30 +777,30 @@ public partial class MainWindow : Window
                 if (llmBusy is not null)
                 {
                     ChatQuickLlmStatusText.Text = $"LLM: {llmBusy}";
-                    ChatQuickLlmStatusText.Foreground = BrushFromHex("#F1C40F");
+                    ChatQuickLlmStatusText.Foreground = BrushFromHex("#F59E0B");
                     ChatLlmStatusBadgeText.Text = llmBusy;
-                    ChatLlmStatusBadgeText.Foreground = BrushFromHex("#F1C40F");
-                    ChatLlmStatusBadge.Background = BrushFromHex("#332D14");
+                    ChatLlmStatusBadgeText.Foreground = BrushFromHex("#F59E0B");
+                    ChatLlmStatusBadge.Background = BrushFromHex("#241D0E");
                     ChatLlmStartBtn.IsEnabled = false;
                 }
                 else if (llmRunning)
                 {
-                    ChatQuickLlmStatusText.Text = "● Основная LLM запущена (:18080)";
-                    ChatQuickLlmStatusText.Foreground = BrushFromHex("#2ECC71");
-                    ChatLlmStatusBadgeText.Text = "● Работает (:18080)";
-                    ChatLlmStatusBadgeText.Foreground = BrushFromHex("#2ECC71");
-                    ChatLlmStatusBadge.Background = BrushFromHex("#143322");
+                    ChatQuickLlmStatusText.Text = "● LLM активна (:18080)";
+                    ChatQuickLlmStatusText.Foreground = BrushFromHex("#34D399");
+                    ChatLlmStatusBadgeText.Text = "● :18080";
+                    ChatLlmStatusBadgeText.Foreground = BrushFromHex("#34D399");
+                    ChatLlmStatusBadge.Background = BrushFromHex("#11241C");
                     ChatLlmStartBtn.Visibility = Visibility.Collapsed;
                     ChatLlmOpenUiBtn.Visibility = Visibility.Visible;
                     ChatLlmStopBtn.Visibility = Visibility.Visible;
                 }
                 else if (!llamaReady)
                 {
-                    ChatQuickLlmStatusText.Text = "⚠ Движок llama.cpp не установлен";
-                    ChatQuickLlmStatusText.Foreground = BrushFromHex("#F5CB5C");
-                    ChatLlmStatusBadgeText.Text = "⚠ Нужен движок";
-                    ChatLlmStatusBadgeText.Foreground = BrushFromHex("#F5CB5C");
-                    ChatLlmStatusBadge.Background = BrushFromHex("#332D14");
+                    ChatQuickLlmStatusText.Text = "▲ Движок llama.cpp не установлен";
+                    ChatQuickLlmStatusText.Foreground = BrushFromHex("#F59E0B");
+                    ChatLlmStatusBadgeText.Text = "▲ НУЖЕН ДВИЖОК";
+                    ChatLlmStatusBadgeText.Foreground = BrushFromHex("#F59E0B");
+                    ChatLlmStatusBadge.Background = BrushFromHex("#241D0E");
                     ChatLlmStartBtn.Content = "Установить llama.cpp";
                     ChatLlmStartBtn.Style = (Style)FindResource("SuccessButton");
                     ChatLlmStartBtn.Visibility = Visibility.Visible;
@@ -808,12 +810,12 @@ public partial class MainWindow : Window
                 }
                 else
                 {
-                    ChatQuickLlmStatusText.Text = hasLlmModels ? "○ Основная LLM остановлена" : "○ Нет скачанных LLM";
-                    ChatQuickLlmStatusText.Foreground = BrushFromHex("#8C96AD");
-                    ChatLlmStatusBadgeText.Text = hasLlmModels ? "○ Остановлен" : "○ Нет весов";
-                    ChatLlmStatusBadgeText.Foreground = BrushFromHex("#8C96AD");
-                    ChatLlmStatusBadge.Background = BrushFromHex("#1F2533");
-                    ChatLlmStartBtn.Content = hasLlmModels ? "Запустить LLM (авто-GPU)" : "Выбрать модель →";
+                    ChatQuickLlmStatusText.Text = hasLlmModels ? "○ LLM остановлена" : "○ Нет скачанных LLM";
+                    ChatQuickLlmStatusText.Foreground = BrushFromHex("#71717A");
+                    ChatLlmStatusBadgeText.Text = hasLlmModels ? "○ СТОП" : "○ НЕТ ВЕСОВ";
+                    ChatLlmStatusBadgeText.Foreground = BrushFromHex("#A1A1AA");
+                    ChatLlmStatusBadge.Background = BrushFromHex("#18181C");
+                    ChatLlmStartBtn.Content = hasLlmModels ? "Запустить LLM" : "Выбрать модель →";
                     ChatLlmStartBtn.Style = (Style)FindResource("PrimaryButton");
                     ChatLlmStartBtn.Visibility = Visibility.Visible;
                     ChatLlmStartBtn.IsEnabled = true;
@@ -960,15 +962,52 @@ public partial class MainWindow : Window
     internal void ChatModeAssistantBtn_Click(object sender, RoutedEventArgs e) => SetChatSubMode("assistant");
     internal void ChatModeLlmBtn_Click(object sender, RoutedEventArgs e) => SetChatSubMode("llm");
 
-    internal void ChatLlmModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    internal async void ChatLlmModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_suppressLlmChange) return;
         if (ChatLlmModelCombo.SelectedValue is string chosen && !string.IsNullOrWhiteSpace(chosen))
         {
-            _manager.SetActiveLlmFileName(chosen);
-            RefreshLlmSelector();
-            UpdateLocalChatVisionBadge();
-            StatusFooterText.Text = $"Выбрана модель LLM: {chosen} (применится при следующем запуске).";
+            await ApplySelectedLlmWeightsAsync(chosen);
+        }
+    }
+
+    private async Task ApplySelectedLlmWeightsAsync(string chosen)
+    {
+        string prev = _manager.GetActiveLlmFileName();
+        _manager.SetActiveLlmFileName(chosen);
+        RefreshLlmSelector();
+        UpdateLocalChatVisionBadge();
+
+        if (!string.Equals(prev, chosen, StringComparison.OrdinalIgnoreCase) &&
+            _busyState.GetValueOrDefault("qwen") is null &&
+            !_localChatBusy &&
+            await _manager.IsRunningAsync(_manager.GetService("qwen")))
+        {
+            _busyState["qwen"] = "Смена весов...";
+            await RefreshStatusAsync();
+            try
+            {
+                StatusFooterText.Text = $"Переключение активной LLM на {chosen}...";
+                ShowToast($"Переключаю LLM на {AiServiceManager.FriendlyLlmName(chosen)}...", "info");
+                await _manager.StopServiceAsync("qwen");
+                await _manager.SwitchAndStartAsync("qwen", msg => Dispatcher.Invoke(() => StatusFooterText.Text = msg));
+                StatusFooterText.Text = $"Активная LLM переключена на {chosen}.";
+                ShowToast($"Активна LLM: {AiServiceManager.FriendlyLlmName(chosen)}", "success");
+            }
+            catch (Exception ex)
+            {
+                StatusFooterText.Text = $"Ошибка переключения LLM: {ex.Message}";
+                ShowToast("Не удалось перезапустить LLM с новыми весами", "warn");
+            }
+            finally
+            {
+                _busyState["qwen"] = null;
+                await RefreshStatusAsync();
+            }
+        }
+        else
+        {
+            StatusFooterText.Text = $"Выбрана модель LLM: {chosen} (запустится автоматически при первом запросе).";
         }
     }
 
@@ -1322,9 +1361,9 @@ public partial class MainWindow : Window
 
             var (bgHex, borderHex, fgHex) = kind switch
             {
-                "success" => ("#142E22", "#2ECC71", "#D9FCE8"),
-                "warn" => ("#332912", "#F1C40F", "#FFF0B8"),
-                _ => ("#16243A", "#4E7EF8", "#E6F0FF")
+                "success" => ("#121B17", "#34D399", "#ECFDF5"),
+                "warn" => ("#1F1910", "#F59E0B", "#FEF3C7"),
+                _ => ("#141418", "#FF521B", "#F4F4F6")
             };
 
             ToastBanner.Background = BrushFromHex(bgHex);

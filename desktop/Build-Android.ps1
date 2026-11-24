@@ -1,11 +1,26 @@
 param(
-    [string]$Version = "4.9.0",
+    [string]$Version = "",
     [string]$AndroidSdk = $(if ($env:ANDROID_HOME) { $env:ANDROID_HOME } elseif ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { "d:\LocalMediaAI\android-sdk" })
 )
 
 $ErrorActionPreference = "Stop"
 
 $HubRoot = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $csprojPath = Join-Path $HubRoot "LocalAIHub.csproj"
+    if (Test-Path $csprojPath) {
+        [xml]$projXml = Get-Content $csprojPath -Raw
+        $Version = ($projXml.Project.PropertyGroup.Version | Select-Object -First 1)
+    }
+    if ([string]::IsNullOrWhiteSpace($Version)) { $Version = "5.0.0" }
+}
+$Version = $Version.Trim().TrimStart('v', 'V')
+$vParts = $Version.Split('.')
+$vMaj = if ($vParts.Length -ge 1) { [int]$vParts[0] } else { 5 }
+$vMin = if ($vParts.Length -ge 2) { [int]$vParts[1] } else { 0 }
+$vPat = if ($vParts.Length -ge 3) { [int]$vParts[2] } else { 0 }
+$VersionCode = ($vMaj * 10000) + ($vMin * 100) + $vPat
+Write-Host "==> Android target version: v$Version (versionCode=$VersionCode)" -ForegroundColor Yellow
 $ParentDir = Split-Path $HubRoot -Parent
 $AndroidProj = if (Test-Path (Join-Path $ParentDir "LocalAIHub.Android")) {
     Join-Path $ParentDir "LocalAIHub.Android"
@@ -101,6 +116,21 @@ if (Test-Path $SherpaSo) {
     Write-Warning "libsherpa-onnx-jni.so missing after extract"
 }
 
+# Sync versionCode & versionName into AndroidManifest.xml and static HTML badges so APK metadata never goes stale!
+$ManifestPath = Join-Path $AndroidProj "AndroidManifest.xml"
+$manifestRaw = Get-Content $ManifestPath -Raw -Encoding UTF8
+$manifestRaw = $manifestRaw -replace 'android:versionCode="\d+"', "android:versionCode=`"$VersionCode`""
+$manifestRaw = $manifestRaw -replace 'android:versionName="[^"]+"', "android:versionName=`"$Version`""
+[System.IO.File]::WriteAllText($ManifestPath, $manifestRaw, (New-Object System.Text.UTF8Encoding($false)))
+
+$IndexHtmlPath = Join-Path $AndroidProj "assets\wwwroot\index.html"
+if (Test-Path $IndexHtmlPath) {
+    $htmlRaw = Get-Content $IndexHtmlPath -Raw -Encoding UTF8
+    $htmlRaw = $htmlRaw -replace '(<span class="pill info mono ver-pill">)v[^<]+(</span>)', "`${1}v$Version`${2}"
+    $htmlRaw = $htmlRaw -replace '(<span id="updVersionPill" class="pill mono">)v[^<]+(</span>)', "`${1}v$Version`${2}"
+    [System.IO.File]::WriteAllText($IndexHtmlPath, $htmlRaw, (New-Object System.Text.UTF8Encoding($false)))
+}
+
 # 3. Compile Android resources with aapt2
 Write-Host "==> Compiling resources & linking base APK..." -ForegroundColor Cyan
 $CompiledRes = Join-Path $BuildDir "res.zip"
@@ -112,7 +142,9 @@ New-Item -ItemType Directory -Path $GenJava -Force | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "aapt2 compile failed" }
 
 & $Aapt2 link -I $AndroidJar `
-    --manifest (Join-Path $AndroidProj "AndroidManifest.xml") `
+    --manifest $ManifestPath `
+    --version-code $VersionCode `
+    --version-name $Version `
     --java $GenJava `
     -o $BaseApk `
     $CompiledRes

@@ -1,7 +1,7 @@
 ﻿param(
     [ValidateSet("linux-x64", "linux-arm64")]
     [string]$Runtime = "linux-x64",
-    [string]$Version = "4.3.0"
+    [string]$Version = "5.0.0"
 )
 
 $ErrorActionPreference = "Stop"

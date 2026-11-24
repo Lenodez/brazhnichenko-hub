@@ -167,19 +167,19 @@ public partial class MainWindow
         string? mmproj = _manager.FindMatchingMmprojForModel(activeModel);
         if (!string.IsNullOrWhiteSpace(mmproj))
         {
-            LocalChatVisionBadgeText.Text = "Vision (mmproj)";
-            LocalChatVisionBadgeText.Foreground = BrushFromHex("#38BDF8");
-            LocalChatVisionBadge.Background = BrushFromHex("#132B3A");
-            LocalChatVisionBadge.BorderBrush = BrushFromHex("#255A7A");
-            LocalChatVisionBadge.ToolTip = $"Найден файл зрения: {Path.GetFileName(mmproj)} — модель понимает картинки!";
+            LocalChatVisionBadgeText.Text = "VISION";
+            LocalChatVisionBadgeText.Foreground = BrushFromHex("#34D399");
+            LocalChatVisionBadge.Background = BrushFromHex("#11241C");
+            LocalChatVisionBadge.BorderBrush = BrushFromHex("#265944");
+            LocalChatVisionBadge.ToolTip = $"Найден файл зрения: {Path.GetFileName(mmproj)} — модель понимает картинки.";
         }
         else
         {
-            LocalChatVisionBadgeText.Text = "Только текст";
-            LocalChatVisionBadgeText.Foreground = BrushFromHex("#94A0B8");
-            LocalChatVisionBadge.Background = BrushFromHex("#1D2332");
-            LocalChatVisionBadge.BorderBrush = BrushFromHex("#22293A");
-            LocalChatVisionBadge.ToolTip = "Для анализа картинок скачай mmproj-*.gguf для выбранной модели в «Модели и GPU → Поиск HF»";
+            LocalChatVisionBadgeText.Text = "TEXT ONLY";
+            LocalChatVisionBadgeText.Foreground = BrushFromHex("#71717A");
+            LocalChatVisionBadge.Background = BrushFromHex("#151519");
+            LocalChatVisionBadge.BorderBrush = BrushFromHex("#26262E");
+            LocalChatVisionBadge.ToolTip = "Для анализа картинок скачай mmproj-*.gguf для выбранной модели в «Модели и память → Поиск HF»";
         }
     }
 
@@ -220,17 +220,18 @@ public partial class MainWindow
                     Text = s.Title,
                     FontSize = 12,
                     FontWeight = FontWeights.SemiBold,
-                    Foreground = BrushFromHex("#EDF2FA"),
+                    Foreground = BrushFromHex("#F4F4F6"),
                     TextTrimming = TextTrimming.CharacterEllipsis
                 });
 
                 var persona = ChatSessionService.GetPersona(s.PersonaId);
-                string meta = $"{persona.Name} • {s.Messages.Count} сообщ.";
+                string meta = $"{persona.Name} • {s.Messages.Count}";
                 panel.Children.Add(new TextBlock
                 {
                     Text = meta,
                     FontSize = 10.5,
-                    Foreground = BrushFromHex("#94A0B8"),
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    Foreground = BrushFromHex("#71717A"),
                     TextTrimming = TextTrimming.CharacterEllipsis,
                     Margin = new Thickness(0, 2, 0, 0)
                 });
@@ -903,7 +904,7 @@ public partial class MainWindow
 
                     if (finalAnswer.Length > 0)
                     {
-                        answerHost.Content = MarkdownUiRenderer.Build(finalAnswer, fontSize: 13, foregroundHex: "#EDF2FA");
+                        answerHost.Content = MarkdownUiRenderer.Build(finalAnswer, fontSize: 13.5, foregroundHex: "#E4E4E8");
                     }
                     else
                     {
@@ -912,7 +913,7 @@ public partial class MainWindow
                             Text = wasStopped
                                 ? "(Генерация остановлена во время размышлений)"
                                 : "(Модель завершила ответ только в блоке размышлений)",
-                            Foreground = BrushFromHex("#94A0B8"),
+                            Foreground = BrushFromHex("#71717A"),
                             FontSize = 12,
                             FontStyle = FontStyles.Italic,
                             TextWrapping = TextWrapping.Wrap
@@ -1048,9 +1049,9 @@ public partial class MainWindow
         {
             var imgBorder = new Border
             {
-                CornerRadius = new CornerRadius(7),
+                CornerRadius = new CornerRadius(3),
                 ClipToBounds = true,
-                BorderBrush = BrushFromHex("#4E7EF8"),
+                BorderBrush = BrushFromHex("#3F3F48"),
                 BorderThickness = new Thickness(1),
                 MaxWidth = 220,
                 MaxHeight = 160,
@@ -1071,20 +1072,20 @@ public partial class MainWindow
         contentStack.Children.Add(new TextBlock
         {
             Text = text,
-            Foreground = BrushFromHex("#FFFFFF"),
-            FontSize = 13,
+            Foreground = BrushFromHex("#F4F4F6"),
+            FontSize = 13.5,
             LineHeight = 19,
             TextWrapping = TextWrapping.Wrap
         });
 
         var border = new Border
         {
-            Background = BrushFromHex("#223254"),
-            BorderBrush = BrushFromHex("#3A5894"),
+            Background = BrushFromHex("#19191F"),
+            BorderBrush = BrushFromHex("#2E2E38"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10, 10, 2, 10),
-            Padding = new Thickness(12, 8, 12, 8),
-            Margin = new Thickness(90, 0, 0, 9),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(13, 9, 13, 9),
+            Margin = new Thickness(90, 0, 0, 12),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             ContextMenu = MarkdownUiRenderer.CreateCopyContextMenu(text),
             Child = contentStack
@@ -1097,19 +1098,19 @@ public partial class MainWindow
     {
         var border = new Border
         {
-            Background = BrushFromHex("#151E30"),
-            BorderBrush = BrushFromHex("#2A3957"),
+            Background = BrushFromHex("#121215"),
+            BorderBrush = BrushFromHex("#26262E"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(12, 8, 12, 8),
-            Margin = new Thickness(0, 0, 90, 9),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(12, 7, 12, 7),
+            Margin = new Thickness(0, 0, 90, 10),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
             Child = new TextBlock
             {
                 Text = message,
-                Foreground = BrushFromHex("#9EC0FF"),
-                FontSize = 12,
-                FontStyle = FontStyles.Italic,
+                Foreground = BrushFromHex("#A1A1AA"),
+                FontSize = 11.5,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 TextWrapping = TextWrapping.Wrap
             }
         };
@@ -1130,7 +1131,7 @@ public partial class MainWindow
     {
         var stack = new StackPanel();
 
-        var headerDock = new DockPanel { Margin = new Thickness(0, 0, 0, 5) };
+        var headerDock = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
 
         var rightHeader = new StackPanel
         {
@@ -1142,8 +1143,9 @@ public partial class MainWindow
         var metaText = new TextBlock
         {
             Text = "",
-            FontSize = 11,
-            Foreground = BrushFromHex("#94A0B8"),
+            FontSize = 10.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            Foreground = BrushFromHex("#71717A"),
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(8, 0, 8, 0)
         };
@@ -1163,10 +1165,11 @@ public partial class MainWindow
         headerDock.Children.Add(rightHeader);
         headerDock.Children.Add(new TextBlock
         {
-            Text = modelLabel,
-            FontSize = 11,
+            Text = modelLabel.ToUpperInvariant(),
+            FontSize = 10.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushFromHex("#7FA8FF"),
+            Foreground = BrushFromHex("#A1A1AA"),
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis
         });
@@ -1175,35 +1178,35 @@ public partial class MainWindow
         var thinkTextBlock = new TextBlock
         {
             Text = "",
-            Foreground = BrushFromHex("#B5C2DB"),
+            Foreground = BrushFromHex("#90909B"),
             FontSize = 12,
             LineHeight = 17,
             TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(4, 5, 4, 2)
+            Margin = new Thickness(6, 5, 4, 2)
         };
 
         var thinkExpander = new System.Windows.Controls.Expander
         {
             Header = new TextBlock
             {
-                Text = "Размышления (<think>)",
-                Foreground = BrushFromHex("#8AB4FF"),
-                FontSize = 11.5,
+                Text = "РАЗМЫШЛЕНИЯ · THINK",
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                Foreground = BrushFromHex("#71717A"),
+                FontSize = 10.5,
                 FontWeight = FontWeights.SemiBold
             },
             IsExpanded = false,
-            Foreground = BrushFromHex("#9EC0FF"),
+            Foreground = BrushFromHex("#71717A"),
             Content = thinkTextBlock
         };
 
         var thinkContainer = new Border
         {
-            Background = BrushFromHex("#101624"),
-            BorderBrush = BrushFromHex("#24324E"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(7),
-            Padding = new Thickness(8, 5, 8, 6),
-            Margin = new Thickness(0, 0, 0, 7),
+            Background = BrushFromHex("#0F0F12"),
+            BorderBrush = BrushFromHex("#2E2E38"),
+            BorderThickness = new Thickness(2, 0, 0, 0),
+            Padding = new Thickness(8, 3, 8, 4),
+            Margin = new Thickness(0, 0, 0, 8),
             Visibility = Visibility.Collapsed,
             Child = thinkExpander
         };
@@ -1212,9 +1215,9 @@ public partial class MainWindow
         var streamingAnswerTb = new TextBlock
         {
             Text = "▌",
-            Foreground = BrushFromHex("#EDF2FA"),
-            FontSize = 13,
-            LineHeight = 19,
+            Foreground = BrushFromHex("#E4E4E8"),
+            FontSize = 13.5,
+            LineHeight = 20,
             TextWrapping = TextWrapping.Wrap
         };
 
@@ -1226,13 +1229,12 @@ public partial class MainWindow
 
         var bubble = new Border
         {
-            Background = BrushFromHex("#151923"),
-            BorderBrush = BrushFromHex("#2C354A"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10, 10, 10, 2),
-            Padding = new Thickness(13, 9, 13, 10),
-            Margin = new Thickness(0, 0, 48, 9),
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+            Background = System.Windows.Media.Brushes.Transparent,
+            BorderBrush = BrushFromHex("#1E1E24"),
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            Padding = new Thickness(4, 6, 4, 12),
+            Margin = new Thickness(0, 0, 24, 12),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
             Child = stack
         };
 
@@ -1356,12 +1358,12 @@ public partial class MainWindow
 
         var border = new Border
         {
-            Background = BrushFromHex("#241E14"),
-            BorderBrush = BrushFromHex("#8A621A"),
+            Background = BrushFromHex("#1C1710"),
+            BorderBrush = BrushFromHex("#6B5218"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10, 10, 10, 2),
+            CornerRadius = new CornerRadius(4),
             Padding = new Thickness(13, 10, 13, 10),
-            Margin = new Thickness(0, 0, 48, 9),
+            Margin = new Thickness(0, 0, 48, 10),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
             ContextMenu = MarkdownUiRenderer.CreateCopyContextMenu(rawError),
             Child = stack
@@ -1449,12 +1451,12 @@ public partial class MainWindow
 
         LocalChatMessagesPanel.Children.Add(new Border
         {
-            Background = BrushFromHex("#132B1F"),
-            BorderBrush = BrushFromHex("#2A7A55"),
+            Background = BrushFromHex("#112119"),
+            BorderBrush = BrushFromHex("#265944"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10, 10, 10, 2),
+            CornerRadius = new CornerRadius(4),
             Padding = new Thickness(13, 10, 13, 10),
-            Margin = new Thickness(0, 0, 48, 9),
+            Margin = new Thickness(0, 0, 48, 10),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
             Child = stack
         });
@@ -1467,7 +1469,7 @@ public partial class MainWindow
         bool isError = headerLabel.Contains("Ошибка", StringComparison.OrdinalIgnoreCase);
         var stack = new StackPanel();
 
-        var headerDock = new DockPanel { Margin = new Thickness(0, 0, 0, 5) };
+        var headerDock = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
         string copyPayload = !string.IsNullOrWhiteSpace(answer) ? answer : (reasoning ?? "");
 
         if (showCopyButton && !string.IsNullOrWhiteSpace(copyPayload))
@@ -1487,10 +1489,11 @@ public partial class MainWindow
 
         headerDock.Children.Add(new TextBlock
         {
-            Text = headerLabel,
-            FontSize = 11,
+            Text = headerLabel.ToUpperInvariant(),
+            FontSize = 10.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushFromHex(isError ? "#F28B82" : "#7FA8FF"),
+            Foreground = BrushFromHex(isError ? "#F87171" : "#A1A1AA"),
             VerticalAlignment = VerticalAlignment.Center
         });
         stack.Children.Add(headerDock);
@@ -1501,31 +1504,31 @@ public partial class MainWindow
             {
                 Header = new TextBlock
                 {
-                    Text = "Размышления (<think>)",
-                    Foreground = BrushFromHex("#8AB4FF"),
-                    FontSize = 11.5,
+                    Text = "РАЗМЫШЛЕНИЯ · THINK",
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    Foreground = BrushFromHex("#71717A"),
+                    FontSize = 10.5,
                     FontWeight = FontWeights.SemiBold
                 },
                 IsExpanded = string.IsNullOrWhiteSpace(answer),
-                Foreground = BrushFromHex("#9EC0FF"),
+                Foreground = BrushFromHex("#71717A"),
                 Content = new TextBlock
                 {
                     Text = reasoning.Trim(),
-                    Foreground = BrushFromHex("#B5C2DB"),
+                    Foreground = BrushFromHex("#90909B"),
                     FontSize = 12,
                     LineHeight = 17,
                     TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(4, 5, 4, 2)
+                    Margin = new Thickness(6, 5, 4, 2)
                 }
             };
             stack.Children.Add(new Border
             {
-                Background = BrushFromHex("#101624"),
-                BorderBrush = BrushFromHex("#24324E"),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(7),
-                Padding = new Thickness(8, 5, 8, 6),
-                Margin = new Thickness(0, 0, 0, 7),
+                Background = BrushFromHex("#0F0F12"),
+                BorderBrush = BrushFromHex("#2E2E38"),
+                BorderThickness = new Thickness(2, 0, 0, 0),
+                Padding = new Thickness(8, 3, 8, 4),
+                Margin = new Thickness(0, 0, 0, 8),
                 Child = thinkExpander
             });
         }
@@ -1534,19 +1537,19 @@ public partial class MainWindow
         {
             stack.Children.Add(MarkdownUiRenderer.Build(
                 answer,
-                fontSize: 13,
-                foregroundHex: isError ? "#FFD2CE" : "#EDF2FA"));
+                fontSize: 13.5,
+                foregroundHex: isError ? "#FECACA" : "#E4E4E8"));
         }
 
         var border = new Border
         {
-            Background = BrushFromHex(isError ? "#26161B" : "#151923"),
-            BorderBrush = BrushFromHex(isError ? "#7A343D" : "#2C354A"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10, 10, 10, 2),
-            Padding = new Thickness(13, 9, 13, 10),
-            Margin = new Thickness(0, 0, 48, 9),
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+            Background = isError ? BrushFromHex("#241214") : System.Windows.Media.Brushes.Transparent,
+            BorderBrush = BrushFromHex(isError ? "#69282E" : "#1E1E24"),
+            BorderThickness = isError ? new Thickness(1) : new Thickness(0, 0, 0, 1),
+            CornerRadius = isError ? new CornerRadius(4) : new CornerRadius(0),
+            Padding = isError ? new Thickness(13, 9, 13, 10) : new Thickness(4, 6, 4, 12),
+            Margin = new Thickness(0, 0, 24, 12),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
             ContextMenu = !string.IsNullOrWhiteSpace(copyPayload)
                 ? MarkdownUiRenderer.CreateCopyContextMenu(copyPayload)
                 : null,
@@ -1567,19 +1570,19 @@ public partial class MainWindow
             Owner = this,
             WindowStyle = WindowStyle.None,
             ResizeMode = ResizeMode.NoResize,
-            Background = BrushFromHex("#151923"),
-            Foreground = BrushFromHex("#EDF2FA")
+            Background = BrushFromHex("#121215"),
+            Foreground = BrushFromHex("#F4F4F6")
         };
 
         var root = new Border
         {
-            BorderBrush = BrushFromHex("#2C354A"),
+            BorderBrush = BrushFromHex("#30303A"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(16)
         };
         var sp = new StackPanel();
-        sp.Children.Add(new TextBlock { Text = title, FontSize = 14, FontWeight = FontWeights.SemiBold, Foreground = BrushFromHex("#EDF2FA"), Margin = new Thickness(0, 0, 0, 8) });
-        sp.Children.Add(new TextBlock { Text = prompt, FontSize = 12, Foreground = BrushFromHex("#94A0B8"), Margin = new Thickness(0, 0, 0, 6) });
+        sp.Children.Add(new TextBlock { Text = title, FontSize = 14, FontWeight = FontWeights.SemiBold, Foreground = BrushFromHex("#F4F4F6"), Margin = new Thickness(0, 0, 0, 8) });
+        sp.Children.Add(new TextBlock { Text = prompt, FontSize = 12, Foreground = BrushFromHex("#A1A1AA"), Margin = new Thickness(0, 0, 0, 6) });
         var tb = new System.Windows.Controls.TextBox { Text = initialValue, FontSize = 13, Padding = new Thickness(8, 6, 8, 6) };
         sp.Children.Add(tb);
 

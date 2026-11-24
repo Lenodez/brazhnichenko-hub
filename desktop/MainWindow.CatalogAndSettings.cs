@@ -152,26 +152,26 @@ public partial class MainWindow
         {
             (
                 ModelPlacementGroup.FullVram,
-                $"🟢 Полностью помещается в видеопамять ({hw.DetectedVramGB:F0} ГБ VRAM)",
+                $"■ ПОЛНОСТЬЮ В ВИДЕОПАМЯТИ ({hw.DetectedVramGB:F0} ГБ VRAM)",
                 "Максимальная скорость и мгновенный отклик без обращения к оперативной памяти",
-                "#6AE89E",
-                "#11231B"
+                "#34D399",
+                "#111D18"
             ),
             (
                 ModelPlacementGroup.VramPlusRam,
-                $"🔵 Помещается в видеопамять + ОЗУ ({hw.DetectedVramGB:F0} ГБ VRAM + {hw.DetectedRamGB:F0} ГБ RAM)",
+                $"◧ ВИДЕОПАМЯТЬ + ОЗУ ({hw.DetectedVramGB:F0} ГБ VRAM + {hw.DetectedRamGB:F0} ГБ RAM)",
                 isTextSection
                     ? "MoE-модели (35B–80B, акт. 3B) работают бодро (~20–45 tok/s) • Плотные (Dense) — медленнее (~3–8 tok/s), но с макс. качеством"
                     : "Работает через DynamicVRAM / оффлоад в ОЗУ без потери качества",
-                "#7FB4FF",
-                "#121C2E"
+                "#F59E0B",
+                "#1B170E"
             ),
             (
                 ModelPlacementGroup.TooHeavy,
-                "🔴 Слишком тяжёлые для текущих спеков (уйдут в swap на SSD)",
+                "□ СЛИШКОМ ТЯЖЁЛЫЕ ДЛЯ ТЕКУЩИХ СПЕКОВ (УЙДУТ В SWAP НА SSD)",
                 "Требуют больше видеопамяти или ОЗУ — для комфортной работы выбери модели из разделов выше",
-                "#FF877C",
-                "#261518"
+                "#F87171",
+                "#1F1214"
             )
         };
 
@@ -191,8 +191,8 @@ public partial class MainWindow
             {
                 Background = BrushFromHex(sec.BgHex),
                 BorderBrush = BrushFromHex(sec.AccentHex),
-                BorderThickness = new Thickness(3, 0, 0, 0),
-                CornerRadius = new CornerRadius(6),
+                BorderThickness = new Thickness(2, 0, 0, 0),
+                CornerRadius = new CornerRadius(3),
                 Padding = new Thickness(12, 7, 12, 7),
                 Margin = new Thickness(0, CatalogCardsPanel.Children.Count > 0 ? 8 : 0, 0, 8),
                 Child = new StackPanel
@@ -201,8 +201,9 @@ public partial class MainWindow
                     {
                         new TextBlock
                         {
-                            Text = $"{sec.Title}  •  моделей: {groupItems.Count}",
-                            FontSize = 13,
+                            Text = $"{sec.Title}  •  {groupItems.Count}",
+                            FontSize = 11.5,
+                            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                             FontWeight = FontWeights.SemiBold,
                             Foreground = BrushFromHex(sec.AccentHex)
                         },
@@ -210,8 +211,8 @@ public partial class MainWindow
                         {
                             Text = sec.Subtitle,
                             FontSize = 11,
-                            Foreground = BrushFromHex("#9BA8C4"),
-                            Margin = new Thickness(0, 1, 0, 0),
+                            Foreground = BrushFromHex("#A1A1AA"),
+                            Margin = new Thickness(0, 2, 0, 0),
                             TextWrapping = TextWrapping.Wrap
                         }
                     }
@@ -223,20 +224,20 @@ public partial class MainWindow
             {
                 var (badgeBg, badgeFg, borderHex) = fit.Level switch
                 {
-                    ModelFitLevel.Ideal => ("#143322", "#6AE89E", "#256B45"),
-                    ModelFitLevel.GoodWithOffload => ("#1B2C4A", "#7FB4FF", "#35528A"),
-                    ModelFitLevel.Tight => ("#332D14", "#F5CB5C", "#7D661A"),
-                    _ => ("#3A1D21", "#FF877C", "#6E2E35")
+                    ModelFitLevel.Ideal => ("#11241C", "#34D399", "#265944"),
+                    ModelFitLevel.GoodWithOffload => ("#241D0E", "#F59E0B", "#52411C"),
+                    ModelFitLevel.Tight => ("#241D0E", "#F59E0B", "#52411C"),
+                    _ => ("#261416", "#F87171", "#522428")
                 };
 
                 var card = new Border
                 {
-                    Background = BrushFromHex("#171B24"),
-                    BorderBrush = BrushFromHex(state.allInstalled ? "#256B45" : borderHex),
+                    Background = BrushFromHex("#121215"),
+                    BorderBrush = BrushFromHex(state.allInstalled ? "#265944" : "#28282E"),
                     BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(10),
-                    Padding = new Thickness(14, 12, 14, 12),
-                    Margin = new Thickness(0, 0, 0, 9)
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(14, 11, 14, 11),
+                    Margin = new Thickness(0, 0, 0, 8)
                 };
 
                 var root = new StackPanel();
@@ -250,30 +251,50 @@ public partial class MainWindow
                 {
                     rightBadges.Children.Add(new Border
                     {
-                        Background = BrushFromHex("#182334"),
-                        BorderBrush = BrushFromHex("#2E4266"),
+                        Background = BrushFromHex("#19191E"),
+                        BorderBrush = BrushFromHex("#2E2E36"),
                         BorderThickness = new Thickness(1),
-                        CornerRadius = new CornerRadius(8),
-                        Padding = new Thickness(8, 2.5, 8, 2.5),
+                        CornerRadius = new CornerRadius(3),
+                        Padding = new Thickness(7, 2.5, 7, 2.5),
                         Margin = new Thickness(0, 0, 6, 0),
-                        Child = new TextBlock { Text = $"⏱ {fit.EstimatedSpeedHint}", FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = BrushFromHex("#CFE0FF") }
+                        Child = new TextBlock
+                        {
+                            Text = fit.EstimatedSpeedHint,
+                            FontSize = 10.5,
+                            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                            FontWeight = FontWeights.SemiBold,
+                            Foreground = BrushFromHex("#E4E4E8")
+                        }
                     });
                 }
 
                 rightBadges.Children.Add(new Border
                 {
                     Background = BrushFromHex(badgeBg),
-                    CornerRadius = new CornerRadius(8),
-                    Padding = new Thickness(9, 3, 9, 3),
+                    CornerRadius = new CornerRadius(3),
+                    Padding = new Thickness(8, 2.5, 8, 2.5),
                     Margin = new Thickness(0, 0, 6, 0),
-                    Child = new TextBlock { Text = fit.BadgeText, FontSize = 11.5, FontWeight = FontWeights.SemiBold, Foreground = BrushFromHex(badgeFg) }
+                    Child = new TextBlock
+                    {
+                        Text = fit.BadgeText,
+                        FontSize = 10.5,
+                        FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                        FontWeight = FontWeights.SemiBold,
+                        Foreground = BrushFromHex(badgeFg)
+                    }
                 });
                 rightBadges.Children.Add(new Border
                 {
-                    Background = BrushFromHex("#1F2533"),
-                    CornerRadius = new CornerRadius(8),
-                    Padding = new Thickness(8, 3, 8, 3),
-                    Child = new TextBlock { Text = $"{spec.TotalSizeGB:0.##} ГБ", FontSize = 11.5, Foreground = BrushFromHex("#C8D4EA"), FontFamily = new System.Windows.Media.FontFamily("Consolas") }
+                    Background = BrushFromHex("#19191E"),
+                    CornerRadius = new CornerRadius(3),
+                    Padding = new Thickness(8, 2.5, 8, 2.5),
+                    Child = new TextBlock
+                    {
+                        Text = $"{spec.TotalSizeGB:0.##} ГБ",
+                        FontSize = 11,
+                        Foreground = BrushFromHex("#D4D4D8"),
+                        FontFamily = new System.Windows.Media.FontFamily("Consolas")
+                    }
                 });
                 top.Children.Add(rightBadges);
 
@@ -283,13 +304,14 @@ public partial class MainWindow
                     Text = spec.Name,
                     FontSize = 14.5,
                     FontWeight = FontWeights.SemiBold,
-                    Foreground = BrushFromHex("#FFFFFF")
+                    Foreground = BrushFromHex("#F4F4F6")
                 });
                 titleStack.Children.Add(new TextBlock
                 {
-                    Text = $"{spec.ShortTag}{(spec.IsGated ? "  •  Требует HF токен" : "")}",
-                    FontSize = 11.5,
-                    Foreground = BrushFromHex("#8C96AD"),
+                    Text = $"{spec.ShortTag}{(spec.IsGated ? "  •  GATED (HF TOKEN)" : "")}",
+                    FontSize = 11,
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    Foreground = BrushFromHex("#71717A"),
                     Margin = new Thickness(0, 2, 0, 0)
                 });
                 top.Children.Add(titleStack);
@@ -299,14 +321,14 @@ public partial class MainWindow
                 {
                     Text = spec.SummaryRu,
                     FontSize = 12.5,
-                    Foreground = BrushFromHex("#D4DCEB"),
+                    Foreground = BrushFromHex("#D4D4D8"),
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(0, 2, 0, 4)
                 });
 
                 root.Children.Add(new TextBlock
                 {
-                    Text = $"Для твоих спеков: {fit.ReasonRu}",
+                    Text = $"Совместимость: {fit.ReasonRu}",
                     FontSize = 11.5,
                     Foreground = BrushFromHex(badgeFg),
                     TextWrapping = TextWrapping.Wrap,
@@ -316,16 +338,17 @@ public partial class MainWindow
                 // Footer actions
                 var bottom = new DockPanel();
                 string filesInfo = state.allInstalled
-                    ? $"✓ Все файлы установлены ({state.presentCount}/{state.totalCount})"
+                    ? $"✓ УСТАНОВЛЕНО ({state.presentCount}/{state.totalCount})"
                     : state.presentCount > 0
                         ? $"Установлено {state.presentCount}/{state.totalCount} • Докачать: {state.missingGB:0.##} ГБ"
-                        : $"Файлов в комплекте: {state.totalCount} • Скачать: {spec.TotalSizeGB:0.##} ГБ";
+                        : $"Файлов в комплекте: {state.totalCount} • Объём: {spec.TotalSizeGB:0.##} ГБ";
 
                 bottom.Children.Add(new TextBlock
                 {
                     Text = filesInfo,
-                    FontSize = 11.5,
-                    Foreground = BrushFromHex(state.allInstalled ? "#6AE89E" : "#8C96AD"),
+                    FontSize = 11,
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    Foreground = BrushFromHex(state.allInstalled ? "#34D399" : "#71717A"),
                     VerticalAlignment = VerticalAlignment.Center
                 });
 
@@ -460,10 +483,10 @@ public partial class MainWindow
 
         var card = new Border
         {
-            Background = BrushFromHex("#241F12"),
-            BorderBrush = BrushFromHex("#C79C2B"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10),
+            Background = BrushFromHex("#1D180E"),
+            BorderBrush = BrushFromHex("#F59E0B"),
+            BorderThickness = new Thickness(2, 1, 1, 1),
+            CornerRadius = new CornerRadius(4),
             Padding = new Thickness(14, 11, 14, 11),
             Margin = new Thickness(0, 0, 0, 10)
         };
@@ -485,16 +508,17 @@ public partial class MainWindow
         var textStack = new StackPanel();
         textStack.Children.Add(new TextBlock
         {
-            Text = $"⚠ Шаг 1: установите движок {engineName} ({cudaHint})",
-            FontSize = 13.5,
+            Text = $"▲ ШАГ 1: УСТАНОВИТЕ ДВИЖОК {engineName.ToUpperInvariant()} ({cudaHint})",
+            FontSize = 12,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushFromHex("#FFD970")
+            Foreground = BrushFromHex("#F59E0B")
         });
         textStack.Children.Add(new TextBlock
         {
             Text = $"{purpose} Нажмите кнопку справа — движок скачается и настроится автоматически.",
             FontSize = 11.5,
-            Foreground = BrushFromHex("#E6DEC8"),
+            Foreground = BrushFromHex("#D4D4D8"),
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 3, 0, 0)
         });
@@ -865,7 +889,7 @@ public partial class MainWindow
         McpConfigJsonBox.Text = HubConfig.BuildClaudeDesktopMcpJson();
         bool mcpExists = File.Exists(HubConfig.McpExePath);
         McpStatusText.Text = mcpExists ? "● MCP готов (LocalAIHub.Mcp.exe)" : "○ LocalAIHub.Mcp.exe не найден";
-        McpStatusText.Foreground = BrushFromHex(mcpExists ? "#6AE89E" : "#FFB35C");
+        McpStatusText.Foreground = BrushFromHex(mcpExists ? "#34D399" : "#F59E0B");
     }
 
     private async Task RefreshHfAuthStatusAsync()
@@ -875,13 +899,13 @@ public partial class MainWindow
         _hfUserCached = info.Username;
         if (info.Connected)
         {
-            HfStatusBadgeText.Text = $"● Подключён: @{info.Username}";
-            HfStatusBadgeText.Foreground = BrushFromHex("#6AE89E");
+            HfStatusBadgeText.Text = $"● @{info.Username}";
+            HfStatusBadgeText.Foreground = BrushFromHex("#34D399");
         }
         else
         {
             HfStatusBadgeText.Text = $"○ {info.Error ?? "Не подключён"}";
-            HfStatusBadgeText.Foreground = BrushFromHex("#8C96AD");
+            HfStatusBadgeText.Foreground = BrushFromHex("#71717A");
         }
     }
 
@@ -901,14 +925,14 @@ public partial class MainWindow
             _hfUserCached = info.Username;
             HubConfig.SaveHuggingFaceToken(tok);
             HfTokenBox.Password = "";
-            HfStatusBadgeText.Text = $"● Подключён: @{info.Username}";
-            HfStatusBadgeText.Foreground = BrushFromHex("#6AE89E");
-            StatusFooterText.Text = $"Hugging Face подключён как @{info.Username}!";
+            HfStatusBadgeText.Text = $"● @{info.Username}";
+            HfStatusBadgeText.Foreground = BrushFromHex("#34D399");
+            StatusFooterText.Text = $"Hugging Face подключён как @{info.Username}.";
         }
         else
         {
             HfStatusBadgeText.Text = $"✕ {info.Error}";
-            HfStatusBadgeText.Foreground = BrushFromHex("#FF877C");
+            HfStatusBadgeText.Foreground = BrushFromHex("#F87171");
             StatusFooterText.Text = $"Ошибка авторизации HF: {info.Error}";
         }
     }
@@ -935,16 +959,16 @@ public partial class MainWindow
         var st = RuntimeInstaller.GetStatus();
         RuntimeLlamaStatusText.Text = st.LlamaInstalled
             ? $"● Установлен: {st.LlamaExePath}"
-            : $"⚠ Не установлен — нужен для запуска текстовых LLM ({HubConfig.LlmRuntimeDir})";
-        RuntimeLlamaStatusText.Foreground = BrushFromHex(st.LlamaInstalled ? "#6AE89E" : "#F5CB5C");
+            : $"▲ Не установлен — нужен для запуска текстовых LLM ({HubConfig.LlmRuntimeDir})";
+        RuntimeLlamaStatusText.Foreground = BrushFromHex(st.LlamaInstalled ? "#34D399" : "#F59E0B");
         InstallLlamaBtn.Content = st.LlamaInstalled ? "Обновить llama.cpp" : "Установить llama.cpp (~620 МБ)";
         InstallLlamaBtn.Style = (Style)FindResource(st.LlamaInstalled ? "DarkButton" : "SuccessButton");
         InstallLlamaBtn.IsEnabled = !_catalogDownloading;
 
         RuntimeComfyStatusText.Text = st.ComfyInstalled
             ? $"● Установлен: {st.ComfyRootDir}"
-            : $"⚠ Не установлен — нужен для фото, видео и историй ({HubConfig.ComfyRootDir})";
-        RuntimeComfyStatusText.Foreground = BrushFromHex(st.ComfyInstalled ? "#6AE89E" : "#F5CB5C");
+            : $"▲ Не установлен — нужен для фото, видео и историй ({HubConfig.ComfyRootDir})";
+        RuntimeComfyStatusText.Foreground = BrushFromHex(st.ComfyInstalled ? "#34D399" : "#F59E0B");
         InstallComfyBtn.Content = st.ComfyInstalled ? "Обновить ComfyUI" : "Установить ComfyUI (~2.0 ГБ)";
         InstallComfyBtn.Style = (Style)FindResource(st.ComfyInstalled ? "DarkButton" : "SuccessButton");
         InstallComfyBtn.IsEnabled = !_catalogDownloading;

@@ -68,6 +68,7 @@ public class MainActivity extends Activity {
     public static final String ACTION_SHORTCUT_DOC = "com.brazhnichenko.hub.SHORTCUT_DOC";
     public static final String ACTION_SHORTCUT_NEW_CHAT = "com.brazhnichenko.hub.SHORTCUT_NEW_CHAT";
     public static final String ACTION_ASSIST_LAUNCH = "com.brazhnichenko.hub.ASSIST_LAUNCH";
+    public static final String ACTION_INSTALL_UPDATE = "com.brazhnichenko.hub.INSTALL_UPDATE";
     public static final String EXTRA_HAS_SCREENSHOT = "has_screenshot";
 
     private static final int FILE_CHOOSER_REQ = 4102;
@@ -76,7 +77,17 @@ public class MainActivity extends Activity {
     private static final int CAMERA_REQ = 4105;
     private static final int DOC_REQ = 4106;
     private static final int AUDIO_PERM_REQ = 4107;
+    private static final int INSTALL_PERM_REQ = 4108;
     private static final String HUB_URL = "http://127.0.0.1:" + LocalHubServer.PORT + "/";
+
+    private static volatile java.lang.ref.WeakReference<MainActivity> sForegroundActivity = null;
+
+    public static MainActivity getForegroundActivity() {
+        java.lang.ref.WeakReference<MainActivity> ref = sForegroundActivity;
+        MainActivity act = ref != null ? ref.get() : null;
+        if (act != null && (act.isFinishing() || act.isDestroyed())) return null;
+        return act;
+    }
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
@@ -91,6 +102,7 @@ public class MainActivity extends Activity {
     private volatile boolean pendingAssistWebSearch = false;
     private volatile String pendingAssistModel = "";
     private volatile boolean jsOverlayOpen = false;
+    private volatile boolean pendingApkInstallAfterPerm = false;
     private Object backInvokedCallbackObj = null;
     private boolean backCallbackRegistered = false;
 
@@ -98,6 +110,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        sForegroundActivity = new java.lang.ref.WeakReference<>(this);
 
         Window win = getWindow();
         win.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
@@ -197,6 +210,50 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        sForegroundActivity = new java.lang.ref.WeakReference<>(this);
+        if (pendingApkInstallAfterPerm) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls()) {
+                pendingApkInstallAfterPerm = false;
+                mainHandler.postDelayed(() -> AppUpdater.launchInstallerFromActivity(MainActivity.this), 220);
+            }
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        java.lang.ref.WeakReference<MainActivity> ref = sForegroundActivity;
+        if (ref != null && ref.get() == this) {
+            sForegroundActivity = null;
+        }
+        super.onPause();
+    }
+
+    public void requestUnknownSourcesPermissionForUpdate() {
+        pendingApkInstallAfterPerm = true;
+        mainHandler.post(() -> {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Intent perm = new Intent(
+                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:" + getPackageName()));
+                    startActivityForResult(perm, INSTALL_PERM_REQ);
+                }
+            } catch (Exception ex) {
+                try {
+                    Intent fallback = new Intent(Settings.ACTION_SECURITY_SETTINGS);
+                    startActivityForResult(fallback, INSTALL_PERM_REQ);
+                } catch (Exception ignored) {
+                    Toast.makeText(MainActivity.this,
+                            "Разреши установку неизвестных приложений для Brazhnichenko Hub в Настройках",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
@@ -231,6 +288,11 @@ public class MainActivity extends Activity {
         }
         if (ACTION_SHORTCUT_ASK.equals(action)) {
             evalJsWhenReady("window.onAndroidQuickAction && window.onAndroidQuickAction('ask')");
+            return;
+        }
+        if (ACTION_INSTALL_UPDATE.equals(action)) {
+            evalJsWhenReady("window.switchView && window.switchView('system')");
+            mainHandler.postDelayed(() -> AppUpdater.launchInstallerFromActivity(MainActivity.this), 250);
             return;
         }
 
@@ -393,6 +455,16 @@ public class MainActivity extends Activity {
         if (requestCode == DOC_REQ && resultCode == RESULT_OK && data != null && data.getData() != null) {
             final Uri docUri = data.getData();
             new Thread(() -> handleDocumentPick(docUri)).start();
+            return;
+        }
+
+        if (requestCode == INSTALL_PERM_REQ) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls()) {
+                pendingApkInstallAfterPerm = false;
+                mainHandler.postDelayed(() -> AppUpdater.launchInstallerFromActivity(MainActivity.this), 180);
+            } else {
+                showToast("Разрешение не выдано — включи тумблер для установки обновления");
+            }
         }
     }
 
@@ -762,6 +834,10 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        java.lang.ref.WeakReference<MainActivity> ref = sForegroundActivity;
+        if (ref != null && ref.get() == this) {
+            sForegroundActivity = null;
+        }
         if (tts != null) {
             try { tts.stop(); tts.shutdown(); } catch (Exception ignored) { }
         }
@@ -769,6 +845,10 @@ public class MainActivity extends Activity {
     }
 
     public final class AndroidBridge {
+        @JavascriptInterface
+        public String installUpdate() {
+            return AppUpdater.launchInstallerFromActivity(MainActivity.this).toString();
+        }
         @JavascriptInterface
         public void speak(String text, String lang) {
             if (!ttsReady || tts == null || text == null || text.trim().isEmpty()) return;

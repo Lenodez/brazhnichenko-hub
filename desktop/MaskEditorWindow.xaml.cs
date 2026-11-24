@@ -137,10 +137,10 @@ public partial class MaskEditorWindow : Window
             int p = i * 4;
             if (_mask[i] > 0)
             {
-                _overlayBgra[p] = 255;     // B
-                _overlayBgra[p + 1] = 140; // G
-                _overlayBgra[p + 2] = 91;  // R (#5B8CFF vivid blue highlight)
-                _overlayBgra[p + 3] = 220; // A
+                _overlayBgra[p] = 27;      // B
+                _overlayBgra[p + 1] = 82;  // G
+                _overlayBgra[p + 2] = 255; // R (#FF521B Signal Orange highlight)
+                _overlayBgra[p + 3] = 215; // A
             }
             else
             {

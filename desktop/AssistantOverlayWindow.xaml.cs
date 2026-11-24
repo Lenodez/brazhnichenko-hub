@@ -221,16 +221,16 @@ public partial class AssistantOverlayWindow : Window
         MessagesPanel.Children.Clear();
         MessagesPanel.Children.Add(new Border
         {
-            Background = new SolidColorBrush(MediaColor.FromRgb(20, 26, 38)),
-            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(37, 48, 72)),
+            Background = new SolidColorBrush(MediaColor.FromRgb(17, 17, 20)),
+            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(38, 38, 45)),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(11),
+            CornerRadius = new CornerRadius(4),
             Padding = new Thickness(12, 10, 12, 10),
             Child = new TextBlock
             {
-                Text = "Локальный безопасный ассистент ПК (режим «Только чтение»). Спроси про текущий экран, попроси перевести текст или найти актуальную информацию в интернете — ничего на компьютере не изменяется.",
+                Text = "Локальный ассистент ПК (режим «Только чтение»). Спроси про текущий экран, попроси перевести текст или найти информацию в сети — файлы и настройки ПК не изменяются.",
                 FontSize = 12.5,
-                Foreground = new SolidColorBrush(MediaColor.FromRgb(184, 195, 217)),
+                Foreground = new SolidColorBrush(MediaColor.FromRgb(161, 161, 170)),
                 TextWrapping = TextWrapping.Wrap
             }
         });
@@ -505,9 +505,10 @@ public partial class AssistantOverlayWindow : Window
         {
             sp.Children.Add(new TextBlock
             {
-                Text = "[Скриншот экрана]",
-                FontSize = 11,
-                Foreground = new SolidColorBrush(MediaColor.FromRgb(125, 211, 252)),
+                Text = "[СКРИНШОТ ЭКРАНА]",
+                FontSize = 10.5,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 82, 27)),
                 Margin = new Thickness(0, 0, 0, 3)
             });
         }
@@ -515,17 +516,17 @@ public partial class AssistantOverlayWindow : Window
         {
             Text = text,
             FontSize = 13,
-            Foreground = MediaBrushes.White,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(244, 244, 246)),
             TextWrapping = TextWrapping.Wrap
         });
         MessagesPanel.Children.Add(new Border
         {
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             MaxWidth = 520,
-            Background = new SolidColorBrush(MediaColor.FromRgb(33, 49, 84)),
-            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(58, 91, 163)),
+            Background = new SolidColorBrush(MediaColor.FromRgb(26, 26, 32)),
+            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(48, 48, 58)),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(12, 12, 3, 12),
+            CornerRadius = new CornerRadius(4),
             Padding = new Thickness(11, 8, 11, 8),
             Margin = new Thickness(0, 0, 0, 8),
             Child = sp
@@ -538,13 +539,14 @@ public partial class AssistantOverlayWindow : Window
         var srcHost = new StackPanel { Margin = new Thickness(0, 0, 0, 5) };
         var bodyHost = new Border
         {
-            Child = new TextBlock { Text = "Подготовка...", FontSize = 12.5, Foreground = new SolidColorBrush(MediaColor.FromRgb(148, 160, 184)) }
+            Child = new TextBlock { Text = "Подготовка...", FontSize = 12.5, Foreground = new SolidColorBrush(MediaColor.FromRgb(161, 161, 170)) }
         };
         var metaText = new TextBlock
         {
             Text = "...",
-            FontSize = 11,
-            Foreground = new SolidColorBrush(MediaColor.FromRgb(143, 155, 179)),
+            FontSize = 10.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(113, 113, 122)),
             Margin = new Thickness(0, 6, 0, 0)
         };
         stack.Children.Add(srcHost);
@@ -553,13 +555,11 @@ public partial class AssistantOverlayWindow : Window
 
         MessagesPanel.Children.Add(new Border
         {
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-            MaxWidth = 600,
-            Background = new SolidColorBrush(MediaColor.FromRgb(21, 25, 35)),
-            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(34, 41, 58)),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(12, 12, 12, 3),
-            Padding = new Thickness(12, 9, 12, 8),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
+            Background = MediaBrushes.Transparent,
+            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(30, 30, 36)),
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            Padding = new Thickness(4, 6, 4, 10),
             Margin = new Thickness(0, 0, 0, 8),
             Child = stack
         });
@@ -577,7 +577,7 @@ public partial class AssistantOverlayWindow : Window
             var link = new Hyperlink(new Run($"[{i + 1}] {r.Title}"))
             {
                 NavigateUri = Uri.TryCreate(r.Url, UriKind.Absolute, out var u) ? u : null,
-                Foreground = new SolidColorBrush(MediaColor.FromRgb(147, 197, 253))
+                Foreground = new SolidColorBrush(MediaColor.FromRgb(228, 228, 232))
             };
             link.RequestNavigate += (_, e) =>
             {
@@ -589,10 +589,10 @@ public partial class AssistantOverlayWindow : Window
         }
         host.Children.Add(new Expander
         {
-            Header = $"Источники ({sr.Results.Count}) · {sr.Provider}",
+            Header = $"ИСТОЧНИКИ ({sr.Results.Count}) · {sr.Provider.ToUpperInvariant()}",
             Style = System.Windows.Application.Current?.TryFindResource("StudioExpanderStyle") as Style,
-            Foreground = new SolidColorBrush(MediaColor.FromRgb(125, 211, 252)),
-            FontSize = 11.5,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(161, 161, 170)),
+            FontSize = 11,
             Margin = new Thickness(0, 6, 0, 0),
             Content = list
         });

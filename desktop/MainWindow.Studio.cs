@@ -244,7 +244,7 @@ public partial class MainWindow
 
                 bool installed = ModelCatalog.IsMediaEngineInstalled(tag);
                 item.Content = installed ? $"✓ {raw}" : $"✕ {raw} [не скачана]";
-                item.Foreground = BrushFromHex(installed ? "#E6EBF5" : "#8C96AD");
+                item.Foreground = BrushFromHex(installed ? "#F4F4F6" : "#71717A");
                 if (installed && firstInstalled < 0) firstInstalled = i;
             }
 
@@ -380,7 +380,7 @@ public partial class MainWindow
                 StatusFooterText.Text = hasRef
                     ? "Готово! Режиссёр собрал промпт правки по референсу — можно жать «Сгенерировать фото»."
                     : "Готово! Режиссёр улучшил промпт с оптикой и светом — можно жать «Сгенерировать фото».";
-                ShowToast("Промпт фото улучшен AI-Режиссёром ✨", "success");
+                ShowToast("Промпт фото улучшен AI-Режиссёром", "success");
             }
             await RefreshStatusAsync();
         }
@@ -494,7 +494,7 @@ public partial class MainWindow
             _singleVideoDirectorChat.Add(("user", userMsg));
             _singleVideoDirectorChat.Add(("assistant", reply));
             AppendDirectorBubble(SingleVideoDirectorMessagesPanel, SingleVideoDirectorChatScroll, "assistant", reply);
-            StatusFooterText.Text = "Режиссёр ответил — напиши уточнение или жми «✨ Собрать в промпт».";
+            StatusFooterText.Text = "Режиссёр ответил — напиши уточнение или жми «Собрать в промпт».";
             SingleVideoDirectorReplyBox.Focus();
             await RefreshStatusAsync();
         }
@@ -552,11 +552,11 @@ public partial class MainWindow
                     ? (hasStart ? "LTX-2.5 I2V + звук" : "LTX-2.5 T2V + звук")
                     : (hasStart && hasEnd ? "Wan 2.2 First→Last" : hasStart ? "Wan 2.2 I2V (фокус на движении и камере)" : "Wan 2.2 T2V");
                 StatusFooterText.Text = $"Готово! Режиссёр собрал промпт ({modeTag}).";
-                ShowToast("Промпт видео улучшен AI-Режиссёром ✨", "success");
+                ShowToast("Промпт видео улучшен AI-Режиссёром", "success");
                 if (SingleVideoDirectorChatPanel.Visibility == Visibility.Visible)
                 {
                     AppendDirectorBubble(SingleVideoDirectorMessagesPanel, SingleVideoDirectorChatScroll, "assistant",
-                        $"✓ **Готово ({modeTag})!** Новый промпт вставлен в поле выше. Если захочешь подправить движение камеры, свет или темп — просто напиши здесь и снова нажми **«✨ Собрать в промпт»**.");
+                        $"✓ **Готово ({modeTag})!** Новый промпт вставлен в поле выше. Если захочешь подправить движение камеры, свет или темп — просто напиши здесь и снова нажми **«Собрать в промпт»**.");
                 }
             }
             await RefreshStatusAsync();
@@ -616,9 +616,9 @@ public partial class MainWindow
         {
             PlacementTarget = anchorBtn,
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
-            Background = BrushFromHex("#151B28"),
-            BorderBrush = BrushFromHex("#2F3D5A"),
-            Foreground = BrushFromHex("#E6EBF5"),
+            Background = BrushFromHex("#141418"),
+            BorderBrush = BrushFromHex("#30303A"),
+            Foreground = BrushFromHex("#F4F4F6"),
             MaxWidth = 520
         };
 
@@ -629,7 +629,7 @@ public partial class MainWindow
             {
                 Header = "★ Сохранить текущий промпт в избранное (поле пустое)",
                 IsEnabled = false,
-                Foreground = BrushFromHex("#6B7794")
+                Foreground = BrushFromHex("#71717A")
             });
         }
         else
@@ -640,13 +640,13 @@ public partial class MainWindow
                 Header = curFav
                     ? "★ Убрать текущий промпт из избранного"
                     : "★ Сохранить текущий промпт в избранное",
-                Foreground = BrushFromHex("#F5CB5C"),
+                Foreground = BrushFromHex("#F59E0B"),
                 FontWeight = FontWeights.SemiBold
             };
             saveCurItem.Click += (_, _) =>
             {
                 bool nowFav = PromptHistoryService.ToggleFavorite(kind, currentPrompt);
-                ShowToast(nowFav ? "Промпт сохранён в избранное ⭐" : "Промпт убран из избранного", nowFav ? "success" : "info");
+                ShowToast(nowFav ? "Промпт сохранён в избранное" : "Промпт убран из избранного", nowFav ? "success" : "info");
             };
             menu.Items.Add(saveCurItem);
         }
@@ -660,7 +660,7 @@ public partial class MainWindow
             {
                 Header = "История пока пуста — сгенерируй или сохрани промпт",
                 IsEnabled = false,
-                Foreground = BrushFromHex("#7E8BA6")
+                Foreground = BrushFromHex("#71717A")
             });
         }
         else
@@ -675,11 +675,12 @@ public partial class MainWindow
                     addedFavHeader = true;
                     menu.Items.Add(new System.Windows.Controls.MenuItem
                     {
-                        Header = "⭐ ИЗБРАННОЕ",
+                        Header = "★ ИЗБРАННОЕ",
                         IsEnabled = false,
-                        FontSize = 10.5,
+                        FontSize = 10,
+                        FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                         FontWeight = FontWeights.SemiBold,
-                        Foreground = BrushFromHex("#F5CB5C")
+                        Foreground = BrushFromHex("#F59E0B")
                     });
                 }
                 else if (!entry.IsFavorite && !addedRecentHeader)
@@ -688,11 +689,12 @@ public partial class MainWindow
                     addedRecentHeader = true;
                     menu.Items.Add(new System.Windows.Controls.MenuItem
                     {
-                        Header = "🕘 НЕДАВНИЕ",
+                        Header = "НЕДАВНИЕ",
                         IsEnabled = false,
-                        FontSize = 10.5,
+                        FontSize = 10,
+                        FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                         FontWeight = FontWeights.SemiBold,
-                        Foreground = BrushFromHex("#8C96AD")
+                        Foreground = BrushFromHex("#71717A")
                     });
                 }
 
@@ -708,7 +710,7 @@ public partial class MainWindow
                     Text = TruncatePromptPreview(capturedText, 72),
                     TextTrimming = TextTrimming.CharacterEllipsis,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = BrushFromHex(isFav ? "#FFF3CC" : "#E6EBF5"),
+                    Foreground = BrushFromHex(isFav ? "#FEF3C7" : "#E4E4E8"),
                     FontSize = 12
                 };
                 Grid.SetColumn(titleTb, 0);
@@ -729,11 +731,11 @@ public partial class MainWindow
 
                 var favBtn = new System.Windows.Controls.Button
                 {
-                    Content = isFav ? "⭐" : "☆",
+                    Content = isFav ? "★" : "☆",
                     ToolTip = isFav ? "Убрать из избранного" : "Добавить в избранное",
                     Background = System.Windows.Media.Brushes.Transparent,
                     BorderThickness = new Thickness(0),
-                    Foreground = BrushFromHex(isFav ? "#F5CB5C" : "#7E8BA6"),
+                    Foreground = BrushFromHex(isFav ? "#F59E0B" : "#71717A"),
                     Padding = new Thickness(5, 1, 5, 1),
                     FontSize = 12,
                     Cursor = System.Windows.Input.Cursors.Hand,
@@ -743,11 +745,11 @@ public partial class MainWindow
                 {
                     ev.Handled = true;
                     bool nowFav = PromptHistoryService.ToggleFavorite(kind, capturedText);
-                    favBtn.Content = nowFav ? "⭐" : "☆";
-                    favBtn.Foreground = BrushFromHex(nowFav ? "#F5CB5C" : "#7E8BA6");
+                    favBtn.Content = nowFav ? "★" : "☆";
+                    favBtn.Foreground = BrushFromHex(nowFav ? "#F59E0B" : "#71717A");
                     favBtn.ToolTip = nowFav ? "Убрать из избранного" : "Добавить в избранное";
-                    titleTb.Foreground = BrushFromHex(nowFav ? "#FFF3CC" : "#E6EBF5");
-                    ShowToast(nowFav ? "Добавлено в избранное ⭐" : "Убрано из избранного", nowFav ? "success" : "info");
+                    titleTb.Foreground = BrushFromHex(nowFav ? "#FEF3C7" : "#E4E4E8");
+                    ShowToast(nowFav ? "Добавлено в избранное" : "Убрано из избранного", nowFav ? "success" : "info");
                 };
                 actions.Children.Add(favBtn);
 
@@ -757,7 +759,7 @@ public partial class MainWindow
                     ToolTip = "Удалить из истории",
                     Background = System.Windows.Media.Brushes.Transparent,
                     BorderThickness = new Thickness(0),
-                    Foreground = BrushFromHex("#7E8BA6"),
+                    Foreground = BrushFromHex("#71717A"),
                     Padding = new Thickness(5, 1, 4, 1),
                     FontSize = 11,
                     Cursor = System.Windows.Input.Cursors.Hand,
@@ -1379,7 +1381,7 @@ public partial class MainWindow
         string prompt = PhotoPromptBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(prompt))
         {
-            StatusFooterText.Text = "Напиши промпт в поле выше (или нажми «✨ Улучшить Режиссёром»).";
+            StatusFooterText.Text = "Напиши промпт в поле выше (или нажми «Режиссёр»).";
             return;
         }
 
@@ -1395,7 +1397,7 @@ public partial class MainWindow
         string prompt = VideoPromptBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(prompt))
         {
-            StatusFooterText.Text = "Напиши промпт видео в поле выше (или нажми «✨ Улучшить Режиссёром»).";
+            StatusFooterText.Text = "Напиши промпт видео в поле выше (или нажми «Режиссёр»).";
             return;
         }
 
@@ -1814,8 +1816,8 @@ public partial class MainWindow
 
             var numBadge = new Border
             {
-                Background = BrushFromHex(isSelected ? "#D93B6CE8" : "#CC0B0D12"),
-                CornerRadius = new CornerRadius(4),
+                Background = BrushFromHex(isSelected ? "#E6FF521B" : "#D909090B"),
+                CornerRadius = new CornerRadius(2),
                 Padding = new Thickness(4, 1, 4, 1),
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
@@ -1824,7 +1826,8 @@ public partial class MainWindow
             numBadge.Child = new TextBlock
             {
                 Text = $"#{i + 1}",
-                FontSize = 10,
+                FontSize = 9.5,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontWeight = FontWeights.SemiBold,
                 Foreground = BrushFromHex("#FFFFFF")
             };
@@ -1834,11 +1837,11 @@ public partial class MainWindow
             {
                 Width = 68,
                 Height = 68,
-                CornerRadius = new CornerRadius(7),
+                CornerRadius = new CornerRadius(4),
                 ClipToBounds = true,
-                Background = BrushFromHex("#0B0D12"),
-                BorderBrush = BrushFromHex(isSelected ? "#5B8CFF" : "#2A3245"),
-                BorderThickness = new Thickness(isSelected ? 2 : 1),
+                Background = BrushFromHex("#070708"),
+                BorderBrush = BrushFromHex(isSelected ? "#FF521B" : "#28282E"),
+                BorderThickness = new Thickness(isSelected ? 1.5 : 1),
                 Margin = new Thickness(0, 0, 6, 6),
                 Cursor = System.Windows.Input.Cursors.Hand,
                 Tag = capturedIdx,
@@ -1872,10 +1875,10 @@ public partial class MainWindow
                 if (child is Border b && b.Tag is int idx)
                 {
                     bool sel = idx == index;
-                    b.BorderBrush = BrushFromHex(sel ? "#5B8CFF" : "#2A3245");
-                    b.BorderThickness = new Thickness(sel ? 2 : 1);
+                    b.BorderBrush = BrushFromHex(sel ? "#FF521B" : "#28282E");
+                    b.BorderThickness = new Thickness(sel ? 1.5 : 1);
                     if (b.Child is Grid g && g.Children.Count > 0 && g.Children[^1] is Border badge)
-                        badge.Background = BrushFromHex(sel ? "#D93B6CE8" : "#CC0B0D12");
+                        badge.Background = BrushFromHex(sel ? "#E6FF521B" : "#D909090B");
                 }
             }
         }
@@ -1978,7 +1981,7 @@ public partial class MainWindow
             {
                 Content = "— Выбери пресет —",
                 Tag = null,
-                Foreground = BrushFromHex("#8C96AD")
+                Foreground = BrushFromHex("#71717A")
             });
 
             int selectIdx = 0;
@@ -1989,7 +1992,7 @@ public partial class MainWindow
                 {
                     Content = p.IsBuiltIn ? p.Name : $"★ {p.Name}",
                     Tag = p,
-                    Foreground = BrushFromHex(p.IsBuiltIn ? "#DCE5F7" : "#FFE7A8")
+                    Foreground = BrushFromHex(p.IsBuiltIn ? "#E4E4E8" : "#F59E0B")
                 });
                 if (!string.IsNullOrWhiteSpace(selectName) &&
                     string.Equals(p.Name, selectName.Trim(), StringComparison.OrdinalIgnoreCase))
@@ -2219,8 +2222,8 @@ public partial class MainWindow
             WindowStyle = WindowStyle.ToolWindow,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
-            Background = BrushFromHex("#141925"),
-            Foreground = BrushFromHex("#E6EBF5"),
+            Background = BrushFromHex("#121215"),
+            Foreground = BrushFromHex("#F4F4F6"),
             FontFamily = new System.Windows.Media.FontFamily("Segoe UI")
         };
 
@@ -2240,7 +2243,7 @@ public partial class MainWindow
         {
             Text = label,
             FontSize = 12.5,
-            Foreground = BrushFromHex("#B8C4DC"),
+            Foreground = BrushFromHex("#A1A1AA"),
             Margin = new Thickness(0, 0, 0, 7)
         });
 
@@ -2249,10 +2252,10 @@ public partial class MainWindow
             Text = defaultValue,
             Height = 32,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Background = BrushFromHex("#0B0D12"),
-            Foreground = BrushFromHex("#E6EBF5"),
-            CaretBrush = BrushFromHex("#E6EBF5"),
-            BorderBrush = BrushFromHex("#35425E"),
+            Background = BrushFromHex("#09090B"),
+            Foreground = BrushFromHex("#F4F4F6"),
+            CaretBrush = BrushFromHex("#FF521B"),
+            BorderBrush = BrushFromHex("#2E2E36"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(9, 0, 9, 0),
             FontSize = 13
@@ -2530,10 +2533,10 @@ public partial class MainWindow
 
         var rowBorder = new Border
         {
-            Background = BrushFromHex(isRunning ? "#162238" : "#101522"),
-            BorderBrush = BrushFromHex(isRunning ? "#4E7EF8" : "#242E45"),
+            Background = BrushFromHex(isRunning ? "#191512" : "#101013"),
+            BorderBrush = BrushFromHex(isRunning ? "#FF521B" : "#26262E"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
+            CornerRadius = new CornerRadius(4),
             Padding = new Thickness(9, 5, 9, 5),
             Margin = new Thickness(0, 0, 0, 4)
         };
@@ -2550,17 +2553,17 @@ public partial class MainWindow
 
         var (badgeText, badgeBg, badgeFg) = status switch
         {
-            "running" => ("⚙ В работе", "#1B2C4A", "#6EA8FE"),
-            "done" => ("✓ Готово", "#143322", "#2ECC71"),
-            "failed" => ("✕ Ошибка", "#331A1D", "#FF8A93"),
-            "cancelled" => ("⊘ Отменено", "#2B2618", "#F5CB5C"),
-            _ => ("⏳ Ожидает", "#1F2533", "#9BA6BF")
+            "running" => ("● В РАБОТЕ", "#26140F", "#FF521B"),
+            "done" => ("✓ ГОТОВО", "#11241C", "#34D399"),
+            "failed" => ("✕ ОШИБКА", "#261416", "#F87171"),
+            "cancelled" => ("⊘ ОТМЕНЕНО", "#241D0E", "#F59E0B"),
+            _ => ("○ ОЖИДАЕТ", "#19191E", "#A1A1AA")
         };
 
         var statusBadge = new Border
         {
             Background = BrushFromHex(badgeBg),
-            CornerRadius = new CornerRadius(8),
+            CornerRadius = new CornerRadius(3),
             Padding = new Thickness(7, 2, 7, 2),
             Margin = new Thickness(0, 0, 6, 0),
             VerticalAlignment = VerticalAlignment.Center,
@@ -2568,7 +2571,8 @@ public partial class MainWindow
             Child = new TextBlock
             {
                 Text = badgeText,
-                FontSize = 10.5,
+                FontSize = 10,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontWeight = FontWeights.SemiBold,
                 Foreground = BrushFromHex(badgeFg)
             }
@@ -2631,7 +2635,7 @@ public partial class MainWindow
 
         dock.Children.Add(rightControls);
 
-        string icon = job.Kind == "photo" ? "🖼" : "🎬";
+        string icon = job.Kind == "photo" ? "[ФОТО]" : "[ВИДЕО]";
         string spec = job.Kind == "photo"
             ? $"{job.Engine} • {job.Width}×{job.Height}" + (job.BatchCount > 1 ? $" • ×{job.BatchCount}" : "")
             : $"{job.Engine} • {job.Width}×{job.Height} • {job.DurationSec}с";
@@ -2642,7 +2646,7 @@ public partial class MainWindow
             Text = $"{icon} {job.Title}",
             FontSize = 11.5,
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushFromHex("#E6EBF5"),
+            Foreground = BrushFromHex("#F4F4F6"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             ToolTip = job.Prompt
         });
@@ -2650,7 +2654,8 @@ public partial class MainWindow
         {
             Text = string.IsNullOrWhiteSpace(job.Error) ? spec : $"{spec} • {job.Error}",
             FontSize = 10.5,
-            Foreground = BrushFromHex(status == "failed" ? "#FF9EA8" : "#8C96AD"),
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            Foreground = BrushFromHex(status == "failed" ? "#F87171" : "#71717A"),
             TextTrimming = TextTrimming.CharacterEllipsis
         });
 

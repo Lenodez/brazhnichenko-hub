@@ -25,17 +25,17 @@ public static class MarkdownUiRenderer
     private static SolidColorBrush Brush(string hex) =>
         (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!;
 
-    public static UIElement Build(string markdown, double fontSize = 13, string foregroundHex = "#E6EBF5")
+    public static UIElement Build(string markdown, double fontSize = 13, string foregroundHex = "#E4E4E8")
     {
         var root = new StackPanel();
         if (string.IsNullOrWhiteSpace(markdown))
             return root;
 
         var fg = Brush(foregroundHex);
-        var headingFg = Brush("#9EC0FF");
-        var bulletFg = Brush("#6EA8FE");
-        var codeFg = Brush("#A8D5FF");
-        var codeBg = Brush("#1D2A42");
+        var headingFg = Brush("#F4F4F6");
+        var bulletFg = Brush("#FF521B");
+        var codeFg = Brush("#F2F2F5");
+        var codeBg = Brush("#18181D");
 
         var lines = markdown.Replace("\r\n", "\n").Split('\n');
         int i = 0;
@@ -84,10 +84,10 @@ public static class MarkdownUiRenderer
                 };
                 root.Children.Add(new Border
                 {
-                    Background = Brush("#0B0F18"),
-                    BorderBrush = Brush("#26324A"),
+                    Background = Brush("#09090B"),
+                    BorderBrush = Brush("#26262D"),
                     BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(6),
+                    CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(9, 6, 9, 6),
                     Margin = new Thickness(0, 2, 0, 6),
                     Child = codeBox
@@ -110,7 +110,7 @@ public static class MarkdownUiRenderer
                 root.Children.Add(new Border
                 {
                     Height = 1,
-                    Background = Brush("#2A354D"),
+                    Background = Brush("#26262D"),
                     Margin = new Thickness(0, 4, 0, 6)
                 });
                 i++;

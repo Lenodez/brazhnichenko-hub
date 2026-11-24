@@ -12,13 +12,14 @@ let visionImageBase64 = null;
 let chatAbortController = null;
 let assistantHistory = [];
 let currentGalleryFilter = 'all';
+let hadRunningMediaJobs = false;
 
 function showToast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(() => el.classList.remove('show'), 3400);
+  window.__toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
 }
 
 function esc(str) {
@@ -31,7 +32,8 @@ function switchTab(name) {
   if (name === 'models' && cachedModels.length === 0) loadCatalog();
   if (name === 'gallery') loadGallery(currentGalleryFilter);
   if (name === 'system') loadSettings();
-  if (name === 'video') loadVoices();
+  if (name === 'photo') refreshStudioPreviews();
+  if (name === 'video') { loadVoices(); refreshStudioPreviews(); }
 }
 
 function openAssistantTab() {
@@ -49,14 +51,14 @@ function switchChatSub(sub) {
 function renderSparkline(svgId, values, strokeColor) {
   const svg = document.getElementById(svgId);
   if (!svg || !values || values.length < 2) { if (svg) svg.innerHTML = ''; return; }
-  const w = 72, h = 20;
+  const w = 72, h = 18;
   const max = Math.max(100, ...values);
   const pts = values.map((v, i) => {
     const x = (i / (values.length - 1)) * w;
     const y = h - Math.max(1, Math.min(h - 1, (v / max) * (h - 2)));
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
-  svg.innerHTML = `<polyline fill="none" stroke="${strokeColor}" stroke-width="1.6" points="${pts}"/>`;
+  svg.innerHTML = `<polyline fill="none" stroke="${strokeColor}" stroke-width="1.5" points="${pts}"/>`;
 }
 
 // ==================== STATUS POLLING ====================
@@ -72,50 +74,54 @@ async function pollStatus() {
     const hw = st.hardware;
     const m = st.metrics;
     const gpu = m.gpu;
+    const gpuBar = document.getElementById('gpuBar');
+    let vramPct = 0;
+
     if (hw.isAppleSilicon) {
-      document.getElementById('gpuNameText').textContent = `${hw.detectedGpuName} (Metal Unified)`;
+      document.getElementById('gpuNameText').textContent = `${hw.detectedGpuName} (Metal)`;
       const usedGB = gpu ? (gpu.vramUsedMiB / 1024).toFixed(1) : '0.0';
       const budGB = hw.detectedVramGB.toFixed(1);
-      const pct = hw.detectedVramGB > 0 && gpu ? Math.min(100, (gpu.vramUsedMiB / 1024) * 100 / hw.detectedVramGB) : 0;
-      document.getElementById('gpuValText').textContent = `${usedGB} / ~${budGB} ГБ Metal`;
-      document.getElementById('gpuBar').style.width = pct.toFixed(0) + '%';
+      vramPct = hw.detectedVramGB > 0 && gpu ? Math.min(100, (gpu.vramUsedMiB / 1024) * 100 / hw.detectedVramGB) : 0;
+      document.getElementById('gpuValText').textContent = `${usedGB} / ~${budGB} ГБ`;
     } else if (gpu) {
       const usedGB = (gpu.vramUsedMiB / 1024).toFixed(1);
       const totGB = (gpu.vramTotalMiB / 1024).toFixed(1);
-      const pct = gpu.vramTotalMiB > 0 ? Math.min(100, gpu.vramUsedMiB * 100 / gpu.vramTotalMiB) : 0;
+      vramPct = gpu.vramTotalMiB > 0 ? Math.min(100, gpu.vramUsedMiB * 100 / gpu.vramTotalMiB) : 0;
       document.getElementById('gpuNameText').textContent = gpu.name;
-      document.getElementById('gpuValText').textContent = `${usedGB} / ${totGB} ГБ · ${gpu.utilPct}% · ${gpu.tempC}°C`;
-      document.getElementById('gpuBar').style.width = pct.toFixed(0) + '%';
+      document.getElementById('gpuValText').textContent = `${usedGB}/${totGB} ГБ · ${gpu.utilPct}% · ${gpu.tempC}°C`;
     } else {
       document.getElementById('gpuNameText').textContent = hw.detectedGpuName;
       document.getElementById('gpuValText').textContent = 'CPU / Metal';
     }
 
+    gpuBar.style.width = vramPct.toFixed(0) + '%';
+    gpuBar.className = 'bar-fill ' + (vramPct > 85 ? 'danger' : vramPct > 65 ? 'warning' : 'signal');
+
     const ramPct = m.ramTotalGB > 0 ? Math.min(100, m.ramUsedGB * 100 / m.ramTotalGB) : 0;
-    document.getElementById('ramLabelText').textContent = hw.isAppleSilicon ? 'Unified Memory' : 'ОЗУ (RAM)';
-    document.getElementById('ramValText').textContent = `${m.ramUsedGB.toFixed(1)} / ${m.ramTotalGB.toFixed(1)} ГБ (${ramPct.toFixed(0)}%)`;
+    document.getElementById('ramLabelText').textContent = hw.isAppleSilicon ? 'Unified Memory' : 'ОЗУ';
+    document.getElementById('ramValText').textContent = `${m.ramUsedGB.toFixed(1)}/${m.ramTotalGB.toFixed(1)} ГБ (${ramPct.toFixed(0)}%)`;
     document.getElementById('ramBar').style.width = ramPct.toFixed(0) + '%';
 
     const diskUsedPct = st.diskTotalGB > 0 ? Math.min(100, (st.diskTotalGB - m.diskFreeDGB) * 100 / st.diskTotalGB) : 0;
     document.getElementById('diskLabelText').textContent = `Диск ${st.driveLabel}`;
-    document.getElementById('diskValText').textContent = `Свободно ${m.diskFreeDGB.toFixed(1)} ГБ`;
+    document.getElementById('diskValText').textContent = `${m.diskFreeDGB.toFixed(1)} ГБ своб.`;
     document.getElementById('diskBar').style.width = diskUsedPct.toFixed(0) + '%';
 
-    renderSparkline('gpuSpark', st.history.vramPct, '#5B8CFF');
-    renderSparkline('ramSpark', st.history.ramPct, '#38BDF8');
+    renderSparkline('gpuSpark', st.history.vramPct, vramPct > 85 ? '#EF4444' : '#FF521B');
+    renderSparkline('ramSpark', st.history.ramPct, '#A1A1AA');
 
     const llmUp = !!st.services.qwen;
     const qPill = document.getElementById('llmQuickStatus');
-    qPill.textContent = llmUp ? 'LLM: активна' : 'LLM: выкл';
+    qPill.textContent = llmUp ? '● LLM :18080' : '○ LLM ВЫКЛ';
     qPill.className = 'pill mono ' + (llmUp ? 'success' : '');
 
     const lPill = document.getElementById('llmStatusPill');
-    lPill.textContent = llmUp ? 'Работает (:18080)' : 'Остановлена';
-    lPill.className = 'pill ' + (llmUp ? 'success' : '');
+    lPill.textContent = llmUp ? '● :18080' : '○ СТОП';
+    lPill.className = 'pill mono ' + (llmUp ? 'success' : '');
 
     const vBadge = document.getElementById('visionBadge');
-    vBadge.textContent = st.activeLlmHasVision ? `Vision (${st.activeLlmMmproj})` : 'Только текст';
-    vBadge.className = 'pill ' + (st.activeLlmHasVision ? 'info' : '');
+    vBadge.textContent = st.activeLlmHasVision ? 'VISION' : 'TEXT ONLY';
+    vBadge.className = 'pill mono ' + (st.activeLlmHasVision ? 'success' : '');
 
     // Populate LLM select only if changed
     const sel = document.getElementById('llmModelSelect');
@@ -124,15 +130,22 @@ async function pollStatus() {
       sel.dataset.sig = curFiles;
       sel.innerHTML = (st.availableLlms || []).length
         ? st.availableLlms.map(x => `<option value="${esc(x.fileName)}" ${x.fileName === st.activeLlm ? 'selected' : ''}>${esc(x.displayName)}</option>`).join('')
-        : '<option value="">Нет скачанных GGUF моделей — скачай в «Модели»</option>';
+        : '<option value="">Нет скачанных GGUF — откройте «Модели и память»</option>';
     }
 
     // Runtime statuses
-    document.getElementById('rtLlamaStatus').textContent = st.runtime.llamaInstalled ? `Установлен: ${st.runtime.llamaExePath}` : 'Не установлен — нажми кнопку справа';
-    document.getElementById('rtComfyStatus').textContent = st.runtime.comfyInstalled ? `Установлен: ${st.runtime.comfyRootDir}` : 'Не установлен';
-    document.getElementById('rtVoiceStatus').textContent = `Whisper STT: ${st.voice.whisperReady ? 'Готов' : 'нет'} · Piper HD: ${st.voice.piperReady ? 'Готов' : 'нет'} · FFmpeg: ${st.voice.ffmpegReady ? 'OK' : 'нет'}`;
+    document.getElementById('rtLlamaStatus').textContent = st.runtime.llamaInstalled ? `● ${st.runtime.llamaExePath}` : '▲ Не установлен';
+    document.getElementById('rtComfyStatus').textContent = st.runtime.comfyInstalled ? `● ${st.runtime.comfyRootDir}` : '▲ Не установлен';
+    document.getElementById('rtVoiceStatus').textContent = `Whisper: ${st.voice.whisperReady ? 'OK' : '—'} · Piper: ${st.voice.piperReady ? 'OK' : '—'} · FFmpeg: ${st.voice.ffmpegReady ? 'OK' : '—'}`;
 
-    renderJobs(st.jobs || []);
+    const jobs = st.jobs || [];
+    const runningMedia = jobs.some(j => (j.kind === 'photo' || j.kind === 'video') && j.status === 'running');
+    if (hadRunningMediaJobs && !runningMedia) {
+      refreshStudioPreviews();
+    }
+    hadRunningMediaJobs = runningMedia;
+
+    renderJobs(jobs);
   } catch (e) { /* transient */ }
 }
 
@@ -143,13 +156,13 @@ function renderJobs(jobs) {
   bar.classList.add('visible');
   bar.innerHTML = active.map(j => `
     <div class="row" style="justify-content:space-between;">
-      <div><strong>${esc(j.title)}</strong> <span class="muted">${esc(j.stage)}</span></div>
+      <div><strong>${esc(j.title)}</strong> <span class="muted mono">${esc(j.stage)}</span></div>
       <div class="row">
         <span class="mono">${j.percent.toFixed(0)}%${j.speedMBs > 0 ? ' · ' + j.speedMBs.toFixed(1) + ' МБ/с' : ''}</span>
         ${j.status === 'running' ? `<button class="btn danger sm" onclick="cancelJob('${j.id}')">Отмена</button>` : ''}
       </div>
     </div>
-    <div class="bar-track"><div class="bar-fill ${j.status === 'error' ? 'danger' : 'success'}" style="width:${j.percent.toFixed(1)}%"></div></div>
+    <div class="bar-track"><div class="bar-fill ${j.status === 'error' ? 'danger' : 'signal'}" style="width:${j.percent.toFixed(1)}%"></div></div>
   `).join('');
 }
 
@@ -188,7 +201,7 @@ function populateAppleChipsForGen(gen) {
   sel.innerHTML = chips.map(c =>
     `<option value="${esc(c.chipName)}">${esc(c.chipName)} (${c.gpuCores} · ${c.bandwidthGBs} ГБ/с)</option>`
   ).join('');
-  if (chips.length > 1) sel.selectedIndex = 1; // Default to Pro tier
+  if (chips.length > 1) sel.selectedIndex = 1;
   onAppleChipChanged(false);
 }
 
@@ -249,24 +262,42 @@ async function loadCatalog() {
 
 function renderHardwareSummary(hw) {
   document.getElementById('simChipLabel').textContent = hw.detectedGpuName;
+  const vramSeg = document.getElementById('simPoolVramSeg');
+  const ramSeg = document.getElementById('simPoolRamSeg');
+  const poolLegend = document.getElementById('simPoolLegend');
+
   if (hw.isAppleSilicon && hw.matchedAppleChip) {
     const c = hw.matchedAppleChip;
-    document.getElementById('simVramLabel').textContent = `~${hw.detectedVramGB.toFixed(1)} ГБ Metal (из ${hw.detectedRamGB} ГБ Unified)`;
-    const flags = [c.hasDynamicCaching ? 'Dynamic Caching' : null, c.hasNeuralGpuAccel ? 'GPU Neural Accel' : null].filter(Boolean).join(' · ');
+    document.getElementById('simVramLabel').textContent = `~${hw.detectedVramGB.toFixed(1)} ГБ Metal (из ${hw.detectedRamGB} ГБ)`;
+    const flags = [c.hasDynamicCaching ? 'Dynamic Caching' : null, c.hasNeuralGpuAccel ? 'Neural Accel' : null].filter(Boolean).join(' · ');
     document.getElementById('simBwLabel').textContent = `${c.bandwidthGBs} ГБ/с${flags ? ' · ' + flags : ''}`;
     document.getElementById('simFormatLabel').textContent = c.bestFormatHint;
     document.getElementById('simSummaryText').textContent = c.summaryRu;
+
+    const metalPct = Math.min(85, (hw.detectedVramGB / Math.max(1, hw.detectedRamGB)) * 100);
+    vramSeg.style.width = metalPct.toFixed(0) + '%';
+    ramSeg.style.width = (100 - metalPct).toFixed(0) + '%';
+    poolLegend.textContent = `Metal GPU ~${hw.detectedVramGB.toFixed(1)} ГБ · macOS резерв ~${(hw.detectedRamGB - hw.detectedVramGB).toFixed(1)} ГБ`;
   } else if (hw.matchedWiki) {
     const g = hw.matchedWiki;
-    document.getElementById('simVramLabel').textContent = `${hw.detectedVramGB.toFixed(1)} ГБ VRAM + ${hw.detectedRamGB.toFixed(0)} ГБ RAM`;
+    document.getElementById('simVramLabel').textContent = `${hw.detectedVramGB.toFixed(0)} ГБ VRAM + ${hw.detectedRamGB.toFixed(0)} ГБ RAM`;
     document.getElementById('simBwLabel').textContent = `${g.bandwidthGBs} ГБ/с · ${g.architecture} · FP8:${g.nativeFp8 ? 'да' : 'нет'}`;
     document.getElementById('simFormatLabel').textContent = g.bestFormatHint;
     document.getElementById('simSummaryText').textContent = g.summaryRu;
+
+    const total = Math.max(1, hw.detectedVramGB + Math.max(0, hw.detectedRamGB - 8));
+    const vPct = Math.min(85, (hw.detectedVramGB / total) * 100);
+    vramSeg.style.width = vPct.toFixed(0) + '%';
+    ramSeg.style.width = Math.max(10, 100 - vPct).toFixed(0) + '%';
+    poolLegend.textContent = `VRAM ${hw.detectedVramGB.toFixed(0)} ГБ · Оффлоад ОЗУ до ~${Math.max(4, hw.detectedRamGB - 10).toFixed(0)} ГБ`;
   } else {
     document.getElementById('simVramLabel').textContent = `${hw.detectedVramGB.toFixed(1)} ГБ / ${hw.detectedRamGB.toFixed(0)} ГБ RAM`;
     document.getElementById('simBwLabel').textContent = hw.ramTierLabel;
     document.getElementById('simFormatLabel').textContent = 'GGUF Q4_K_M';
     document.getElementById('simSummaryText').textContent = hw.overallTierSummaryRu;
+    vramSeg.style.width = '35%';
+    ramSeg.style.width = '65%';
+    poolLegend.textContent = `${hw.detectedVramGB.toFixed(1)} ГБ GPU · ${hw.detectedRamGB.toFixed(0)} ГБ RAM`;
   }
 }
 
@@ -289,27 +320,27 @@ function renderCatalogGrid() {
   grid.innerHTML = items.map(m => {
     const lvl = m.fit.level;
     const cls = lvl === 'ideal' ? 'ideal' : lvl === 'goodWithOffload' ? 'offload' : lvl === 'tight' ? 'tight' : 'unsupported';
-    const badgeCls = lvl === 'ideal' ? 'success' : lvl === 'goodWithOffload' ? 'warning' : lvl === 'tight' ? 'warning' : 'danger';
+    const badgeCls = lvl === 'ideal' ? 'success' : lvl === 'goodWithOffload' ? 'warning' : lvl === 'tight' ? 'signal' : 'danger';
     return `
       <div class="model-card ${cls}">
         <div class="row" style="justify-content:space-between;align-items:flex-start;">
           <div class="model-title">${esc(m.name)}</div>
-          <span class="pill ${badgeCls}">${esc(m.fit.badgeText)}</span>
+          <span class="pill mono ${badgeCls}">${esc(m.fit.badgeText)}</span>
         </div>
         <div class="row">
           <span class="pill mono">${m.totalSizeGB.toFixed(2)} ГБ</span>
           <span class="pill info mono">${esc(m.fit.estimatedSpeedHint)}</span>
-          ${m.isGated ? '<span class="pill warning">HF Gated</span>' : ''}
-          ${m.installed ? '<span class="pill success">Установлена</span>' : ''}
+          ${m.isGated ? '<span class="pill warning mono">GATED</span>' : ''}
+          ${m.installed ? '<span class="pill success mono">✓ УСТАНОВЛЕНО</span>' : ''}
         </div>
         <div class="model-desc">${esc(m.summaryRu)}</div>
         <div class="model-fit-line">${esc(m.fit.reasonRu)}</div>
         <div class="row" style="margin-top:auto;padding-top:4px;justify-content:space-between;">
-          <span class="muted">${esc(m.shortTag)}</span>
+          <span class="muted mono" style="font-size:11px;">${esc(m.shortTag)}</span>
           <div class="row">
             ${m.installed
               ? `<button class="btn danger sm" onclick="deleteModel('${m.id}')">Удалить</button>`
-              : `<button class="btn primary sm" onclick="installModel('${m.id}')">Скачать (${m.missingGB.toFixed(1)} ГБ)</button>`
+              : `<button class="btn ${lvl === 'ideal' || lvl === 'goodWithOffload' ? 'signal' : 'primary'} sm" onclick="installModel('${m.id}')">Скачать (${m.missingGB.toFixed(1)} ГБ)</button>`
             }
           </div>
         </div>
@@ -324,7 +355,7 @@ async function installModel(modelId) {
   });
   const data = await res.json();
   if (!res.ok) return showToast(data.error || 'Ошибка скачивания');
-  showToast('Загрузка модели запущена — следи за полосой прогресса сверху');
+  showToast('Загрузка модели запущена — прогресс отображается сверху');
   pollStatus();
 }
 
@@ -344,7 +375,7 @@ async function searchHuggingFace() {
   const cat = document.getElementById('hfCatSelect').value;
   if (!q) return;
   const box = document.getElementById('hfResultsList');
-  box.innerHTML = '<div class="muted">Поиск на Hugging Face...</div>';
+  box.innerHTML = '<div class="muted mono">Поиск репозиториев на Hugging Face...</div>';
   const res = await fetch(`/api/hf/search?q=${encodeURIComponent(q)}&category=${encodeURIComponent(cat)}`);
   const items = await res.json();
   if (!items.length) { box.innerHTML = '<div class="muted">Ничего не найдено.</div>'; return; }
@@ -352,27 +383,27 @@ async function searchHuggingFace() {
     <div class="panel row" style="justify-content:space-between;">
       <div>
         <strong>${esc(r.repoId)}</strong>
-        <div class="muted">Загрузок: ${r.downloads} · Лайков: ${r.likes}${r.isGated ? ' · Gated' : ''}</div>
+        <div class="muted mono">↓ ${r.downloads} · ★ ${r.likes}${r.isGated ? ' · GATED' : ''}</div>
       </div>
-      <button class="btn sm primary" onclick="loadHfRepoFiles('${esc(r.repoId)}', this)">Показать файлы</button>
+      <button class="btn sm primary" onclick="loadHfRepoFiles('${esc(r.repoId)}', this)">Файлы</button>
     </div>
-    <div id="hf-files-${esc(r.repoId).replace(/[^a-zA-Z0-9]/g, '_')}" class="stack" style="display:none;padding-left:16px;"></div>
+    <div id="hf-files-${esc(r.repoId).replace(/[^a-zA-Z0-9]/g, '_')}" class="stack" style="display:none;padding-left:14px;"></div>
   `).join('');
 }
 
 async function loadHfRepoFiles(repoId, btn) {
   const target = document.getElementById('hf-files-' + repoId.replace(/[^a-zA-Z0-9]/g, '_'));
   target.style.display = 'flex';
-  target.innerHTML = '<div class="muted">Загрузка списка файлов...</div>';
+  target.innerHTML = '<div class="muted mono">Чтение списка файлов...</div>';
   const res = await fetch(`/api/hf/files?repo=${encodeURIComponent(repoId)}`);
   const files = await res.json();
   if (!files.length) { target.innerHTML = '<div class="muted">Файлы .gguf / .safetensors не найдены.</div>'; return; }
   target.innerHTML = files.slice(0, 14).map(f => `
-    <div class="row" style="justify-content:space-between;background:var(--bg-canvas);padding:6px 10px;border-radius:7px;border:1px solid var(--border-subtle);">
+    <div class="row" style="justify-content:space-between;background:var(--bg-canvas);padding:6px 10px;border-radius:3px;border:1px solid var(--border-subtle);">
       <span class="mono" style="font-size:12px;">${esc(f.filePath)}</span>
       <div class="row">
         <span class="pill mono">${(f.sizeBytes / 1073741824).toFixed(2)} ГБ</span>
-        <button class="btn success sm" onclick="downloadHfFile('${esc(repoId)}', '${esc(f.filePath)}', ${f.sizeBytes})">Скачать</button>
+        <button class="btn signal sm" onclick="downloadHfFile('${esc(repoId)}', '${esc(f.filePath)}', ${f.sizeBytes})">Скачать</button>
       </div>
     </div>
   `).join('');
@@ -443,13 +474,13 @@ function renderActiveSession() {
   document.getElementById('tempVal').textContent = Number(s.temperature ?? 0.7).toFixed(2);
 
   if (!s.messages || !s.messages.length) {
-    box.innerHTML = `<div class="msg assistant"><div class="msg-head">Локальная LLM · Чат 2.0</div>Напиши сообщение или прикрепи/вставь (Ctrl+V) картинку для Vision. Выбранная модель запустится автоматически.</div>`;
+    box.innerHTML = `<div class="msg assistant"><div class="msg-head">ЛОКАЛЬНАЯ LLM · ГОТОВА К РАБОТЕ</div>Введите сообщение или вставьте изображение (Ctrl+V) для Vision. Сервер выбранной модели запустится автоматически.</div>`;
     return;
   }
   box.innerHTML = s.messages.map(m => `
     <div class="msg ${m.role === 'user' ? 'user' : 'assistant'}">
-      <div class="msg-head">${m.role === 'user' ? 'Вы' : 'Локальная LLM'}</div>
-      ${m.thinking ? `<details class="think-box"><summary>Размышления (&lt;think&gt;)</summary><div>${esc(m.thinking)}</div></details>` : ''}
+      <div class="msg-head">${m.role === 'user' ? 'ВЫ' : 'ЛОКАЛЬНАЯ LLM'}</div>
+      ${m.thinking ? `<details class="think-box"><summary>РАЗМЫШЛЕНИЯ · THINK</summary><div>${esc(m.thinking)}</div></details>` : ''}
       <div>${esc(m.content)}</div>
     </div>
   `).join('');
@@ -522,12 +553,12 @@ async function sendChatMessage() {
   const box = document.getElementById('chatMessages');
   const uEl = document.createElement('div');
   uEl.className = 'msg user';
-  uEl.innerHTML = `<div class="msg-head">Вы</div>${imgToSend ? `<img src="${imgToSend}" class="vision-thumb" style="margin-bottom:6px;display:block;"/>` : ''}<div>${esc(text || 'Что на фото?')}</div>`;
+  uEl.innerHTML = `<div class="msg-head">ВЫ</div>${imgToSend ? `<img src="${imgToSend}" class="vision-thumb" style="margin-bottom:6px;display:block;"/>` : ''}<div>${esc(text || 'Что изображено на фото?')}</div>`;
   box.appendChild(uEl);
 
   const aEl = document.createElement('div');
   aEl.className = 'msg assistant';
-  aEl.innerHTML = `<div class="msg-head"><span>Локальная LLM</span><span class="mono" id="liveTok">...</span></div><details class="think-box" style="display:none;"><summary>Размышления (&lt;think&gt;)</summary><div class="think-text"></div></details><div class="ans-text">Подключение...</div>`;
+  aEl.innerHTML = `<div class="msg-head"><span>ЛОКАЛЬНАЯ LLM</span><span class="mono" id="liveTok">...</span></div><details class="think-box" style="display:none;"><summary>РАЗМЫШЛЕНИЯ · THINK</summary><div class="think-text"></div></details><div class="ans-text">Подключение...</div>`;
   box.appendChild(aEl);
   box.scrollTop = box.scrollHeight;
 
@@ -578,9 +609,9 @@ async function sendChatMessage() {
           ansNode.textContent += ev.data;
         } else if (ev.type === 'vision_missing') {
           aEl.className = 'msg warn';
-          aEl.innerHTML = `<div class="msg-head">Vision (mmproj) не активирован</div><div>${esc(ev.data.message)}</div>
+          aEl.innerHTML = `<div class="msg-head">VISION (MMPROJ) НЕ АКТИВИРОВАН</div><div>${esc(ev.data.message)}</div>
             <div class="row" style="margin-top:8px;">
-              ${ev.data.canDownloadQwen36Mmproj ? `<button class="btn success sm" onclick="installModel('llm-qwen36-35b-hauhau-vision-mmproj')">Скачать mmproj для Qwen 3.6 (0.84 ГБ)</button>` : ''}
+              ${ev.data.canDownloadQwen36Mmproj ? `<button class="btn signal sm" onclick="installModel('llm-qwen36-35b-hauhau-vision-mmproj')">Скачать mmproj для Qwen 3.6 (0.84 ГБ)</button>` : ''}
               <button class="btn primary sm" onclick="installModel('llm-qwen25-vl-7b-vision')">Скачать Qwen 2.5 VL 7B Vision (5.16 ГБ)</button>
               <button class="btn sm" onclick="switchTab('models')">Открыть каталог</button>
             </div>`;
@@ -611,6 +642,18 @@ function abortChatStream() {
   if (chatAbortController) chatAbortController.abort();
 }
 
+async function onLlmModelSelectChanged() {
+  const modelFile = document.getElementById('llmModelSelect').value;
+  if (!modelFile) return;
+  if (lastStatus?.services?.qwen) {
+    showToast(`Переключение активной LLM на ${modelFile}...`);
+    await fetch('/api/services/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 'qwen' }) });
+    await startSelectedLlm();
+  } else {
+    showToast(`Выбрана модель: ${modelFile}`);
+  }
+}
+
 async function startSelectedLlm() {
   const modelFile = document.getElementById('llmModelSelect').value;
   showToast('Запуск локальной LLM...');
@@ -619,7 +662,7 @@ async function startSelectedLlm() {
   });
   const data = await res.json();
   if (!res.ok) showToast(data.error || 'Не удалось запустить LLM');
-  else showToast('Локальная LLM запущена!');
+  else showToast('Локальная LLM активна');
   pollStatus();
 }
 
@@ -631,7 +674,7 @@ async function stopService(id) {
 
 async function stopAllGpu() {
   await fetch('/api/services/stop-all', { method: 'POST' });
-  showToast('Все GPU-сервисы остановлены, память освобождена');
+  showToast('Все GPU-сервисы остановлены, видеопамять освобождена');
   pollStatus();
 }
 
@@ -647,9 +690,9 @@ async function askAssistant() {
   if (!msg) return;
   inp.value = '';
   const box = document.getElementById('assistantMessages');
-  box.innerHTML += `<div class="msg user"><div class="msg-head">Вы</div>${esc(msg)}</div>`;
+  box.innerHTML += `<div class="msg user"><div class="msg-head">ВЫ</div>${esc(msg)}</div>`;
   const waitId = 'asst-' + Date.now();
-  box.innerHTML += `<div id="${waitId}" class="msg assistant"><div class="msg-head">AI-Помощник</div>Ищу по базе знаний Apple Silicon M1–M6 + NVIDIA...</div>`;
+  box.innerHTML += `<div id="${waitId}" class="msg assistant"><div class="msg-head">СПРАВКА · RAG</div>Поиск по базе знаний Apple Silicon M1–M6 + NVIDIA...</div>`;
   box.scrollTop = box.scrollHeight;
 
   const payload = {
@@ -670,7 +713,7 @@ async function askAssistant() {
   ).join('');
 
   document.getElementById(waitId).innerHTML = `
-    <div class="msg-head"><span>AI-Помощник · ${esc(rep.engineUsed)}</span><span>RAG: ${esc((rep.ragSources || []).join(', '))}</span></div>
+    <div class="msg-head"><span>СПРАВКА · ${esc(rep.engineUsed)}</span><span>RAG: ${esc((rep.ragSources || []).join(', '))}</span></div>
     <div>${esc(rep.text)}</div>
     ${acts ? `<div class="row" style="margin-top:8px;">${acts}</div>` : ''}
   `;
@@ -697,6 +740,28 @@ function clearAssistant() {
 }
 
 // ==================== STUDIO, VOICE, GALLERY & SYSTEM ====================
+async function refreshStudioPreviews() {
+  try {
+    const [pRes, vRes] = await Promise.all([
+      fetch('/api/gallery?filter=photo'),
+      fetch('/api/gallery?filter=video')
+    ]);
+    const photos = await pRes.json();
+    const videos = await vRes.json();
+
+    const pBox = document.getElementById('photoStageBox');
+    if (pBox && photos.length > 0) {
+      const it = photos[0];
+      pBox.innerHTML = `<img src="${it.url}" onclick="window.open('${it.url}','_blank')" style="cursor:pointer" title="Открыть оригинал" /><div class="muted mono" style="font-size:11px;">${esc(it.name)}</div>`;
+    }
+    const vBox = document.getElementById('videoStageBox');
+    if (vBox && videos.length > 0) {
+      const it = videos[0];
+      vBox.innerHTML = `<video src="${it.url}" controls preload="metadata"></video><div class="muted mono" style="font-size:11px;">${esc(it.name)}</div>`;
+    }
+  } catch (e) { /* ignore */ }
+}
+
 async function generatePhoto() {
   const [w, h] = document.getElementById('photoSize').value.split('x').map(Number);
   const res = await fetch('/api/studio/photo', {
@@ -709,7 +774,7 @@ async function generatePhoto() {
   });
   const data = await res.json();
   if (!res.ok) return showToast(data.error || 'Ошибка');
-  showToast('Генерация фото запущена!');
+  showToast('Генерация фото запущена');
   pollStatus();
 }
 
@@ -725,7 +790,7 @@ async function generateVideo() {
   });
   const data = await res.json();
   if (!res.ok) return showToast(data.error || 'Ошибка');
-  showToast('Генерация видео запущена!');
+  showToast('Генерация видео запущена');
   pollStatus();
 }
 
@@ -748,7 +813,7 @@ async function synthesizeTts() {
   audio.src = data.url;
   audio.style.display = 'block';
   audio.play();
-  showToast('Озвучка готова!');
+  showToast('Озвучка готова');
 }
 
 async function loadGallery(filter = 'all', btn = null) {
@@ -758,7 +823,7 @@ async function loadGallery(filter = 'all', btn = null) {
   const items = await res.json();
   const grid = document.getElementById('galleryGrid');
   if (!items.length) {
-    grid.innerHTML = '<div class="panel muted">В галерее пока нет файлов. Сгенерируй фото или видео!</div>';
+    grid.innerHTML = '<div class="panel muted">В галерее пока нет файлов. Сгенерируйте фото или видео.</div>';
     return;
   }
   grid.innerHTML = items.map(it => `
@@ -768,8 +833,8 @@ async function loadGallery(filter = 'all', btn = null) {
         : `<img class="gal-media" src="${it.url}" loading="lazy" onclick="window.open('${it.url}','_blank')" />`
       }
       <div class="gal-foot">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(it.name)}">${esc(it.name)}</span>
-        <button class="btn sm ${it.isFavorite ? 'primary' : ''}" onclick="toggleFav('${esc(it.fullPath.replace(/\\/g, '\\\\'))}')">★</button>
+        <span class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(it.name)}">${esc(it.name)}</span>
+        <button class="btn sm ${it.isFavorite ? 'signal' : ''}" onclick="toggleFav('${esc(it.fullPath.replace(/\\/g, '\\\\'))}')">★</button>
       </div>
     </div>
   `).join('');
@@ -813,7 +878,7 @@ async function saveSettings() {
 
 async function applyAntiLoop() {
   await fetch('/api/settings/antiloop', { method: 'POST' });
-  showToast('Применён профиль Qwen Анти-луп! Перезапусти LLM.');
+  showToast('Применён профиль Qwen Анти-луп (перезапустите LLM)');
 }
 
 async function saveHfToken() {
@@ -846,5 +911,6 @@ async function openFolder(target) {
   await pollStatus();
   await loadSessions();
   await loadCatalog();
+  refreshStudioPreviews();
   setInterval(pollStatus, 2500);
 })();

@@ -15,7 +15,6 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
         <DockPanel Grid.Row="0" Margin="0,0,0,10">
             <Button DockPanel.Dock="Right" Style="{StaticResource DarkButton}" Padding="10,5" Click="CloseBtn_Click">
                 <StackPanel Orientation="Horizontal">
@@ -25,13 +24,12 @@
             </Button>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Path Style="{StaticResource UiIcon18}" Data="{StaticResource IconColumns}" Stroke="{StaticResource AccentBrush}" Margin="0,0,9,0"/>
-                <TextBlock x:Name="CompareTitleText" Text="Сравнение До / После" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBlock x:Name="CompareTitleText" Text="СРАВНЕНИЕ ДО / ПОСЛЕ" FontSize="13" FontFamily="{StaticResource MonoFontFamily}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 <TextBlock x:Name="CompareSubtitleText" Text="" FontSize="12" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
         </DockPanel>
 
-        <!-- Interactive Split Viewport -->
-        <Border Grid.Row="1" Background="{StaticResource WellBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+        <Border Grid.Row="1" Background="#070708" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="5" ClipToBounds="True">
             <Grid x:Name="SplitHost"
                   Background="Transparent"
                   Cursor="SizeWE"
@@ -40,41 +38,35 @@
                   MouseMove="SplitHost_MouseMove"
                   MouseLeftButtonUp="SplitHost_MouseUp">
 
-                <!-- Bottom Layer: AFTER (Result) -->
                 <Image x:Name="AfterImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
-
-                <!-- Top Layer: BEFORE (Original), clipped dynamically from left -->
                 <Image x:Name="BeforeImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
 
-                <!-- Vertical Divider Line + Handle -->
                 <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False">
-                    <Rectangle x:Name="DividerLine" Width="2" Fill="#5B8CFF"/>
-                    <Border x:Name="DividerHandle" Width="30" Height="30" CornerRadius="15"
-                            Background="#151923" BorderBrush="#5B8CFF" BorderThickness="2">
-                        <TextBlock Text="↔" Foreground="#FFFFFF" FontSize="13" FontWeight="Bold"
+                    <Rectangle x:Name="DividerLine" Width="2" Fill="#FF521B"/>
+                    <Border x:Name="DividerHandle" Width="28" Height="28" CornerRadius="4"
+                            Background="#121215" BorderBrush="#FF521B" BorderThickness="1.5">
+                        <TextBlock Text="↔" Foreground="#FFFFFF" FontSize="12" FontFamily="{StaticResource MonoFontFamily}" FontWeight="Bold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                 </Canvas>
 
-                <!-- Corner Badges -->
-                <Border Background="#CC0D1017" BorderBrush="#2C354A" BorderThickness="1" CornerRadius="6" Padding="9,4"
+                <Border Background="#D90B0B0C" BorderBrush="#282830" BorderThickness="1" CornerRadius="3" Padding="9,4"
                         HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12" IsHitTestVisible="False">
-                    <TextBlock x:Name="BeforeBadgeText" Text="ДО" FontSize="12" FontWeight="SemiBold" Foreground="#EDF2FA"/>
+                    <TextBlock x:Name="BeforeBadgeText" Text="ДО" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" FontWeight="SemiBold" Foreground="#F4F4F6"/>
                 </Border>
-                <Border Background="#CC132B1F" BorderBrush="#22C55E" BorderThickness="1" CornerRadius="6" Padding="9,4"
+                <Border Background="#D91F120D" BorderBrush="#FF521B" BorderThickness="1" CornerRadius="3" Padding="9,4"
                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12" IsHitTestVisible="False">
-                    <TextBlock x:Name="AfterBadgeText" Text="ПОСЛЕ" FontSize="12" FontWeight="SemiBold" Foreground="#6AE89E"/>
+                    <TextBlock x:Name="AfterBadgeText" Text="ПОСЛЕ" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" FontWeight="SemiBold" Foreground="#FF6B3D"/>
                 </Border>
             </Grid>
         </Border>
 
-        <!-- Bottom Slider Controls -->
         <DockPanel Grid.Row="2" Margin="0,10,0,0">
-            <TextBlock Text="ДО" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" DockPanel.Dock="Left"/>
+            <TextBlock Text="ДО" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" DockPanel.Dock="Left"/>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0">
-                <TextBlock Text="ПОСЛЕ" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <TextBlock Text="ПОСЛЕ" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                 <TextBlock x:Name="SplitPctText" Text="50%" Width="40" FontSize="12" FontFamily="{StaticResource MonoFontFamily}"
-                           Typography.NumeralAlignment="Tabular" Foreground="#CFE0FF" VerticalAlignment="Center" TextAlignment="Right"/>
+                           Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" TextAlignment="Right"/>
             </StackPanel>
             <Slider x:Name="SplitSlider" Minimum="0" Maximum="100" Value="50" VerticalAlignment="Center" ValueChanged="SplitSlider_ValueChanged"/>
         </DockPanel>

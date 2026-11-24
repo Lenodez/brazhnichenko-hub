@@ -23,12 +23,12 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Custom Dark Titlebar -->
+            <!-- Industrial Titlebar -->
             <Border Grid.Row="0"
-                    Background="#11151E"
+                    Background="#0E0E11"
                     BorderBrush="{StaticResource BorderSubtleBrush}"
                     BorderThickness="0,0,0,1"
-                    Padding="16,11,10,11"
+                    Padding="16,10,10,10"
                     MouseLeftButtonDown="Header_MouseLeftButtonDown">
                 <DockPanel>
                     <Button x:Name="CloseHeaderBtn"
@@ -41,26 +41,23 @@
                     </Button>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Border x:Name="IconBadge"
-                                Width="26" Height="26"
-                                CornerRadius="7"
+                                Width="24" Height="24"
+                                CornerRadius="4"
                                 Background="{StaticResource AccentTintBrush}"
                                 Margin="0,0,10,0"
                                 VerticalAlignment="Center">
                             <Path x:Name="IconPath"
-                                  Width="15" Height="15"
+                                  Width="14" Height="14"
                                   Stretch="Uniform"
                                   Data="{StaticResource IconInfo}"
                                   Stroke="{StaticResource AccentBrush}"
                                   StrokeThickness="1.8"
-                                  StrokeStartLineCap="Round"
-                                  StrokeEndLineCap="Round"
-                                  StrokeLineJoin="Round"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"/>
                         </Border>
                         <TextBlock x:Name="TitleText"
                                    Text="Brazhnichenko Hub"
-                                   FontSize="14"
+                                   FontSize="13.5"
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"
@@ -69,7 +66,7 @@
                 </DockPanel>
             </Border>
 
-            <!-- Scrollable Message Body -->
+            <!-- Message Body -->
             <ScrollViewer Grid.Row="1"
                           VerticalScrollBarVisibility="Auto"
                           MaxHeight="360"
@@ -87,20 +84,19 @@
                          FocusVisualStyle="{x:Null}"/>
             </ScrollViewer>
 
-            <!-- Action Footer -->
+            <!-- Footer -->
             <Border Grid.Row="2"
-                    Background="#11151E"
+                    Background="#0E0E11"
                     BorderBrush="{StaticResource BorderSubtleBrush}"
                     BorderThickness="0,1,0,0"
-                    Padding="16,11">
+                    Padding="16,10">
                 <DockPanel>
                     <Button x:Name="CopyTextBtn"
                             DockPanel.Dock="Left"
                             Style="{StaticResource GhostButton}"
                             Padding="9,5"
                             FontSize="12"
-                            Click="CopyTextBtn_Click"
-                            ToolTip="Скопировать текст сообщения в буфер обмена">
+                            Click="CopyTextBtn_Click">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconCopy}" Margin="0,0,6,0"/>
                             <TextBlock x:Name="CopyTextLabel" Text="Копировать" VerticalAlignment="Center"/>

@@ -128,13 +128,13 @@ public partial class MainWindow
         if (modelReady && llamaReady)
         {
             AssistantStatusSubText.Text = "● Компактный AI-Помощник готов (Qwen 3 4B • 2.33 ГБ) • Если запущена основная LLM, переиспользует её без расхода VRAM.";
-            AssistantStatusSubText.Foreground = BrushFromHex("#6AE89E");
+            AssistantStatusSubText.Foreground = BrushFromHex("#34D399");
             InstallAssistantBtn.Visibility = Visibility.Collapsed;
         }
         else if (modelReady && !llamaReady)
         {
-            AssistantStatusSubText.Text = "⚠ Модель Помощника скачана, но нужен движок llama.cpp — нажми кнопку справа для установки.";
-            AssistantStatusSubText.Foreground = BrushFromHex("#F5CB5C");
+            AssistantStatusSubText.Text = "▲ Модель Помощника скачана, но нужен движок llama.cpp — нажми кнопку справа для установки.";
+            AssistantStatusSubText.Foreground = BrushFromHex("#F59E0B");
             InstallAssistantBtn.Content = "Установить llama.cpp (~620 МБ)";
             InstallAssistantBtn.Visibility = Visibility.Visible;
             InstallAssistantBtn.IsEnabled = !_catalogDownloading;
@@ -142,7 +142,7 @@ public partial class MainWindow
         else
         {
             AssistantStatusSubText.Text = "○ Сейчас активен быстрый офлайн RAG-режим. Установи Qwen 3 4B (2.33 ГБ) — появится живой локальный AI-чат (работает даже на 4 ГБ VRAM / CPU).";
-            AssistantStatusSubText.Foreground = BrushFromHex("#A5B4CF");
+            AssistantStatusSubText.Foreground = BrushFromHex("#A1A1AA");
             InstallAssistantBtn.Content = "Установить Помощника (2.33 ГБ)";
             InstallAssistantBtn.Visibility = Visibility.Visible;
             InstallAssistantBtn.IsEnabled = !_catalogDownloading;
@@ -583,17 +583,17 @@ public partial class MainWindow
     {
         var border = new Border
         {
-            Background = BrushFromHex("#223254"),
-            BorderBrush = BrushFromHex("#3A5894"),
+            Background = BrushFromHex("#1A1A20"),
+            BorderBrush = BrushFromHex("#30303A"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(11, 11, 2, 11),
+            CornerRadius = new CornerRadius(4),
             Padding = new Thickness(12, 9, 12, 9),
             Margin = new Thickness(90, 0, 0, 10),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             Child = new TextBlock
             {
                 Text = text,
-                Foreground = BrushFromHex("#FFFFFF"),
+                Foreground = BrushFromHex("#F4F4F6"),
                 FontSize = 13,
                 TextWrapping = TextWrapping.Wrap
             }
@@ -606,19 +606,19 @@ public partial class MainWindow
     {
         var border = new Border
         {
-            Background = BrushFromHex("#182030"),
-            BorderBrush = BrushFromHex("#2D3A54"),
+            Background = BrushFromHex("#121215"),
+            BorderBrush = BrushFromHex("#282830"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(11, 8, 11, 8),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(11, 7, 11, 7),
             Margin = new Thickness(0, 0, 90, 10),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
             Child = new TextBlock
             {
                 Text = text,
-                Foreground = BrushFromHex("#9EC0FF"),
-                FontSize = 12,
-                FontStyle = FontStyles.Italic,
+                Foreground = BrushFromHex("#A1A1AA"),
+                FontSize = 11.5,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 TextWrapping = TextWrapping.Wrap
             }
         };
@@ -631,13 +631,13 @@ public partial class MainWindow
     {
         var stack = new StackPanel();
 
-        var header = new DockPanel { Margin = new Thickness(0, 0, 0, 5) };
+        var header = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
 
         var copyBtn = new System.Windows.Controls.Button
         {
-            Content = "📋",
+            Content = "Копир.",
             Style = TryFindResource("GhostButton") as Style ?? (Style)FindResource("DarkButton"),
-            Padding = new Thickness(5, 1, 5, 1),
+            Padding = new Thickness(6, 2, 6, 2),
             FontSize = 10.5,
             Margin = new Thickness(8, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
@@ -661,7 +661,8 @@ public partial class MainWindow
             {
                 Text = $"RAG: {string.Join(", ", ragSources.Take(3))}",
                 FontSize = 10.5,
-                Foreground = BrushFromHex("#6B7791"),
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                Foreground = BrushFromHex("#71717A"),
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(10, 0, 0, 0)
             };
@@ -671,15 +672,16 @@ public partial class MainWindow
 
         header.Children.Add(new TextBlock
         {
-            Text = $"AI-Помощник • {engineTag}",
-            FontSize = 11,
+            Text = $"СПРАВКА • {engineTag.ToUpperInvariant()}",
+            FontSize = 10.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushFromHex("#7FA8FF"),
+            Foreground = BrushFromHex("#A1A1AA"),
             VerticalAlignment = VerticalAlignment.Center
         });
         stack.Children.Add(header);
 
-        stack.Children.Add(MarkdownUiRenderer.Build(text, fontSize: 13, foregroundHex: "#E6EBF5"));
+        stack.Children.Add(MarkdownUiRenderer.Build(text, fontSize: 13, foregroundHex: "#E4E4E8"));
 
         if (actions.Count > 0)
         {
@@ -705,13 +707,12 @@ public partial class MainWindow
 
         var border = new Border
         {
-            Background = BrushFromHex("#161C28"),
-            BorderBrush = BrushFromHex("#2A354D"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(11, 11, 11, 2),
-            Padding = new Thickness(13, 10, 13, 10),
-            Margin = new Thickness(0, 0, 50, 10),
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+            Background = System.Windows.Media.Brushes.Transparent,
+            BorderBrush = BrushFromHex("#202026"),
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            Padding = new Thickness(4, 8, 4, 12),
+            Margin = new Thickness(0, 0, 24, 10),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
             ContextMenu = MarkdownUiRenderer.CreateCopyContextMenu(text),
             Child = stack
         };

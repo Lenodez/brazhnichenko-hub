@@ -5,10 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>BrazhnichenkoHub</AssemblyName>
     <RootNamespace>LocalAIHub.CrossPlatform</RootNamespace>
-    <Version>4.3.0</Version>
-    <AssemblyVersion>4.3.0.0</AssemblyVersion>
-    <FileVersion>4.3.0.0</FileVersion>
-    <InformationalVersion>4.3.0</InformationalVersion>
+    <Version>5.0.0</Version>
+    <AssemblyVersion>5.0.0.0</AssemblyVersion>
+    <FileVersion>5.0.0.0</FileVersion>
+    <InformationalVersion>5.0.0</InformationalVersion>
     <Product>Brazhnichenko Hub</Product>
   </PropertyGroup>
 

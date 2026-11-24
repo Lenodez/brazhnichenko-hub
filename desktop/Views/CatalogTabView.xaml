@@ -1,224 +1,248 @@
-<UserControl x:Class="LocalAIHub.Views.CatalogTabView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"><Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+<UserControl x:Class="LocalAIHub.Views.CatalogTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-                    <!-- Detected Hardware & Simulator Bar -->
-                    <Border Grid.Row="0" Background="#151D2E" BorderBrush="#35528A" BorderThickness="1" CornerRadius="10" Padding="13,10" Margin="0,0,0,9">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                                <TextBlock x:Name="CatalogHwSummaryText" Text="Определение видеокарты и RAM..." FontSize="13.5" FontWeight="SemiBold" Foreground="#8AB4FF" TextWrapping="Wrap" x:FieldModifier="internal" />
-                                <TextBlock x:Name="CatalogRamAdviceText" Text="—" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0" x:FieldModifier="internal" />
+        <!-- Detected Hardware & Simulator Bar (Industrial Rack Header) -->
+        <Border Grid.Row="0" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="2,0,0,0" CornerRadius="4" Padding="13,10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                    <TextBlock x:Name="CatalogHwSummaryText" Text="Определение GPU и RAM..." FontSize="13" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" x:FieldModifier="internal" />
+                    <TextBlock x:Name="CatalogRamAdviceText" Text="—" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0" x:FieldModifier="internal" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="СИМУЛЯТОР:" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,7,0" />
+                    <ComboBox x:Name="CatalogSimGpuCombo" Width="205" FontSize="12" Margin="0,0,6,0" SelectionChanged="CatalogSim_Changed" x:FieldModifier="internal" />
+                    <ComboBox x:Name="CatalogSimRamCombo" Width="88" FontSize="12" FontFamily="{StaticResource MonoFontFamily}" SelectedIndex="0" SelectionChanged="CatalogSim_Changed" x:FieldModifier="internal">
+                        <ComboBoxItem Content="Авто RAM" Tag="0" />
+                        <ComboBoxItem Content="16 ГБ" Tag="16" />
+                        <ComboBoxItem Content="32 ГБ" Tag="32" />
+                        <ComboBoxItem Content="64 ГБ" Tag="64" />
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Sharp Architectural Section Tabs -->
+        <Border Grid.Row="1" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,9" Margin="0,0,0,10">
+            <WrapPanel>
+                <Button x:Name="CatTabTextBtn" Content="LLM (Текст и Код)" Style="{StaticResource PrimaryButton}" Padding="11,5" Margin="0,0,5,2" Click="CatTabTextBtn_Click" x:FieldModifier="internal" />
+                <Button x:Name="CatTabPhotoBtn" Content="Фото" Style="{StaticResource DarkButton}" Padding="11,5" Margin="0,0,5,2" Click="CatTabPhotoBtn_Click" x:FieldModifier="internal" />
+                <Button x:Name="CatTabVideoBtn" Content="Видео" Style="{StaticResource DarkButton}" Padding="11,5" Margin="0,0,5,2" Click="CatTabVideoBtn_Click" x:FieldModifier="internal" />
+                <Button x:Name="CatTabWikiBtn" Content="Матрица GPU" Style="{StaticResource DarkButton}" Padding="11,5" Margin="0,0,5,2" Click="CatTabWikiBtn_Click" x:FieldModifier="internal" />
+                <Button x:Name="CatTabHfSearchBtn" Content="Поиск Hugging Face" Style="{StaticResource DarkButton}" Padding="11,5" Margin="0,0,5,2" Click="CatTabHfSearchBtn_Click" x:FieldModifier="internal" />
+                <Button x:Name="CatTabDiskBtn" Content="На диске" Style="{StaticResource DarkButton}" Padding="11,5" Margin="0,0,0,2" Click="CatTabDiskBtn_Click" x:FieldModifier="internal" />
+            </WrapPanel>
+        </Border>
+
+        <!-- View A: Curated Model Recommendations -->
+        <ScrollViewer x:Name="CatalogModelsScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0" x:FieldModifier="internal">
+            <StackPanel x:Name="CatalogCardsPanel" x:FieldModifier="internal" />
+        </ScrollViewer>
+
+        <!-- View B: NVIDIA GPU Matrix -->
+        <Grid x:Name="CatalogWikiView" Grid.Row="2" Visibility="Collapsed" x:FieldModifier="internal">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <WrapPanel Grid.Row="0" Margin="0,0,0,8">
+                <TextBlock Text="СЕРИЯ GPU:" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox x:Name="WikiSeriesCombo" Width="195" FontSize="12" SelectedIndex="0" SelectionChanged="WikiSeriesCombo_Changed" x:FieldModifier="internal">
+                    <ComboBoxItem Content="Все серии (GTX 10 → RTX 50)" Tag="all" />
+                    <ComboBoxItem Content="GTX 10 (Pascal)" Tag="10" />
+                    <ComboBoxItem Content="GTX 16 / RTX 20 (Turing)" Tag="16/20" />
+                    <ComboBoxItem Content="RTX 30 (Ampere)" Tag="30" />
+                    <ComboBoxItem Content="RTX 40 (Ada Lovelace)" Tag="40" />
+                    <ComboBoxItem Content="RTX 50 (Blackwell)" Tag="50" />
+                </ComboBox>
+            </WrapPanel>
+            <DataGrid x:Name="GpuWikiGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" Background="{StaticResource Surface1Brush}" Foreground="{StaticResource TextPrimaryBrush}" RowBackground="#0E0E11" AlternatingRowBackground="#131317" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#202026" HeadersVisibility="Column" FontSize="12" RowHeaderWidth="0" CanUserAddRows="False" CanUserDeleteRows="False" x:FieldModifier="internal">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#16161B" />
+                        <Setter Property="Foreground" Value="#8E8E98" />
+                        <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+                        <Setter Property="FontSize" Value="11" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                        <Setter Property="Padding" Value="9,7" />
+                        <Setter Property="BorderBrush" Value="#282830" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ВИДЕОКАРТА" Binding="{Binding ModelName}" Width="185" />
+                    <DataGridTextColumn Header="АРХИТЕКТУРА" Binding="{Binding Architecture}" Width="105" />
+                    <DataGridTextColumn Header="VRAM" Binding="{Binding VramGB, StringFormat={}{0} ГБ}" Width="66" />
+                    <DataGridTextColumn Header="ФОРМАТЫ" Binding="{Binding BestFormatHint}" Width="245" />
+                    <DataGridTextColumn Header="ОПТИМАЛЬНЫЕ МОДЕЛИ" Binding="{Binding SummaryRu}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <Border Grid.Row="2" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="11,8" Margin="0,8,0,0">
+                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}">
+                    <Run FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource AccentBrush}" Text="ПАМЯТЬ: " />
+                    <Run Text="16 ГБ RAM — модели целиком в VRAM · 32 ГБ RAM — оптимум для DynamicVRAM (Wan 2.2 FP8, LTX-2.5) и 35B MoE · 64+ ГБ RAM — мгновенный кэш без подкачки с SSD." />
+                </TextBlock>
+            </Border>
+        </Grid>
+
+        <!-- View C: Hugging Face Direct Installer -->
+        <Grid x:Name="CatalogHfSearchView" Grid.Row="2" Visibility="Collapsed" x:FieldModifier="internal">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0" Margin="0,0,0,7">
+                <WrapPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <Button x:Name="HfModeLlmBtn" Style="{StaticResource PrimaryButton}" Padding="10,5" FontSize="12" Margin="0,0,5,0" Tag="llm" Click="HfSearchModeBtn_Click" x:FieldModifier="internal">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconChat}" Margin="0,0,6,0" />
+                            <TextBlock Text="LLM (GGUF)" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="HfModeLoraBtn" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,5,0" Tag="lora" Click="HfSearchModeBtn_Click" x:FieldModifier="internal">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconLayers}" Margin="0,0,6,0" />
+                            <TextBlock Text="LoRA" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="HfModeMediaBtn" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,5,0" Tag="media" Click="HfSearchModeBtn_Click" x:FieldModifier="internal">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconPhoto}" Margin="0,0,6,0" />
+                            <TextBlock Text="Фото / Видео" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="HfModeAllBtn" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Tag="all" Click="HfSearchModeBtn_Click" x:FieldModifier="internal">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconGlobe}" Margin="0,0,6,0" />
+                            <TextBlock Text="Все форматы" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+                <TextBlock x:Name="HfModeHintText" Text="Фильтр готовых GGUF весов" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis" x:FieldModifier="internal" />
+            </DockPanel>
+
+            <DockPanel Grid.Row="1" Margin="0,0,0,6">
+                <Button x:Name="HfSearchBtn" Content="Найти на HF" Style="{StaticResource SuccessButton}" DockPanel.Dock="Right" Margin="8,0,0,0" Padding="15,6" Click="HfSearchBtn_Click" x:FieldModifier="internal" />
+                <TextBox x:Name="HfSearchQueryBox" Height="32" VerticalContentAlignment="Center" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" Padding="10,0" FontSize="13" FontFamily="{StaticResource MonoFontFamily}" Text="Qwen3-Next-80B-A3B" PreviewKeyDown="HfSearchQueryBox_PreviewKeyDown" x:FieldModifier="internal" />
+            </DockPanel>
+
+            <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+                <TextBlock Text="БЫСТРО:" FontSize="10.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,6,2" />
+                <Button Content="Qwen3-Next-80B-A3B" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Margin="0,0,5,2" Click="HfQuickChip_Click" />
+                <Button Content="Qwen3.8-27B" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Margin="0,0,5,2" Click="HfQuickChip_Click" />
+                <Button Content="Qwen3-32B" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Margin="0,0,5,2" Click="HfQuickChip_Click" />
+                <Button Content="Gemma 3 27B" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Margin="0,0,5,2" Click="HfQuickChip_Click" />
+                <Button Content="abliterated" Tag="abliterated" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Margin="0,0,5,2" Click="HfQuickChip_Click" />
+                <Button Content="Wan 2.2 LoRA" Tag="wan 2.2 lora" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Margin="0,0,0,2" Click="HfQuickChip_Click" />
+            </WrapPanel>
+
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="46*" />
+                    <ColumnDefinition Width="54*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,6,0">
+                    <DockPanel>
+                        <TextBlock x:Name="HfReposHeaderText" Text="01 · РЕПОЗИТОРИЙ" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" DockPanel.Dock="Top" Margin="0,0,0,6" x:FieldModifier="internal" />
+                        <ListBox x:Name="HfReposList" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="HfReposList_SelectionChanged" x:FieldModifier="internal" />
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Column="1" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="5" Padding="10" Margin="6,0,0,0">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <CheckBox x:Name="HfOnlyFitCheck" Content="По памяти GPU" IsChecked="False" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" Checked="HfOnlyFitCheck_Changed" Unchecked="HfOnlyFitCheck_Changed" x:FieldModifier="internal" />
+                                <Button x:Name="HfOpenRepoWebBtn" Content="HF ↗" Style="{StaticResource DarkButton}" Padding="8,2" FontSize="11" Visibility="Collapsed" Click="HfOpenRepoWebBtn_Click" x:FieldModifier="internal" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Профиль:" Foreground="{StaticResource TextMutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                <ComboBox x:Name="CatalogSimGpuCombo" Width="205" FontSize="12" Margin="0,0,6,0" SelectionChanged="CatalogSim_Changed" x:FieldModifier="internal" />
-                                <ComboBox x:Name="CatalogSimRamCombo" Width="88" FontSize="12" SelectedIndex="0" SelectionChanged="CatalogSim_Changed" x:FieldModifier="internal">
-                                    <ComboBoxItem Content="Авто RAM" Tag="0" />
-                                    <ComboBoxItem Content="16 ГБ" Tag="16" />
-                                    <ComboBoxItem Content="32 ГБ" Tag="32" />
-                                    <ComboBoxItem Content="64 ГБ" Tag="64" />
+                            <TextBlock x:Name="HfFilesHeaderText" Text="02 · ФАЙЛЫ И КВАНТОВАНИЕ" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" x:FieldModifier="internal" />
+                        </DockPanel>
+
+                        <StackPanel DockPanel.Dock="Bottom" Margin="0,7,0,0">
+                            <Border x:Name="HfSelectedFileHintBorder" Visibility="Collapsed" Background="#0E0E12" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="9,6" Margin="0,0,0,7" x:FieldModifier="internal">
+                                <TextBlock x:Name="HfSelectedFileHintText" Text="—" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" x:FieldModifier="internal" />
+                            </Border>
+                            <DockPanel>
+                                <ComboBox x:Name="HfTargetFolderCombo" Width="178" FontSize="12" SelectedIndex="0" DockPanel.Dock="Left" x:FieldModifier="internal">
+                                    <ComboBoxItem Content="Папка: LLM (models)" Tag="llm_models" />
+                                    <ComboBoxItem Content="Папка: Diffusion / Video" Tag="diffusion_models" />
+                                    <ComboBoxItem Content="Папка: LoRA" Tag="loras" />
+                                    <ComboBoxItem Content="Папка: Text Encoders" Tag="text_encoders" />
+                                    <ComboBoxItem Content="Папка: VAE" Tag="vae" />
+                                    <ComboBoxItem Content="Папка: Upscalers" Tag="upscale_models" />
                                 </ComboBox>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                                <Button x:Name="HfDownloadSelectedBtn" Content="Скачать файл" Style="{StaticResource SuccessButton}" HorizontalAlignment="Right" Padding="14,6" Click="HfDownloadSelectedBtn_Click" x:FieldModifier="internal" />
+                            </DockPanel>
+                        </StackPanel>
 
-                    <!-- Section Filter Pills -->
-                    <WrapPanel Grid.Row="1" Margin="0,0,0,9">
-                        <Button x:Name="CatTabTextBtn" Content="1. Текстовые (LLM)" Style="{StaticResource PrimaryButton}" Margin="0,0,7,4" Click="CatTabTextBtn_Click" x:FieldModifier="internal" />
-                        <Button x:Name="CatTabPhotoBtn" Content="2. Фото" Style="{StaticResource DarkButton}" Margin="0,0,7,4" Click="CatTabPhotoBtn_Click" x:FieldModifier="internal" />
-                        <Button x:Name="CatTabVideoBtn" Content="3. Видео" Style="{StaticResource DarkButton}" Margin="0,0,7,4" Click="CatTabVideoBtn_Click" x:FieldModifier="internal" />
-                        <Button x:Name="CatTabWikiBtn" Content="Вики NVIDIA (10 → 50)" Style="{StaticResource DarkButton}" Margin="0,0,7,4" Click="CatTabWikiBtn_Click" x:FieldModifier="internal" />
-                        <Button x:Name="CatTabHfSearchBtn" Content="Поиск Hugging Face" Style="{StaticResource DarkButton}" Margin="0,0,7,4" Click="CatTabHfSearchBtn_Click" x:FieldModifier="internal" />
-                        <Button x:Name="CatTabDiskBtn" Content="На диске" Style="{StaticResource DarkButton}" Margin="0,0,0,4" Click="CatTabDiskBtn_Click" x:FieldModifier="internal" />
-                    </WrapPanel>
+                        <ListBox x:Name="HfFilesList" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="HfFilesList_SelectionChanged" x:FieldModifier="internal" />
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Grid>
 
-                    <!-- View A: Curated Model Recommendations (Text / Photo / Video) -->
-                    <ScrollViewer x:Name="CatalogModelsScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0" x:FieldModifier="internal">
-                        <StackPanel x:Name="CatalogCardsPanel" x:FieldModifier="internal" />
-                    </ScrollViewer>
-
-                    <!-- View B: NVIDIA GPU Wiki (GTX 10 -> RTX 50) + RAM Matrix -->
-                    <Grid x:Name="CatalogWikiView" Grid.Row="2" Visibility="Collapsed" x:FieldModifier="internal">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <WrapPanel Grid.Row="0" Margin="0,0,0,8">
-                            <TextBlock Text="Серия NVIDIA:" Foreground="{StaticResource TextMutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <ComboBox x:Name="WikiSeriesCombo" Width="180" FontSize="12" SelectedIndex="0" SelectionChanged="WikiSeriesCombo_Changed" x:FieldModifier="internal">
-                                <ComboBoxItem Content="Все серии (GTX 10 → RTX 50)" Tag="all" />
-                                <ComboBoxItem Content="GTX 10-я серия (Pascal)" Tag="10" />
-                                <ComboBoxItem Content="GTX 16 / RTX 20 (Turing)" Tag="16/20" />
-                                <ComboBoxItem Content="RTX 30-я серия (Ampere)" Tag="30" />
-                                <ComboBoxItem Content="RTX 40-я серия (Ada Lovelace)" Tag="40" />
-                                <ComboBoxItem Content="RTX 50-я серия (Blackwell)" Tag="50" />
-                            </ComboBox>
-                        </WrapPanel>
-                        <DataGrid x:Name="GpuWikiGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" Background="{StaticResource Surface1Brush}" Foreground="{StaticResource TextPrimaryBrush}" RowBackground="{StaticResource Surface1Brush}" AlternatingRowBackground="#1B202C" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#232A3A" HeadersVisibility="Column" FontSize="12" RowHeaderWidth="0" CanUserAddRows="False" CanUserDeleteRows="False" x:FieldModifier="internal">
-                            <DataGrid.ColumnHeaderStyle>
-                                <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="Background" Value="#1F2533" />
-                                    <Setter Property="Foreground" Value="#8C96AD" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
-                                    <Setter Property="Padding" Value="8,7" />
-                                    <Setter Property="BorderBrush" Value="#2A3245" />
-                                    <Setter Property="BorderThickness" Value="0,0,0,1" />
-                                </Style>
-                            </DataGrid.ColumnHeaderStyle>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Видеокарта" Binding="{Binding ModelName}" Width="185" />
-                                <DataGridTextColumn Header="Архитектура" Binding="{Binding Architecture}" Width="105" />
-                                <DataGridTextColumn Header="VRAM" Binding="{Binding VramGB, StringFormat={}{0} ГБ}" Width="62" />
-                                <DataGridTextColumn Header="Форматы / Совет" Binding="{Binding BestFormatHint}" Width="245" />
-                                <DataGridTextColumn Header="Рекомендации по моделям" Binding="{Binding SummaryRu}" Width="*" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                        <Border Grid.Row="2" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="11,8" Margin="0,8,0,0">
-                            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#9BA8C4">
-                                <Run FontWeight="SemiBold" Foreground="#6EA8FE" Text="Матрица RAM + GPU: " />
-                                <Run Text="• 16 ГБ RAM — бери модели, помещающиеся целиком в VRAM.  • 32 ГБ RAM — золотой стандарт для DynamicVRAM (Wan 2.2 FP8, LTX-2.5) и 35B MoE LLM.  • 64+ ГБ RAM — мгновенный кэш DynamicVRAM без подкачки с SSD." />
-                            </TextBlock>
-                        </Border>
-                    </Grid>
-
-                    <!-- View C: Live Hugging Face Hub Search & Direct Installer -->
-                    <Grid x:Name="CatalogHfSearchView" Grid.Row="2" Visibility="Collapsed" x:FieldModifier="internal">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
-                        <!-- Quick Mode Filter Pills -->
-                        <DockPanel Grid.Row="0" Margin="0,0,0,7">
-                            <WrapPanel DockPanel.Dock="Left" VerticalAlignment="Center">
-                                <Button x:Name="HfModeLlmBtn" Style="{StaticResource PrimaryButton}" Padding="10,5" FontSize="12" Margin="0,0,6,0" Tag="llm" Click="HfSearchModeBtn_Click" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconChat}" Margin="0,0,6,0" /><TextBlock Text="Текстовые LLM (GGUF)" VerticalAlignment="Center" /></StackPanel></Button>
-                                <Button x:Name="HfModeLoraBtn" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,6,0" Tag="lora" Click="HfSearchModeBtn_Click" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconLayers}" Margin="0,0,6,0" /><TextBlock Text="LoRA (Фото / Видео)" VerticalAlignment="Center" /></StackPanel></Button>
-                                <Button x:Name="HfModeMediaBtn" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,6,0" Tag="media" Click="HfSearchModeBtn_Click" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconPhoto}" Margin="0,0,6,0" /><TextBlock Text="Фото / Видео модели" VerticalAlignment="Center" /></StackPanel></Button>
-                                <Button x:Name="HfModeAllBtn" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Tag="all" Click="HfSearchModeBtn_Click" x:FieldModifier="internal"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconGlobe}" Margin="0,0,6,0" /><TextBlock Text="Все форматы" VerticalAlignment="Center" /></StackPanel></Button>
-                            </WrapPanel>
-                            <TextBlock x:Name="HfModeHintText" Text="Автофильтр: скрываем Mac/MLX и сырые серверные .safetensors — оставляем готовые GGUF." FontSize="11" Foreground="#8FA8D6" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis" x:FieldModifier="internal" />
-                        </DockPanel>
-
-                        <!-- Search Box + Button -->
-                        <DockPanel Grid.Row="1" Margin="0,0,0,6">
-                            <Button x:Name="HfSearchBtn" Content="Найти на Hugging Face" Style="{StaticResource PrimaryButton}" DockPanel.Dock="Right" Margin="8,0,0,0" Padding="14,6" Click="HfSearchBtn_Click" x:FieldModifier="internal" />
-                            <TextBox x:Name="HfSearchQueryBox" Height="32" VerticalContentAlignment="Center" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" Padding="10,0" FontSize="13" Text="Qwen3-Next-80B-A3B" PreviewKeyDown="HfSearchQueryBox_PreviewKeyDown" x:FieldModifier="internal" />
-                        </DockPanel>
-
-                        <!-- Quick Popular Search Chips -->
-                        <WrapPanel Grid.Row="2" Margin="0,0,0,8">
-                            <TextBlock Text="Быстрый поиск:" FontSize="11" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,6,2" />
-                            <Button Content="Qwen3-Next-80B-A3B" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" Margin="0,0,5,2" Click="HfQuickChip_Click" />
-                            <Button Content="Qwen3.8-27B" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" Margin="0,0,5,2" Click="HfQuickChip_Click" />
-                            <Button Content="Qwen3-32B" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" Margin="0,0,5,2" Click="HfQuickChip_Click" />
-                            <Button Content="Gemma 3 27B" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" Margin="0,0,5,2" Click="HfQuickChip_Click" />
-                            <Button Content="abliterated (без цензуры)" Tag="abliterated" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" Margin="0,0,5,2" Click="HfQuickChip_Click" />
-                            <Button Content="Wan 2.2 LoRA" Tag="wan 2.2 lora" Style="{StaticResource DarkButton}" Padding="8,3" FontSize="11" Margin="0,0,0,2" Click="HfQuickChip_Click" />
-                        </WrapPanel>
-
-                        <!-- Two-Step Picker: Left Repos, Right Hardware-Rated Files -->
-                        <Grid Grid.Row="3">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="46*" />
-                                <ColumnDefinition Width="54*" />
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Step 1: Repositories -->
-                            <Border Grid.Column="0" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="9" Padding="10" Margin="0,0,6,0">
-                                <DockPanel>
-                                    <TextBlock x:Name="HfReposHeaderText" Text="Шаг 1. Выбери репозиторий (кликни, чтобы увидеть файлы и вес)" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" DockPanel.Dock="Top" Margin="0,0,0,6" x:FieldModifier="internal" />
-                                    <ListBox x:Name="HfReposList" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="HfReposList_SelectionChanged" x:FieldModifier="internal" />
-                                </DockPanel>
-                            </Border>
-
-                            <!-- Step 2: Files with Hardware Fit Badges -->
-                            <Border Grid.Column="1" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="9" Padding="10" Margin="6,0,0,0">
-                                <DockPanel>
-                                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0">
-                                            <CheckBox x:Name="HfOnlyFitCheck" Content="Только подходящие" IsChecked="False" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="Скрыть слишком тяжёлые файлы, которые уйдут в swap на твоём ПК" Checked="HfOnlyFitCheck_Changed" Unchecked="HfOnlyFitCheck_Changed" x:FieldModifier="internal" />
-                                            <Button x:Name="HfOpenRepoWebBtn" Content="HF ↗" Style="{StaticResource DarkButton}" Padding="8,2" FontSize="11" Visibility="Collapsed" ToolTip="Открыть страницу модели на Hugging Face" Click="HfOpenRepoWebBtn_Click" x:FieldModifier="internal" />
-                                        </StackPanel>
-                                        <TextBlock x:Name="HfFilesHeaderText" Text="Шаг 2. Выбери файл под свою видеокарту" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" x:FieldModifier="internal" />
-                                    </DockPanel>
-
-                                    <StackPanel DockPanel.Dock="Bottom" Margin="0,7,0,0">
-                                        <Border x:Name="HfSelectedFileHintBorder" Visibility="Collapsed" Background="#121A2B" BorderBrush="#2D4168" BorderThickness="1" CornerRadius="7" Padding="9,6" Margin="0,0,0,7" x:FieldModifier="internal">
-                                            <TextBlock x:Name="HfSelectedFileHintText" Text="—" FontSize="12" Foreground="#CFE0FF" TextWrapping="Wrap" x:FieldModifier="internal" />
-                                        </Border>
-                                        <DockPanel>
-                                            <ComboBox x:Name="HfTargetFolderCombo" Width="178" FontSize="12" SelectedIndex="0" DockPanel.Dock="Left" x:FieldModifier="internal">
-                                                <ComboBoxItem Content="Папка: LLM (models)" Tag="llm_models" />
-                                                <ComboBoxItem Content="Папка: Diffusion / Video" Tag="diffusion_models" />
-                                                <ComboBoxItem Content="Папка: LoRA" Tag="loras" />
-                                                <ComboBoxItem Content="Папка: Text Encoders" Tag="text_encoders" />
-                                                <ComboBoxItem Content="Папка: VAE" Tag="vae" />
-                                                <ComboBoxItem Content="Папка: Upscalers" Tag="upscale_models" />
-                                            </ComboBox>
-                                            <Button x:Name="HfDownloadSelectedBtn" Content="Скачать выбранный файл" Style="{StaticResource SuccessButton}" HorizontalAlignment="Right" Padding="13,6" Click="HfDownloadSelectedBtn_Click" x:FieldModifier="internal" />
-                                        </DockPanel>
-                                    </StackPanel>
-
-                                    <ListBox x:Name="HfFilesList" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="HfFilesList_SelectionChanged" x:FieldModifier="internal" />
-                                </DockPanel>
-                            </Border>
-                        </Grid>
-                    </Grid>
-
-                    <!-- View D: Installed Models on Disk -->
-                    <Grid x:Name="CatalogDiskView" Grid.Row="2" Visibility="Collapsed" x:FieldModifier="internal">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <DockPanel Grid.Row="0" Margin="0,0,0,9">
-                            <TextBlock x:Name="ModelsSummaryText" Text="Загрузка..." FontSize="13" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" x:FieldModifier="internal" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="Открыть в папке" Style="{StaticResource DarkButton}" Click="OpenSelectedModelFolderBtn_Click" Margin="0,0,8,0" />
-                                <Button Content="Удалить выбранную" Style="{StaticResource DangerButton}" Click="DeleteSelectedModelBtn_Click" Margin="0,0,8,0" />
-                                <Button Content="Обновить список" Style="{StaticResource DarkButton}" Click="RefreshModelsBtn_Click" />
-                            </StackPanel>
-                        </DockPanel>
-                        <DataGrid x:Name="ModelsGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" Background="{StaticResource Surface1Brush}" Foreground="{StaticResource TextPrimaryBrush}" RowBackground="{StaticResource Surface1Brush}" AlternatingRowBackground="#1B202C" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#232A3A" HeadersVisibility="Column" FontSize="13" RowHeaderWidth="0" CanUserAddRows="False" CanUserDeleteRows="False" x:FieldModifier="internal">
-                            <DataGrid.ColumnHeaderStyle>
-                                <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="Background" Value="#1F2533" />
-                                    <Setter Property="Foreground" Value="#8C96AD" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
-                                    <Setter Property="Padding" Value="10,8" />
-                                    <Setter Property="BorderBrush" Value="#2A3245" />
-                                    <Setter Property="BorderThickness" Value="0,0,0,1" />
-                                </Style>
-                            </DataGrid.ColumnHeaderStyle>
-                            <DataGrid.CellStyle>
-                                <Style TargetType="DataGridCell">
-                                    <Setter Property="Padding" Value="10,6" />
-                                    <Setter Property="BorderThickness" Value="0" />
-                                    <Setter Property="Foreground" Value="#E6EBF5" />
-                                    <Style.Triggers>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter Property="Background" Value="#25314D" />
-                                            <Setter Property="Foreground" Value="#FFFFFF" />
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </DataGrid.CellStyle>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Категория" Binding="{Binding Category}" Width="135" />
-                                <DataGridTextColumn Header="Файл модели" Binding="{Binding Name}" Width="290" />
-                                <DataGridTextColumn Header="Назначение / для чего лучше" Binding="{Binding Purpose}" Width="*" />
-                                <DataGridTextColumn Header="ГБ" Binding="{Binding SizeGB, StringFormat={}{0:0.00}}" Width="72" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                </Grid></UserControl>
+        <!-- View D: Installed Models on Disk -->
+        <Grid x:Name="CatalogDiskView" Grid.Row="2" Visibility="Collapsed" x:FieldModifier="internal">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <DockPanel Grid.Row="0" Margin="0,0,0,9">
+                <TextBlock x:Name="ModelsSummaryText" Text="Загрузка..." FontSize="12" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" x:FieldModifier="internal" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Показать в папке" Style="{StaticResource DarkButton}" Click="OpenSelectedModelFolderBtn_Click" Margin="0,0,6,0" />
+                    <Button Content="Удалить файл" Style="{StaticResource DangerButton}" Click="DeleteSelectedModelBtn_Click" Margin="0,0,6,0" />
+                    <Button Content="Обновить" Style="{StaticResource DarkButton}" Click="RefreshModelsBtn_Click" />
+                </StackPanel>
+            </DockPanel>
+            <DataGrid x:Name="ModelsGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" Background="{StaticResource Surface1Brush}" Foreground="{StaticResource TextPrimaryBrush}" RowBackground="#0E0E11" AlternatingRowBackground="#131317" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#202026" HeadersVisibility="Column" FontSize="12.5" RowHeaderWidth="0" CanUserAddRows="False" CanUserDeleteRows="False" x:FieldModifier="internal">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#16161B" />
+                        <Setter Property="Foreground" Value="#8E8E98" />
+                        <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+                        <Setter Property="FontSize" Value="11" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                        <Setter Property="Padding" Value="10,7" />
+                        <Setter Property="BorderBrush" Value="#282830" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="Padding" Value="10,6" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="Foreground" Value="#E4E4E8" />
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#261712" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ТИП" Binding="{Binding Category}" Width="125" />
+                    <DataGridTextColumn Header="ФАЙЛ МОДЕЛИ" Binding="{Binding Name}" Width="300" />
+                    <DataGridTextColumn Header="НАЗНАЧЕНИЕ" Binding="{Binding Purpose}" Width="*" />
+                    <DataGridTextColumn Header="РАЗМЕР (ГБ)" Binding="{Binding SizeGB, StringFormat={}{0:0.00}}" Width="96" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </Grid>
+</UserControl>

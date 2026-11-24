@@ -43,7 +43,7 @@ public partial class MainWindow
             VoiceWhisperStatusText.Text = st.WhisperReady
                 ? $"● Установлен ({Path.GetFileName(st.WhisperModelPath)}) — микрофон готов в Чате, Фото и Видео"
                 : "○ Не установлен — нажми кнопку справа для установки в 1 клик (~150 МБ)";
-            VoiceWhisperStatusText.Foreground = BrushFromHex(st.WhisperReady ? "#6AE89E" : "#94A0B8");
+            VoiceWhisperStatusText.Foreground = BrushFromHex(st.WhisperReady ? "#34D399" : "#A1A1AA");
         }
         if (InstallWhisperBtn is not null)
         {
@@ -58,7 +58,7 @@ public partial class MainWindow
             VoicePiperStatusText.Text = st.PiperReady
                 ? $"● Установлен ({Path.GetFileName(st.PiperModelPath)}) + офлайн-голоса Windows"
                 : "○ Не установлен (офлайн-голоса Windows Pavel/Irina уже работают; Piper добавит нейро-голос HD)";
-            VoicePiperStatusText.Foreground = BrushFromHex(st.PiperReady ? "#6AE89E" : "#94A0B8");
+            VoicePiperStatusText.Foreground = BrushFromHex(st.PiperReady ? "#34D399" : "#A1A1AA");
         }
         if (InstallPiperBtn is not null)
         {

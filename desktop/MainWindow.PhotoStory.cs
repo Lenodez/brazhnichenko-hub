@@ -64,12 +64,12 @@ public partial class MainWindow
 
             var card = new Border
             {
-                Background = BrushFromHex("#171B24"),
+                Background = BrushFromHex("#121215"),
                 BorderBrush = !string.IsNullOrEmpty(st.OutputImagePath) && File.Exists(st.OutputImagePath)
-                    ? BrushFromHex("#256B45")
-                    : BrushFromHex("#2A3245"),
+                    ? BrushFromHex("#265944")
+                    : BrushFromHex("#28282E"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(10),
+                CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(14),
                 Margin = new Thickness(0, 0, 0, 10)
             };
@@ -84,10 +84,11 @@ public partial class MainWindow
             var hdr = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
             hdr.Children.Add(new TextBlock
             {
-                Text = isFirst ? "Этап 1 — Якорь персонажа (первый кадр)" : $"Этап {idx + 1}",
-                FontSize = 14,
+                Text = isFirst ? "ЭТАП 01 — ЯКОРЬ ПЕРСОНАЖА" : $"ЭТАП {idx + 1:00}",
+                FontSize = 11.5,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontWeight = FontWeights.SemiBold,
-                Foreground = isFirst ? BrushFromHex("#6EA8FE") : BrushFromHex("#E6EBF5")
+                Foreground = isFirst ? BrushFromHex("#FF521B") : BrushFromHex("#F4F4F6")
             });
 
             if (!isFirst)
@@ -97,7 +98,7 @@ public partial class MainWindow
                 {
                     Content = "Якорь (Этап 1)",
                     IsChecked = st.UseAnchorRef,
-                    Foreground = BrushFromHex("#A5B1C9"),
+                    Foreground = BrushFromHex("#A1A1AA"),
                     FontSize = 11.5,
                     Margin = new Thickness(0, 0, 12, 0),
                     VerticalAlignment = VerticalAlignment.Center
@@ -109,7 +110,7 @@ public partial class MainWindow
                 {
                     Content = $"Предыдущий (Этап {idx})",
                     IsChecked = st.UsePrevRef,
-                    Foreground = BrushFromHex("#A5B1C9"),
+                    Foreground = BrushFromHex("#A1A1AA"),
                     FontSize = 11.5,
                     VerticalAlignment = VerticalAlignment.Center
                 };
@@ -129,9 +130,9 @@ public partial class MainWindow
                 AcceptsReturn = true,
                 TextWrapping = TextWrapping.Wrap,
                 Height = 64,
-                Background = BrushFromHex("#0B0D12"),
-                Foreground = BrushFromHex("#E6EBF5"),
-                BorderBrush = BrushFromHex("#2A3245"),
+                Background = BrushFromHex("#09090B"),
+                Foreground = BrushFromHex("#F4F4F6"),
+                BorderBrush = BrushFromHex("#28282E"),
                 Padding = new Thickness(8, 6, 8, 6),
                 FontSize = 12.5,
                 Margin = new Thickness(0, 0, 0, 8)
@@ -163,7 +164,7 @@ public partial class MainWindow
 
             var pasteBtn = new System.Windows.Controls.Button
             {
-                Content = "📋 Из буфера",
+                Content = "Из буфера",
                 Style = (Style)FindResource("DarkButton"),
                 Margin = new Thickness(0, 0, 7, 0),
                 IsEnabled = !_storyBusy,
@@ -215,10 +216,10 @@ public partial class MainWindow
             // Right preview box
             var previewBorder = new Border
             {
-                Background = BrushFromHex("#0B0D12"),
-                BorderBrush = BrushFromHex("#2A3245"),
+                Background = BrushFromHex("#070708"),
+                BorderBrush = BrushFromHex("#28282E"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
+                CornerRadius = new CornerRadius(4),
                 Height = 132,
                 Cursor = System.Windows.Input.Cursors.Hand
             };
@@ -237,7 +238,7 @@ public partial class MainWindow
                 {
                     Text = "Нажми, чтобы\nвыбрать фото\nс диска",
                     TextAlignment = TextAlignment.Center,
-                    Foreground = BrushFromHex("#6B7794"),
+                    Foreground = BrushFromHex("#71717A"),
                     FontSize = 11.5,
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = System.Windows.HorizontalAlignment.Center

@@ -29,12 +29,12 @@ public partial class BatchCompareWindow : Window
             {
                 Background = (System.Windows.Media.Brush)FindResource("Surface1Brush"),
                 BorderBrush = isSelected
-                    ? (System.Windows.Media.Brush)FindResource("AccentBrush")
+                    ? (System.Windows.Media.Brush)FindResource("SignalOrangeBrush")
                     : (System.Windows.Media.Brush)FindResource("BorderDefaultBrush"),
-                BorderThickness = new Thickness(isSelected ? 2 : 1),
-                CornerRadius = new CornerRadius(10),
+                BorderThickness = new Thickness(isSelected ? 1.5 : 1),
+                CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(10),
-                Margin = new Thickness(6)
+                Margin = new Thickness(5)
             };
 
             var grid = new Grid();
@@ -44,7 +44,7 @@ public partial class BatchCompareWindow : Window
             var imgHost = new Border
             {
                 Background = (System.Windows.Media.Brush)FindResource("WellBrush"),
-                CornerRadius = new CornerRadius(7),
+                CornerRadius = new CornerRadius(3),
                 ClipToBounds = true,
                 Cursor = System.Windows.Input.Cursors.Hand
             };

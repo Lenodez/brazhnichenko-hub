@@ -1,6 +1,17 @@
-<Window x:Class="LocalAIHub.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Brazhnichenko Hub — Universal AI Workstation (.NET 11)" Icon="pack://application:,,,/Assets/app.ico" Width="1160" Height="780" MinWidth="920" MinHeight="640" WindowStartupLocation="CenterScreen" Background="{StaticResource BgCanvasBrush}" Foreground="{StaticResource TextPrimaryBrush}" FontFamily="{StaticResource UiFontFamily}" PreviewKeyDown="Window_PreviewKeyDown" xmlns:views="clr-namespace:LocalAIHub.Views">
+<Window x:Class="LocalAIHub.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:LocalAIHub.Views"
+        Title="Brazhnichenko Hub — Local AI Workstation"
+        Icon="pack://application:,,,/Assets/app.ico"
+        Width="1240" Height="800" MinWidth="960" MinHeight="640"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgCanvasBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource UiFontFamily}"
+        PreviewKeyDown="Window_PreviewKeyDown">
 
-    <Grid Margin="16,12,16,12" MaxWidth="1440">
+    <Grid SnapsToDevicePixels="True">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -9,153 +20,194 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header + Optional Auto-Update Banner -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,10">
-            <DockPanel>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left">
-                    <Image Source="pack://application:,,,/Assets/app.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,10,0" VerticalAlignment="Center" />
-                    <TextBlock Text="Brazhnichenko Hub" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                    <Border Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="10,2,0,0" VerticalAlignment="Center">
-                        <TextBlock x:Name="AppVersionBadgeText" Text="v4.9 • Local AI Studio" FontSize="11" Foreground="{StaticResource TextMutedBrush}" />
-                    </Border>
-                </StackPanel>
+        <!-- ================================================================ -->
+        <!-- ROW 0: SLIM INSTRUMENT HEADER + OPTIONAL AUTO-UPDATE STRIP       -->
+        <!-- ================================================================ -->
+        <StackPanel Grid.Row="0" Background="#0E0E11">
+            <Border BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="14,8">
+                <DockPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left">
+                        <Image Source="pack://application:,,,/Assets/app.png" Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBlock Text="BRAZHNICHENKO HUB" FontSize="13.5" FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <Border Background="#18181C" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="3" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="AppVersionBadgeText" Text="v5.0 • LOCAL WORKSTATION" FontSize="10.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
+                        </Border>
+                    </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Name="OpenDesktopAssistantBtn" Style="{StaticResource PrimaryButton}" Padding="12,6" Margin="0,0,8,0" ToolTip="Открыть системного ассистента ПК (видит экран, голос/текст, поиск в сети, режим только чтения)" Click="OpenDesktopAssistantBtn_Click">
-                        <StackPanel Orientation="Horizontal">
-                            <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconSparkles}" Margin="0,0,6,0" />
-                            <TextBlock Text="Ассистент ПК" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="AskAiGlobalBtn" Style="{StaticResource DarkButton}" Padding="11,6" Margin="0,0,10,0" ToolTip="Спросить AI-гида по настройкам и моделям Хаба" Click="AskAiGlobalBtn_Click">
-                        <TextBlock Text="Гид AI" VerticalAlignment="Center" />
-                    </Button>
-                    <CheckBox x:Name="MinimizeToTrayCheck" Content="В трей" ToolTip="Сворачивать окно в системный трей при закрытии" IsChecked="False" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                    <Button x:Name="StopAllBtn" Style="{StaticResource GhostDangerButton}" Padding="11,6" ToolTip="Остановить все запущенные локальные модели и освободить VRAM" Click="StopAllBtn_Click">
-                        <StackPanel Orientation="Horizontal">
-                            <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconPower}" Margin="0,0,6,0" />
-                            <TextBlock Text="Освободить GPU" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-            </DockPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="OpenDesktopAssistantBtn" Style="{StaticResource PrimaryButton}" Padding="11,5" Margin="0,0,6,0" ToolTip="Системный ассистент экрана ПК (видит экран, голос/текст, поиск в сети, режим только чтения)" Click="OpenDesktopAssistantBtn_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconSparkles}" Margin="0,0,6,0" />
+                                <TextBlock Text="Экран · Alt+Space" VerticalAlignment="Center" FontSize="12" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="AskAiGlobalBtn" Style="{StaticResource DarkButton}" Padding="10,5" Margin="0,0,10,0" ToolTip="Открыть базу знаний и диагностику Хаба" Click="AskAiGlobalBtn_Click">
+                            <TextBlock Text="Справка" VerticalAlignment="Center" FontSize="12" />
+                        </Button>
+                        <CheckBox x:Name="MinimizeToTrayCheck" Content="В трей" ToolTip="Сворачивать окно в системный трей при закрытии" IsChecked="False" Foreground="{StaticResource TextMutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        <Button x:Name="StopAllBtn" Style="{StaticResource GhostDangerButton}" Padding="10,5" ToolTip="Остановить все запущенные локальные модели и освободить VRAM" Click="StopAllBtn_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconPower}" Margin="0,0,6,0" />
+                                <TextBlock Text="Освободить GPU" VerticalAlignment="Center" FontSize="12" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
 
-            <!-- Auto-Update Notification Banner (shown only when newer release exists on VPS) -->
-            <Border x:Name="UpdateBanner" Visibility="Collapsed" Background="{StaticResource SuccessTintBrush}" BorderBrush="#2A7A55" BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,10,0,0">
+            <!-- Auto-Update Notification Strip -->
+            <Border x:Name="UpdateBanner" Visibility="Collapsed" Background="#1A120E" BorderBrush="{StaticResource AccentBrush}" BorderThickness="0,0,0,1" Padding="14,7">
                 <DockPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0">
-                        <ProgressBar x:Name="UpdateBannerProgress" Width="110" Height="8" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" Background="#0C1713" Foreground="{StaticResource SuccessBrush}" BorderThickness="0" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <Button x:Name="UpdateNowBannerBtn" Style="{StaticResource SuccessButton}" Padding="12,5" FontSize="12" Margin="0,0,6,0" Click="UpdateInstallNowBtn_Click">
+                        <ProgressBar x:Name="UpdateBannerProgress" Width="110" Height="5" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" Background="#080809" Foreground="{StaticResource AccentBrush}" BorderThickness="0" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <Button x:Name="UpdateNowBannerBtn" Style="{StaticResource SuccessButton}" Padding="12,4" FontSize="12" Margin="0,0,6,0" Click="UpdateInstallNowBtn_Click">
                             <StackPanel Orientation="Horizontal">
                                 <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconDownload}" Margin="0,0,6,0" />
                                 <TextBlock Text="Обновить в 1 клик" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-                        <Button Content="Позже" Style="{StaticResource DarkButton}" Padding="9,5" FontSize="12" Click="UpdateBannerDismissBtn_Click" />
+                        <Button Content="Позже" Style="{StaticResource DarkButton}" Padding="9,4" FontSize="12" Click="UpdateBannerDismissBtn_Click" />
                     </StackPanel>
-                    <TextBlock x:Name="UpdateBannerText" Text="Доступна новая версия Brazhnichenko Hub" FontSize="13" Foreground="#A8F0C6" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <TextBlock x:Name="UpdateBannerText" Text="Доступна новая версия Brazhnichenko Hub" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
         </StackPanel>
 
-        <!-- Compact Single-Row Telemetry Strip (Tabular Monospace Numerals + Live Sparklines + DiskBar) -->
-        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,10">
-            <!-- GPU -->
-            <Border x:Name="GpuTelemetryCard" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="9" Padding="12,7" Margin="0,0,6,0" ToolTip="Живая телеметрия GPU: зелёная кривая — VRAM %, голубая — температура °C">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="74" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <DockPanel Margin="0,0,0,5">
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="6,0,0,0">
-                                <TextBlock x:Name="VramText" Text="— / — ГБ" FontSize="12" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                                <TextBlock Text=" • " FontSize="11" Foreground="#4B5670" VerticalAlignment="Center" />
-                                <TextBlock x:Name="GpuExtraText" Text="—" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
-                            </StackPanel>
-                            <TextBlock x:Name="GpuNameText" Text="Определение GPU..." FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                        </DockPanel>
-                        <ProgressBar x:Name="VramBar" Height="4" Minimum="0" Maximum="100" Value="0" Background="{StaticResource Surface2Brush}" Foreground="{StaticResource SuccessBrush}" BorderThickness="0" />
-                    </StackPanel>
-                    <Border Grid.Column="1" Background="#0E121B" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="6" Margin="9,0,0,0" Height="28" ClipToBounds="True">
-                        <Canvas Width="64" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Polyline x:Name="TempSparkline" Stroke="#38BDF8" StrokeThickness="1.2" Opacity="0.7" StrokeLineJoin="Round" />
-                            <Polyline x:Name="VramSparkline" Stroke="#22C55E" StrokeThickness="1.6" StrokeLineJoin="Round" />
-                        </Canvas>
-                    </Border>
-                </Grid>
-            </Border>
-
-            <!-- RAM -->
-            <Border x:Name="RamTelemetryCard" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="9" Padding="12,7" Margin="3,0,3,0" ToolTip="Живая телеметрия оперативной памяти (последние ~75 сек)">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="74" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <DockPanel Margin="0,0,0,5">
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="6,0,0,0">
-                                <TextBlock x:Name="RamText" Text="— / — ГБ" FontSize="12" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                                <TextBlock Text=" • " FontSize="11" Foreground="#4B5670" VerticalAlignment="Center" />
-                                <TextBlock x:Name="RamPctText" Text="—" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
-                            </StackPanel>
-                            <TextBlock Text="RAM" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                        </DockPanel>
-                        <ProgressBar x:Name="RamBar" Height="4" Minimum="0" Maximum="100" Value="0" Background="{StaticResource Surface2Brush}" Foreground="{StaticResource AccentBrush}" BorderThickness="0" />
-                    </StackPanel>
-                    <Border Grid.Column="1" Background="#0E121B" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="6" Margin="9,0,0,0" Height="28" ClipToBounds="True">
-                        <Canvas Width="64" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Polyline x:Name="RamSparkline" Stroke="#5B8CFF" StrokeThickness="1.6" StrokeLineJoin="Round" />
-                        </Canvas>
-                    </Border>
-                </Grid>
-            </Border>
-
-            <!-- Disk -->
-            <Border Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="9" Padding="12,7" Margin="6,0,0,0">
-                <StackPanel VerticalAlignment="Center">
-                    <DockPanel Margin="0,0,0,6">
-                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0">
-                            <TextBlock x:Name="DiskText" Text="— ГБ" FontSize="12" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                            <TextBlock Text=" • " FontSize="11" Foreground="#4B5670" VerticalAlignment="Center" />
-                            <TextBlock x:Name="ModelCountBadge" Text="Модели &amp; кэш" FontSize="11" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+        <!-- ================================================================ -->
+        <!-- ROW 1: COMPACT RACK-MOUNT HARDWARE TELEMETRY STRIP               -->
+        <!-- ================================================================ -->
+        <Border Grid.Row="1" Background="#0C0C0E" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+            <UniformGrid Columns="3">
+                <!-- GPU Module -->
+                <Border x:Name="GpuTelemetryCard" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,1,0" Padding="14,6" ToolTip="Живая телеметрия GPU (VRAM % и температура °C)">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="58" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <DockPanel Margin="0,0,0,4">
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="6,0,0,0">
+                                    <TextBlock x:Name="VramText" Text="— / — ГБ" FontSize="11.5" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Text=" · " FontSize="11" Foreground="#4A4A52" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="GpuExtraText" Text="—" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock x:Name="GpuNameText" Text="GPU..." FontSize="11.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
+                            <ProgressBar x:Name="VramBar" Height="3" Minimum="0" Maximum="100" Value="0" Background="#1C1C21" Foreground="{StaticResource AccentBrush}" BorderThickness="0" />
                         </StackPanel>
-                        <TextBlock x:Name="DiskLabelText" Text="Свободно на диске:" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                    </DockPanel>
-                    <ProgressBar x:Name="DiskBar" Height="4" Minimum="0" Maximum="100" Value="0" Background="{StaticResource Surface2Brush}" Foreground="{StaticResource SuccessBrush}" BorderThickness="0" />
-                </StackPanel>
-            </Border>
-        </UniformGrid>
+                        <Border Grid.Column="1" Background="#080809" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="3" Margin="8,0,0,0" Height="22" ClipToBounds="True">
+                            <Viewbox Stretch="Fill" Margin="1">
+                                <Canvas Width="64" Height="26">
+                                    <Polyline x:Name="TempSparkline" Stroke="#6E6E78" StrokeThickness="1.3" Opacity="0.8" StrokeLineJoin="Round" />
+                                    <Polyline x:Name="VramSparkline" Stroke="#FF521B" StrokeThickness="1.7" StrokeLineJoin="Round" />
+                                </Canvas>
+                            </Viewbox>
+                        </Border>
+                    </Grid>
+                </Border>
 
-        <!-- Clean Single-Row Top-Level Tabs (Vector Icons + Focus Ring) -->
-        <TabControl x:Name="MainTabs" Grid.Row="2" Background="Transparent" BorderThickness="0" SelectionChanged="MainTabs_SelectionChanged">
+                <!-- RAM Module -->
+                <Border x:Name="RamTelemetryCard" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,1,0" Padding="14,6" ToolTip="Живая телеметрия системной памяти (RAM)">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="58" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <DockPanel Margin="0,0,0,4">
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="6,0,0,0">
+                                    <TextBlock x:Name="RamText" Text="— / — ГБ" FontSize="11.5" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Text=" · " FontSize="11" Foreground="#4A4A52" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="RamPctText" Text="—" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="SYS RAM" FontSize="11.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            </DockPanel>
+                            <ProgressBar x:Name="RamBar" Height="3" Minimum="0" Maximum="100" Value="0" Background="#1C1C21" Foreground="#F4F4F6" BorderThickness="0" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Background="#080809" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="3" Margin="8,0,0,0" Height="22" ClipToBounds="True">
+                            <Viewbox Stretch="Fill" Margin="1">
+                                <Canvas Width="64" Height="26">
+                                    <Polyline x:Name="RamSparkline" Stroke="#D4D4DC" StrokeThickness="1.6" StrokeLineJoin="Round" />
+                                </Canvas>
+                            </Viewbox>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Storage Module -->
+                <Border Padding="14,6">
+                    <StackPanel VerticalAlignment="Center">
+                        <DockPanel Margin="0,0,0,4">
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <TextBlock x:Name="DiskText" Text="— ГБ" FontSize="11.5" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text=" · " FontSize="11" Foreground="#4A4A52" VerticalAlignment="Center" />
+                                <TextBlock x:Name="ModelCountBadge" Text="Модели" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock x:Name="DiskLabelText" Text="ДИСК:" FontSize="11.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                        <ProgressBar x:Name="DiskBar" Height="3" Minimum="0" Maximum="100" Value="0" Background="#1C1C21" Foreground="#7E7E87" BorderThickness="0" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+        </Border>
+
+        <!-- ================================================================ -->
+        <!-- ROW 2: LEFT VERTICAL NAVIGATION RAIL + FULL-HEIGHT WORKSPACE     -->
+        <!-- ================================================================ -->
+        <TabControl x:Name="MainTabs" Grid.Row="2" TabStripPlacement="Left" Background="Transparent" BorderThickness="0" SelectionChanged="MainTabs_SelectionChanged">
+            <TabControl.Template>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid ClipToBounds="True" SnapsToDevicePixels="True">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="154" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Receding Architectural Rail -->
+                        <Border Grid.Column="0" Background="#0E0E11" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,1,0" Padding="6,10,6,10">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="РАЗДЕЛЫ" FontSize="10" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="#565660" Margin="10,0,0,6" />
+                                <StackPanel x:Name="HeaderPanel" IsItemsHost="True" Orientation="Vertical" />
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Active Workspace Canvas -->
+                        <Border Grid.Column="1" Background="{StaticResource BgCanvasBrush}" Padding="16,12,16,12">
+                            <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" SnapsToDevicePixels="True" />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </TabControl.Template>
+
             <TabControl.Resources>
                 <Style TargetType="TabItem">
                     <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
-                    <Setter Property="FontSize" Value="13.5" />
+                    <Setter Property="FontSize" Value="12.5" />
                     <Setter Property="FontWeight" Value="SemiBold" />
-                    <Setter Property="Padding" Value="15,8" />
+                    <Setter Property="Padding" Value="11,9" />
                     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="TabItem">
-                                <Border x:Name="Bd" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,8,10" Padding="{TemplateBinding Padding}" Cursor="Hand" SnapsToDevicePixels="True">
-                                    <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="4" Margin="0,0,0,3" Padding="{TemplateBinding Padding}" Cursor="Hand" SnapsToDevicePixels="True">
+                                    <Grid>
+                                        <Border x:Name="SignalBar" Width="2.5" Background="{StaticResource AccentBrush}" HorizontalAlignment="Left" Margin="-11,-9,0,-9" Visibility="Collapsed" />
+                                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                    </Grid>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource Surface2Brush}" />
-                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BorderHoverBrush}" />
+                                        <Setter TargetName="Bd" Property="Background" Value="#16161B" />
                                         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                                     </Trigger>
                                     <Trigger Property="IsKeyboardFocused" Value="True">
                                         <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BorderFocusBrush}" />
                                     </Trigger>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceSelectedBrush}" />
-                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                        <Setter TargetName="Bd" Property="Background" Value="#1A1A20" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="#2C2C35" />
+                                        <Setter TargetName="SignalBar" Property="Visibility" Value="Visible" />
                                         <Setter Property="Foreground" Value="#FFFFFF" />
                                     </Trigger>
                                 </ControlTemplate.Triggers>
@@ -165,78 +217,60 @@
                 </Style>
             </TabControl.Resources>
 
-            <!-- ============================================================ -->
-            <!-- TAB 1: ЧАТ (AI-Помощник RAG + Локальная LLM / Веб-чат)       -->
-            <!-- ============================================================ -->
             <TabItem x:Name="ChatTab">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconChat}" Margin="0,0,7,0" />
+                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconChat}" Margin="0,0,9,0" />
                         <TextBlock Text="Чат" VerticalAlignment="Center" />
                     </StackPanel>
                 </TabItem.Header>
                 <views:ChatTabView x:Name="ChatTabView" />
             </TabItem>
 
-            <!-- ============================================================ -->
-            <!-- TAB 2: ФОТО (Одиночное фото + Фото-история + Апскейл ×4)     -->
-            <!-- ============================================================ -->
             <TabItem x:Name="PhotoTab">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconPhoto}" Margin="0,0,7,0" />
+                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconPhoto}" Margin="0,0,9,0" />
                         <TextBlock Text="Фото" VerticalAlignment="Center" />
                     </StackPanel>
                 </TabItem.Header>
                 <views:PhotoTabView x:Name="PhotoTabView" />
             </TabItem>
 
-            <!-- ============================================================ -->
-            <!-- TAB 3: ВИДЕО (Одиночное видео + Видео-история с Режиссёром)  -->
-            <!-- ============================================================ -->
             <TabItem x:Name="VideoTab">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconVideo}" Margin="0,0,7,0" />
+                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconVideo}" Margin="0,0,9,0" />
                         <TextBlock Text="Видео" VerticalAlignment="Center" />
                     </StackPanel>
                 </TabItem.Header>
                 <views:VideoTabView x:Name="VideoTabView" />
             </TabItem>
 
-            <!-- ============================================================ -->
-            <!-- TAB 4: ГАЛЕРЕЯ (Просмотр и быстрая чистка фото, видео, кэша) -->
-            <!-- ============================================================ -->
             <TabItem x:Name="GalleryTab">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconGallery}" Margin="0,0,7,0" />
+                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconGallery}" Margin="0,0,9,0" />
                         <TextBlock Text="Галерея" VerticalAlignment="Center" />
                     </StackPanel>
                 </TabItem.Header>
                 <views:GalleryTabView x:Name="GalleryTabView" />
             </TabItem>
 
-            <!-- ============================================================ -->
-            <!-- TAB 5: МОДЕЛИ И GPU (Каталог + Вики + Поиск HF + На диске)   -->
-            <!-- ============================================================ -->
             <TabItem x:Name="CatalogTab">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconCpu}" Margin="0,0,7,0" />
+                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconCpu}" Margin="0,0,9,0" />
                         <TextBlock Text="Модели и GPU" VerticalAlignment="Center" />
                     </StackPanel>
                 </TabItem.Header>
                 <views:CatalogTabView x:Name="CatalogTabView" />
             </TabItem>
 
-            <!-- ============================================================ -->
-            <!-- TAB 5: СИСТЕМА (Сервисы + Настройки/HF/MCP + Логи + Гайд)    -->
-            <!-- ============================================================ -->
             <TabItem x:Name="SystemTab">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconSettings}" Margin="0,0,7,0" />
+                        <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconSettings}" Margin="0,0,9,0" />
                         <TextBlock Text="Система" VerticalAlignment="Center" />
                     </StackPanel>
                 </TabItem.Header>
@@ -244,18 +278,20 @@
             </TabItem>
         </TabControl>
 
-        <!-- Global Queue + Live Download + Generation Progress Bars (visible on any tab) -->
+        <!-- ================================================================ -->
+        <!-- ROW 3: GLOBAL QUEUE + DOWNLOAD + GENERATION HUD                  -->
+        <!-- ================================================================ -->
         <StackPanel Grid.Row="3">
-            <Border x:Name="QueueBarBorder" Visibility="Collapsed" Background="#161C2E" BorderBrush="#3B5487" BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,8,0,0">
+            <Border x:Name="QueueBarBorder" Visibility="Collapsed" Background="#121215" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="0,1,0,0" Padding="14,8">
                 <StackPanel>
                     <DockPanel>
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0">
-                            <Button x:Name="QueueStartBtn" Content="▶ Запустить" Style="{StaticResource SuccessButton}" Padding="10,4" FontSize="12" Margin="0,0,6,0" Click="QueueStartBtn_Click" />
-                            <Button x:Name="QueuePauseBtn" Content="⏸ Пауза" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,0" Visibility="Collapsed" Click="QueuePauseBtn_Click" />
-                            <Button x:Name="QueueToggleListBtn" Content="Список ▾" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,0" Click="QueueToggleListBtn_Click" />
+                            <Button x:Name="QueueStartBtn" Content="Запустить очередь" Style="{StaticResource SuccessButton}" Padding="10,4" FontSize="12" Margin="0,0,6,0" Click="QueueStartBtn_Click" />
+                            <Button x:Name="QueuePauseBtn" Content="Пауза" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,0" Visibility="Collapsed" Click="QueuePauseBtn_Click" />
+                            <Button x:Name="QueueToggleListBtn" Content="Список" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,0" Click="QueueToggleListBtn_Click" />
                             <Button x:Name="QueueClearBtn" Content="Очистить" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Click="QueueClearBtn_Click" />
                         </StackPanel>
-                        <TextBlock x:Name="QueueSummaryText" Text="Очередь: 0 задач" FontSize="13" FontWeight="SemiBold" Foreground="#CFE0FF" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="QueueSummaryText" Text="ОЧЕРЕДЬ: 0" FontSize="12.5" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
                     <ScrollViewer x:Name="QueueListScroll" Visibility="Collapsed" MaxHeight="140" Margin="0,7,0,0" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="QueueItemsPanel" />
@@ -263,70 +299,70 @@
                 </StackPanel>
             </Border>
 
-            <Border x:Name="CatalogDownloadCard" Visibility="Collapsed" Background="#14231E" BorderBrush="#2ECC71" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,10,0,0">
+            <Border x:Name="CatalogDownloadCard" Visibility="Collapsed" Background="#121215" BorderBrush="{StaticResource AccentBrush}" BorderThickness="0,1,0,0" Padding="14,9">
                 <StackPanel>
                     <Grid Margin="0,0,0,5">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="CatalogDlTitleText" Grid.Column="0" Text="Скачивание..." FontSize="13" FontWeight="SemiBold" Foreground="#E6F8EE" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                        <TextBlock x:Name="CatalogDlTitleText" Grid.Column="0" Text="Загрузка..." FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock x:Name="CatalogDlStatsText" Text="0%" FontSize="12" Foreground="#6AE89E" FontFamily="{StaticResource MonoFontFamily}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock x:Name="CatalogDlStatsText" Text="0%" FontSize="12" Foreground="{StaticResource AccentBrush}" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" VerticalAlignment="Center" Margin="0,0,10,0" />
                             <Button x:Name="CatalogCancelDlBtn" Content="Отменить" Style="{StaticResource DangerButton}" Padding="9,3" FontSize="11" Click="CatalogCancelDlBtn_Click" />
                         </StackPanel>
                     </Grid>
-                    <ProgressBar x:Name="CatalogDlBar" Height="7" Minimum="0" Maximum="100" Value="0" Background="#0C1412" Foreground="{StaticResource SuccessBrush}" BorderThickness="0" />
+                    <ProgressBar x:Name="CatalogDlBar" Height="4" Minimum="0" Maximum="100" Value="0" Background="#080809" Foreground="{StaticResource AccentBrush}" BorderThickness="0" />
                 </StackPanel>
             </Border>
 
-            <Border x:Name="GenProgressCard" Visibility="Collapsed" Background="#141C2B" BorderBrush="#3B5B99" BorderThickness="1" CornerRadius="10" Padding="14,11" Margin="0,10,0,0">
+            <Border x:Name="GenProgressCard" Visibility="Collapsed" Background="#121215" BorderBrush="{StaticResource AccentBrush}" BorderThickness="0,1,0,0" Padding="14,10">
                 <StackPanel>
-                    <DockPanel Margin="0,0,0,7">
+                    <DockPanel Margin="0,0,0,6">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-                            <Ellipse x:Name="GenPulseDot" Width="9" Height="9" Fill="#4DD9D5" Margin="0,0,8,0" VerticalAlignment="Center" />
-                            <TextBlock x:Name="GenTitleText" Text="Генерация..." FontSize="13.5" FontWeight="SemiBold" Foreground="#FFFFFF" VerticalAlignment="Center" />
-                            <TextBlock Text="  •  " FontSize="13" Foreground="#526280" VerticalAlignment="Center" />
-                            <TextBlock x:Name="GenStageText" Text="Подготовка..." FontSize="13" Foreground="#9EC0FF" VerticalAlignment="Center" />
+                            <Ellipse x:Name="GenPulseDot" Width="8" Height="8" Fill="#FF521B" Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock x:Name="GenTitleText" Text="Рендер..." FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF" VerticalAlignment="Center" />
+                            <TextBlock Text="  ·  " FontSize="12" Foreground="#52525B" VerticalAlignment="Center" />
+                            <TextBlock x:Name="GenStageText" Text="Подготовка..." FontSize="12.5" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock x:Name="GenPercentText" Text="0%" FontSize="16" FontWeight="Bold" Foreground="#4DD9D5" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <Button x:Name="CancelGenerationBtn" Content="Отменить" Style="{StaticResource DangerButton}" Padding="10,4" FontSize="12" Click="CancelGenerationBtn_Click" />
+                            <TextBlock x:Name="GenPercentText" Text="0%" FontSize="14.5" FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="#FF521B" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <Button x:Name="CancelGenerationBtn" Content="Остановить" Style="{StaticResource DangerButton}" Padding="10,4" FontSize="12" Click="CancelGenerationBtn_Click" />
                         </StackPanel>
                     </DockPanel>
 
-                    <ProgressBar x:Name="GenProgressBar" Height="8" Minimum="0" Maximum="100" Value="0" Background="#0C1018" Foreground="{StaticResource AccentBrush}" BorderThickness="0" Margin="0,0,0,9" />
+                    <ProgressBar x:Name="GenProgressBar" Height="4" Minimum="0" Maximum="100" Value="0" Background="#080809" Foreground="{StaticResource AccentBrush}" BorderThickness="0" Margin="0,0,0,8" />
 
                     <WrapPanel>
-                        <Border Background="#1C2538" BorderBrush="#2A3650" BorderThickness="1" CornerRadius="6" Padding="9,4" Margin="0,0,8,0">
+                        <Border Background="#18181C" BorderBrush="#282830" BorderThickness="1" CornerRadius="3" Padding="8,3" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Шаг: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                                <TextBlock x:Name="GenStepText" Text="—" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="ШАГ: " FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="GenStepText" Text="—" FontSize="11.5" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" />
                             </StackPanel>
                         </Border>
-                        <Border Background="#1C2538" BorderBrush="#2A3650" BorderThickness="1" CornerRadius="6" Padding="9,4" Margin="0,0,8,0">
+                        <Border Background="#18181C" BorderBrush="#282830" BorderThickness="1" CornerRadius="3" Padding="8,3" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Скорость: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                                <TextBlock x:Name="GenSpeedText" Text="замер..." FontSize="12" FontWeight="SemiBold" Foreground="#4DD9D5" />
+                                <TextBlock Text="СКОРОСТЬ: " FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="GenSpeedText" Text="—" FontSize="11.5" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" />
                             </StackPanel>
                         </Border>
-                        <Border Background="#1C2538" BorderBrush="#2A3650" BorderThickness="1" CornerRadius="6" Padding="9,4" Margin="0,0,8,0">
+                        <Border Background="#18181C" BorderBrush="#282830" BorderThickness="1" CornerRadius="3" Padding="8,3" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Прошло: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                                <TextBlock x:Name="GenElapsedText" Text="00:00" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" FontFamily="{StaticResource MonoFontFamily}" />
+                                <TextBlock Text="ПРОШЛО: " FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="GenElapsedText" Text="00:00" FontSize="11.5" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" />
                             </StackPanel>
                         </Border>
-                        <Border Background="#1C2538" BorderBrush="#2A3650" BorderThickness="1" CornerRadius="6" Padding="9,4" Margin="0,0,8,0">
+                        <Border Background="#18181C" BorderBrush="#282830" BorderThickness="1" CornerRadius="3" Padding="8,3" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Осталось: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                                <TextBlock x:Name="GenEtaText" Text="расчёт..." FontSize="12" FontWeight="SemiBold" Foreground="#FFB35C" FontFamily="{StaticResource MonoFontFamily}" />
+                                <TextBlock Text="ОСТАЛОСЬ: " FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="GenEtaText" Text="—" FontSize="11.5" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="#FF521B" />
                             </StackPanel>
                         </Border>
-                        <Border Background="#1C2538" BorderBrush="#2A3650" BorderThickness="1" CornerRadius="6" Padding="9,4">
+                        <Border Background="#18181C" BorderBrush="#282830" BorderThickness="1" CornerRadius="3" Padding="8,3">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="GPU: " FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                                <TextBlock x:Name="GenGpuLiveText" Text="—" FontSize="12" FontWeight="SemiBold" Foreground="#9EE6B8" />
+                                <TextBlock Text="GPU: " FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="GenGpuLiveText" Text="—" FontSize="11.5" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="#34D399" />
                             </StackPanel>
                         </Border>
                     </WrapPanel>
@@ -334,16 +370,18 @@
             </Border>
         </StackPanel>
 
-        <!-- Footer Status Bar -->
-        <Border Grid.Row="4" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,7" Margin="0,10,0,0">
+        <!-- ================================================================ -->
+        <!-- ROW 4: SLIM TECHNICAL STATUS FOOTER                              -->
+        <!-- ================================================================ -->
+        <Border Grid.Row="4" Background="#0E0E11" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,1,0,0" Padding="14,5">
             <DockPanel>
-                <TextBlock x:Name="StatusFooterText" Text="Готов к работе." FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                <TextBlock Text="Порты: LLM :18080 • Assistant :18082 • ComfyUI :8188" FontFamily="{StaticResource MonoFontFamily}" FontSize="12" Foreground="#6F7A94" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                <TextBlock x:Name="StatusFooterText" Text="Готов к работе." FontSize="11.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="LLM :18080 · ASSIST :18082 · COMFY :8188" FontFamily="{StaticResource MonoFontFamily}" FontSize="11" Foreground="#5A5A64" HorizontalAlignment="Right" VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
         <!-- Fullscreen Gallery Lightbox Overlay -->
-        <Border x:Name="GalleryLightboxOverlay" Grid.RowSpan="5" Panel.ZIndex="90" Visibility="Collapsed" Background="#E6080B12" CornerRadius="12" Padding="24" MouseLeftButtonUp="GalleryLightboxBg_Click">
+        <Border x:Name="GalleryLightboxOverlay" Grid.RowSpan="5" Panel.ZIndex="90" Visibility="Collapsed" Background="#F0060607" Padding="24" MouseLeftButtonUp="GalleryLightboxBg_Click">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -351,22 +389,27 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <DockPanel Grid.Row="0" Margin="0,0,0,12">
-                    <Button Style="{StaticResource DangerButton}" DockPanel.Dock="Right" Padding="12,6" FontSize="12" Click="GalleryLightboxCloseBtn_Click"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconClose}" Margin="0,0,6,0" /><TextBlock Text="Закрыть (Esc)" VerticalAlignment="Center" /></StackPanel></Button>
-                    <TextBlock Text="Просмотр на весь экран" FontSize="13.5" FontWeight="SemiBold" Foreground="#9BA8C4" VerticalAlignment="Center" />
+                    <Button Style="{StaticResource DarkButton}" DockPanel.Dock="Right" Padding="12,6" FontSize="12" Click="GalleryLightboxCloseBtn_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconClose}" Margin="0,0,6,0" />
+                            <TextBlock Text="Закрыть (Esc)" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Text="ПОЛНОЭКРАННЫЙ ПРОСМОТР" FontSize="12" FontWeight="SemiBold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
                 </DockPanel>
                 <Image x:Name="GalleryLightboxImage" Grid.Row="1" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                <Border Grid.Row="2" HorizontalAlignment="Center" Margin="0,12,0,0" Background="#CC151B28" BorderBrush="#2E3B56" BorderThickness="1" CornerRadius="8" Padding="12,6">
-                    <TextBlock x:Name="GalleryLightboxCaption" Text="" FontSize="13" Foreground="#DCE6F7" TextAlignment="Center" TextWrapping="Wrap" />
+                <Border Grid.Row="2" HorizontalAlignment="Center" Margin="0,12,0,0" Background="#E6141417" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="12,6">
+                    <TextBlock x:Name="GalleryLightboxCaption" Text="" FontSize="12" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" TextAlignment="Center" TextWrapping="Wrap" />
                 </Border>
             </Grid>
         </Border>
 
         <!-- Floating Toast Notification Overlay -->
-        <Border x:Name="ToastBanner" Grid.RowSpan="5" Panel.ZIndex="100" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,44" Background="#16243A" BorderBrush="#4E7EF8" BorderThickness="1" CornerRadius="9" Padding="14,9" IsHitTestVisible="False">
+        <Border x:Name="ToastBanner" Grid.RowSpan="5" Panel.ZIndex="100" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,38" Background="#16161A" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" CornerRadius="4" Padding="14,8" IsHitTestVisible="False">
             <Border.Effect>
-                <DropShadowEffect Color="#000000" BlurRadius="18" ShadowDepth="4" Opacity="0.55" />
+                <DropShadowEffect Color="#000000" BlurRadius="16" ShadowDepth="4" Opacity="0.65" />
             </Border.Effect>
-            <TextBlock x:Name="ToastText" FontSize="13" FontWeight="SemiBold" Foreground="#E6F0FF" MaxWidth="420" TextWrapping="Wrap" />
+            <TextBlock x:Name="ToastText" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" MaxWidth="420" TextWrapping="Wrap" />
         </Border>
     </Grid>
 </Window>

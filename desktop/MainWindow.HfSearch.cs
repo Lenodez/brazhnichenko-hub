@@ -160,7 +160,7 @@ public partial class MainWindow
             HfFilesHeaderText.Text = "Шаг 2. Выбери файл под свою видеокарту";
             StatusFooterText.Text = _hfSearchResults.Count > 0
                 ? $"Найдено подходящих репозиториев: {_hfSearchResults.Count}. Кликни по строке слева."
-                : "Ничего не найдено — попробуй упростить запрос или переключить режим на «🌐 Все форматы».";
+                : "Ничего не найдено — попробуй упростить запрос или переключить режим на «Все форматы».";
         }
         catch (Exception ex)
         {
@@ -182,7 +182,7 @@ public partial class MainWindow
             Text = r.RepoId,
             FontSize = 12,
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushFromHex("#E6EBF5"),
+            Foreground = BrushFromHex("#F4F4F6"),
             TextTrimming = TextTrimming.CharacterEllipsis
         });
 
@@ -192,34 +192,42 @@ public partial class MainWindow
             meta.Children.Add(new Border
             {
                 Background = BrushFromHex(bg),
-                CornerRadius = new CornerRadius(4),
+                CornerRadius = new CornerRadius(3),
                 Padding = new Thickness(5, 1, 5, 1),
                 Margin = new Thickness(0, 0, 5, 2),
-                Child = new TextBlock { Text = txt, FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = BrushFromHex(fg) }
+                Child = new TextBlock
+                {
+                    Text = txt,
+                    FontSize = 9.5,
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = BrushFromHex(fg)
+                }
             });
         }
 
         if (lower.Contains("gguf"))
-            AddBadge("GGUF ✓", "#1B3359", "#8AB4FF");
+            AddBadge("GGUF ✓", "#1C1C22", "#E4E4E8");
         else if (lower.Contains("mlx"))
-            AddBadge("⚠ Только Mac (MLX)", "#3B2424", "#F28B82");
+            AddBadge("MLX / MAC", "#261416", "#F87171");
         else if (lower.Contains("lora"))
-            AddBadge("LoRA", "#1E3629", "#6AE89E");
+            AddBadge("LORA", "#11241C", "#34D399");
 
         if (lower.Contains("abliterated") || lower.Contains("uncensored") || lower.Contains("hauhaucs") || lower.Contains("heretic"))
-            AddBadge("Без цензуры", "#312046", "#D2A8FF");
+            AddBadge("UNCENSORED", "#24140F", "#FF521B");
         if (lower.Contains("thinking") || lower.Contains("r1"))
-            AddBadge("Thinking", "#16353B", "#5EEAD4");
+            AddBadge("THINK", "#19191F", "#A1A1AA");
         if (lower.Contains("a3b") || lower.Contains("moe"))
-            AddBadge("MoE (быстро с RAM)", "#1B3429", "#6AE89E");
+            AddBadge("MOE", "#11241C", "#34D399");
         if (r.Gated)
-            AddBadge("🔒 Gated", "#3A2E14", "#F5CB5C");
+            AddBadge("GATED", "#241D0E", "#F59E0B");
 
         meta.Children.Add(new TextBlock
         {
             Text = $"↓ {r.Downloads:N0}",
             FontSize = 10.5,
-            Foreground = BrushFromHex("#7E8BA6"),
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            Foreground = BrushFromHex("#71717A"),
             VerticalAlignment = VerticalAlignment.Center
         });
 
@@ -330,43 +338,43 @@ public partial class MainWindow
 
             if (isMmproj)
             {
-                badge = "Vision (mmproj)";
-                bg = "#1D283E"; fg = "#9EC0FF"; fits = true; tier = 2;
+                badge = "VISION (MMPROJ)";
+                bg = "#1A1A20"; fg = "#E4E4E8"; fits = true; tier = 2;
                 detail = "Дополнительный файл зрения (чтобы LLM понимала картинки). Основную модель нужно скачать отдельно.";
             }
             else if (isRawSharded)
             {
-                badge = "⚠ Сырой шард";
-                bg = "#3A2222"; fg = "#F28B82"; fits = false; tier = 3;
-                detail = "Это часть сырой серверной модели (.safetensors). Для запуска на ПК переключись слева на репозиторий с «-GGUF» в названии!";
+                badge = "▲ СЫРОЙ ШАРД";
+                bg = "#261416"; fg = "#F87171"; fits = false; tier = 3;
+                detail = "Это часть сырой серверной модели (.safetensors). Для запуска на ПК переключись слева на репозиторий с «-GGUF» в названии.";
             }
             else if (isLora)
             {
-                badge = "✓ LoRA";
-                bg = "#163526"; fg = "#6AE89E"; fits = true; tier = 0;
+                badge = "✓ LORA";
+                bg = "#11241C"; fg = "#34D399"; fits = true; tier = 0;
                 detail = $"Лёгкая LoRA ({gb * 1024:F0} МБ) — сохранится в ComfyUI\\models\\loras и сразу появится в выборе Доп. LoRA в Фото/Видео.";
             }
             else if (gb <= vramFitMax)
             {
-                badge = "✓ В GPU (быстро)";
-                bg = "#163526"; fg = "#6AE89E"; fits = true; tier = 0;
-                detail = $"Отлично! Файл ({gb:F1} ГБ) целиком поместится в твои {vramGb:F0} ГБ VRAM — будет максимальная скорость генерации.";
+                badge = "■ В GPU";
+                bg = "#11241C"; fg = "#34D399"; fits = true; tier = 0;
+                detail = $"Файл ({gb:F1} ГБ) целиком поместится в {vramGb:F0} ГБ VRAM — максимальная скорость генерации.";
             }
             else if (gb <= totalNoSwapMax + (isMoeRepo ? 2.5 : 0.0))
             {
-                badge = isMoeRepo ? "⚡ GPU+RAM (~20–35 tok/s)" : "🐢 GPU+RAM (~3–6 tok/s)";
-                bg = isMoeRepo ? "#16303D" : "#352C15";
-                fg = isMoeRepo ? "#5EEAD4" : "#F5CB5C";
+                badge = isMoeRepo ? "◧ GPU+RAM (20–35 tok/s)" : "◧ GPU+RAM (3–6 tok/s)";
+                bg = "#241D0E";
+                fg = "#F59E0B";
                 fits = true; tier = 1;
                 detail = isMoeRepo
-                    ? $"Поместится в связку {vramGb:F0} ГБ GPU + {ramGb:F0} ГБ ОЗУ ({gb:F1} ГБ). Т.к. это MoE (активно ~3B параметров), скорость останется бодрой (~20–35 tok/s)!"
-                    : $"Поместится в {vramGb:F0} ГБ GPU + {ramGb:F0} ГБ ОЗУ, но часть слоёв пойдёт через оперативку — плотная модель будет отвечать неторопливо (~3–6 tok/s).";
+                    ? $"Поместится в связку {vramGb:F0} ГБ GPU + {ramGb:F0} ГБ ОЗУ ({gb:F1} ГБ). MoE-архитектура (~3B активных параметров) сохранит скорость ~20–35 tok/s."
+                    : $"Поместится в {vramGb:F0} ГБ GPU + {ramGb:F0} ГБ ОЗУ, но часть слоёв пойдёт через оперативку (~3–6 tok/s).";
             }
             else
             {
-                badge = "✕ Уйдёт в swap";
-                bg = "#3D1E22"; fg = "#FF8E9B"; fits = false; tier = 3;
-                detail = $"Слишком тяжёлый файл ({gb:F1} ГБ) для {vramGb:F0} ГБ VRAM + {ramGb:F0} ГБ RAM (безопасный потолок без SSD-свопа ~{totalNoSwapMax:F0} ГБ). Выбери более компактный квант (меньше ГБ).";
+                badge = "□ SWAP";
+                bg = "#261416"; fg = "#F87171"; fits = false; tier = 3;
+                detail = $"Слишком тяжёлый файл ({gb:F1} ГБ) для {vramGb:F0} ГБ VRAM + {ramGb:F0} ГБ RAM (безопасный потолок без SSD-свопа ~{totalNoSwapMax:F0} ГБ). Выбери более компактный квант.";
             }
 
             if (parts.Count > 1)
@@ -426,22 +434,23 @@ public partial class MainWindow
         rightPanel.Children.Add(new TextBlock
         {
             Text = g.TotalGB >= 1.0 ? $"{g.TotalGB:F2} ГБ" : $"{g.TotalGB * 1024:F0} МБ",
-            FontSize = 11.5,
+            FontSize = 11,
             FontWeight = FontWeights.SemiBold,
             FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-            Foreground = BrushFromHex("#CFE0FF"),
+            Foreground = BrushFromHex("#D4D4D8"),
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 6, 0)
         });
         rightPanel.Children.Add(new Border
         {
             Background = BrushFromHex(g.FitBgHex),
-            CornerRadius = new CornerRadius(4),
+            CornerRadius = new CornerRadius(3),
             Padding = new Thickness(6, 2, 6, 2),
             Child = new TextBlock
             {
                 Text = g.FitBadge,
-                FontSize = 10,
+                FontSize = 9.5,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontWeight = FontWeights.SemiBold,
                 Foreground = BrushFromHex(g.FitFgHex)
             }
@@ -453,7 +462,7 @@ public partial class MainWindow
             Text = g.DisplayName,
             FontSize = 11.5,
             FontWeight = FontWeights.SemiBold,
-            Foreground = BrushFromHex("#E6EBF5"),
+            Foreground = BrushFromHex("#F4F4F6"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center
         });
@@ -465,7 +474,7 @@ public partial class MainWindow
             {
                 Text = g.QuantHint,
                 FontSize = 10.5,
-                Foreground = BrushFromHex("#8C96AD"),
+                Foreground = BrushFromHex("#A1A1AA"),
                 Margin = new Thickness(0, 2, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis
             });
