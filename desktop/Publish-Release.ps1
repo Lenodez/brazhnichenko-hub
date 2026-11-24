@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Builds Brazhnichenko Hub, computes SHA-256, uploads versioned installer to VPS release storage, and atomically updates latest.json.
 .EXAMPLE
@@ -8,7 +8,7 @@
 param(
     [string]$Version = "",
     [string]$Notes = "Обновление Brazhnichenko Hub",
-    [string]$VpsHost = $env:HUB_VPS_HOST,
+    [string]$VpsHost = "$env:HUB_VPS_HOST",
     [string]$RemoteRoot = "/var/www/localaihub",
     [switch]$KeepLocalApp,
     [switch]$TagGit

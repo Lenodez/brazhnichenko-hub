@@ -515,7 +515,7 @@ function switchView(name) {
   if (btnOpen) btnOpen.style.visibility = isChat ? 'visible' : 'hidden';
   if (btnNew) btnNew.style.visibility = isChat ? 'visible' : 'hidden';
   if (name === 'models') loadCatalog();
-  if (name === 'system') { loadSettings(); loadLogs(); refreshAssistantStatus(); }
+  if (name === 'system') { loadSettings(); loadLogs(); refreshAssistantStatus(); loadSttStatus(); }
 }
 
 function shortModelLabel(fileName, sizeGB) {
@@ -1056,11 +1056,39 @@ function stopSpeak() { if (window.AndroidHub) window.AndroidHub.stopSpeak(); }
 
 // ==================== NATIVE ANDROID BRIDGE & SYSTEM ASSISTANT ====================
 function startVoiceInput() {
+  haptic('tick');
   if (window.AndroidHub && window.AndroidHub.startVoiceInput) window.AndroidHub.startVoiceInput();
   else toast('Голосовой ввод доступен в Android APK');
 }
 
-window.onAndroidVoiceResult = function(text, autoSend, speakReply, forceWebSearch) {
+function stopOfflineVoice(cancel) {
+  haptic('tick');
+  if (window.AndroidHub && window.AndroidHub.stopOfflineVoice) window.AndroidHub.stopOfflineVoice(!!cancel);
+  const vb = document.getElementById('voiceBar');
+  if (vb && cancel) vb.style.display = 'none';
+}
+
+window.onAndroidVoiceState = function(state, detail, levelPct, seconds) {
+  const vb = document.getElementById('voiceBar');
+  const title = document.getElementById('voiceBarTitle');
+  const fill = document.getElementById('voiceBarFill');
+  if (!vb) return;
+  if (state === 'recording') {
+    vb.style.display = 'flex';
+    if (title) title.textContent = `Слушаю офлайн (${detail || 'STT'}) · ${Number(seconds || 0).toFixed(1)}с`;
+    if (fill) fill.style.width = `${Math.max(8, Math.min(100, levelPct || 0))}%`;
+  } else if (state === 'transcribing') {
+    vb.style.display = 'flex';
+    if (title) title.textContent = detail || 'Распознаю офлайн...';
+    if (fill) fill.style.width = '100%';
+  } else {
+    vb.style.display = 'none';
+  }
+};
+
+window.onAndroidVoiceResult = function(text, autoSend, speakReply, forceWebSearch, decodeMs) {
+  const vb = document.getElementById('voiceBar');
+  if (vb) vb.style.display = 'none';
   if (!text) return;
   switchView('chat');
   const inp = document.getElementById('chatInput');
@@ -1071,7 +1099,7 @@ window.onAndroidVoiceResult = function(text, autoSend, speakReply, forceWebSearc
     sendChat({ speakReply: !!speakReply, webSearch: typeof forceWebSearch === 'boolean' ? forceWebSearch : undefined });
   } else {
     inp.focus();
-    toast('Распознано голосом');
+    toast(decodeMs ? `Распознано офлайн за ${(decodeMs / 1000).toFixed(2)}с` : 'Распознано голосом');
   }
 };
 
@@ -1455,6 +1483,96 @@ async function loadLogs() {
   const res = await fetch('/api/llm/logs');
   const data = await res.json();
   document.getElementById('logsBox').textContent = data.logs;
+}
+
+// ==================== 100% OFFLINE STT MANAGEMENT (GIGAAM / WHISPER) ====================
+let sttPollTimer = null;
+
+async function loadSttStatus() {
+  try {
+    const res = await fetch('/api/stt/status');
+    const st = await res.json();
+    const pill = document.getElementById('sttStatusPill');
+    const modeSel = document.getElementById('cfgSttMode');
+    const dlWrap = document.getElementById('sttDlWrap');
+    const dlLbl = document.getElementById('sttDlLabel');
+    const dlPct = document.getElementById('sttDlPct');
+    const dlFill = document.getElementById('sttDlFill');
+    const list = document.getElementById('sttModelsList');
+
+    if (modeSel) modeSel.value = st.sttMode === 'system' ? 'system' : 'auto';
+    if (pill) {
+      pill.textContent = st.offlineReady ? 'Офлайн ✓' : 'Системный';
+      pill.className = 'pill ' + (st.offlineReady ? 'ok' : '');
+    }
+    if (dlWrap) {
+      if (st.dlState === 'downloading') {
+        dlWrap.style.display = 'flex';
+        if (dlLbl) dlLbl.textContent = 'Скачивание ' + (st.dlModelId || 'STT') + '...';
+        if (dlPct) dlPct.textContent = `${st.dlPercent || 0}%`;
+        if (dlFill) dlFill.style.width = `${st.dlPercent || 0}%`;
+        if (!sttPollTimer) sttPollTimer = setInterval(loadSttStatus, 700);
+      } else {
+        dlWrap.style.display = 'none';
+        if (sttPollTimer) { clearInterval(sttPollTimer); sttPollTimer = null; }
+        if (st.dlState === 'error' && st.dlError) toast('Ошибка скачивания STT: ' + st.dlError);
+      }
+    }
+    if (list && st.models) {
+      list.innerHTML = st.models.map(m => `
+        <div class="stt-item ${m.active ? 'active' : ''}">
+          <div class="row" style="justify-content:space-between;">
+            <strong style="font-size:13px;">${esc(m.name)}</strong>
+            <span class="pill mono">${m.sizeMB} МБ</span>
+          </div>
+          <div class="muted">${esc(m.desc)}</div>
+          <div class="row" style="justify-content:flex-end;">
+            ${m.installed
+              ? `${m.active
+                  ? '<span class="pill ok">Активна ✓</span>'
+                  : `<button class="btn ok sm" onclick="selectSttModel('${esc(m.id)}')">Выбрать</button>`}
+                 <button class="btn danger sm" onclick="deleteSttModel('${esc(m.id)}')">Удалить</button>`
+              : `<button class="btn primary sm" onclick="downloadSttModel('${esc(m.id)}')">Скачать (${m.sizeMB} МБ)</button>`}
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (e) { }
+}
+
+async function saveSttMode() {
+  const sttMode = document.getElementById('cfgSttMode').value;
+  await fetch('/api/stt/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sttMode }) });
+  toast('Режим голоса сохранён');
+  loadSttStatus();
+}
+
+async function selectSttModel(modelId) {
+  haptic('confirm');
+  await fetch('/api/stt/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sttMode: 'auto', sttModel: modelId }) });
+  toast('Офлайн-модель речи активирована');
+  loadSttStatus();
+}
+
+async function downloadSttModel(modelId) {
+  haptic('confirm');
+  await fetch('/api/stt/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelId }) });
+  toast('Скачивание офлайн-модели речи начато');
+  loadSttStatus();
+}
+
+async function cancelSttDownload() {
+  await fetch('/api/stt/cancel', { method: 'POST' });
+  toast('Загрузка STT отменена');
+  loadSttStatus();
+}
+
+async function deleteSttModel(modelId) {
+  const ok = await m3Confirm('Удалить модель речи?', 'Файлы офлайн-STT будут удалены с устройства.', 'Удалить', true);
+  if (!ok) return;
+  await fetch('/api/stt/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelId }) });
+  toast('Модель речи удалена');
+  loadSttStatus();
 }
 
 // ==================== IN-APP GITHUB RELEASES AUTO-UPDATER ====================

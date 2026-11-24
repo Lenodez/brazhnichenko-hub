@@ -124,8 +124,38 @@ public class LocalHubServer {
                 JSONObject o = new JSONObject();
                 o.put("ok", true);
                 o.put("app", "Brazhnichenko Hub Android");
-                o.put("version", "4.7.0");
+                o.put("version", "4.8.0");
                 sendJson(rawOut, 200, o.toString());
+                return;
+            }
+            if ("/api/stt/status".equals(path)) {
+                sendJson(rawOut, 200, OfflineVoiceEngine.getStatusJson(ctx).toString());
+                return;
+            }
+            if ("/api/stt/download".equals(path) && "POST".equals(method)) {
+                JSONObject req = new JSONObject(bodyStr);
+                OfflineVoiceEngine.startDownload(ctx, req.optString("modelId", OfflineVoiceEngine.MODEL_GIGAAM));
+                sendJson(rawOut, 200, "{\"ok\":true}");
+                return;
+            }
+            if ("/api/stt/cancel".equals(path) && "POST".equals(method)) {
+                OfflineVoiceEngine.cancelDownload();
+                sendJson(rawOut, 200, "{\"ok\":true}");
+                return;
+            }
+            if ("/api/stt/delete".equals(path) && "POST".equals(method)) {
+                JSONObject req = new JSONObject(bodyStr);
+                OfflineVoiceEngine.deleteModel(ctx, req.optString("modelId", ""));
+                sendJson(rawOut, 200, "{\"ok\":true}");
+                return;
+            }
+            if ("/api/stt/select".equals(path) && "POST".equals(method)) {
+                JSONObject req = new JSONObject(bodyStr);
+                SharedPreferences.Editor ed = models.getPrefs().edit();
+                if (req.has("sttMode")) ed.putString("stt_mode", req.getString("sttMode"));
+                if (req.has("sttModel")) ed.putString("stt_model", req.getString("sttModel"));
+                ed.apply();
+                sendJson(rawOut, 200, OfflineVoiceEngine.getStatusJson(ctx).toString());
                 return;
             }
             if ("/api/update/check".equals(path)) {
@@ -699,7 +729,7 @@ public class LocalHubServer {
         }
 
         JSONObject o = new JSONObject();
-        o.put("version", "4.7.0");
+        o.put("version", "4.8.0");
         o.put("device", models.getDeviceSocLabel());
         o.put("androidVersion", "Android " + Build.VERSION.RELEASE);
         o.put("cpuCores", Runtime.getRuntime().availableProcessors());
@@ -774,6 +804,7 @@ public class LocalHubServer {
             }
         } catch (Exception ignored) { }
 
+        OfflineVoiceEngine.unloadRecognizer();
         System.gc();
         Runtime.getRuntime().gc();
         try { Thread.sleep(380); } catch (InterruptedException ignored) { }

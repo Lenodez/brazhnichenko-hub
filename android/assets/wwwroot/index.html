@@ -18,7 +18,7 @@
         <div class="brand">
           <span class="brand-full">Brazhnichenko Hub</span>
           <span class="brand-short">Hub AI</span>
-          <span class="pill info mono ver-pill">v4.7</span>
+          <span class="pill info mono ver-pill">v4.8</span>
         </div>
       </div>
       <div class="head-right">
@@ -132,6 +132,21 @@
             <button class="chip" onclick="applyQuickPrompt('Проверь этот документ на скрытые риски, штрафы и подводные камни. Выдай короткий список:')">Риски договора</button>
             <button class="chip" onclick="applyQuickPrompt('Переведи естественно на русский (или английский, если текст на русском) и объясни сложные термины:')">Перевести</button>
             <button class="chip" onclick="applyQuickPrompt('Извлеки все реквизиты, суммы и даты с этого фото/документа в аккуратную таблицу Markdown:')">В таблицу</button>
+          </div>
+
+          <!-- OFFLINE VOICE RECORDING BAR -->
+          <div id="voiceBar" class="voice-bar" style="display:none;">
+            <div class="voice-left">
+              <span class="rec-dot"></span>
+              <div style="min-width:0;flex:1;">
+                <div id="voiceBarTitle" class="voice-title">Слушаю офлайн...</div>
+                <div class="voice-meter"><div id="voiceBarFill" class="voice-fill"></div></div>
+              </div>
+            </div>
+            <div class="row" style="flex-shrink:0;">
+              <button class="btn primary sm" onclick="stopOfflineVoice(false)">Готово</button>
+              <button class="btn danger sm" onclick="stopOfflineVoice(true)">×</button>
+            </div>
           </div>
 
           <!-- UNIFIED MODERN COMPOSER CAPSULE -->
@@ -335,11 +350,38 @@
         <div id="modelsPathText" class="muted mono" style="word-break:break-all;font-size:11px;"></div>
       </div>
 
+      <!-- 100% Offline Speech-to-Text (Sherpa-ONNX: GigaAM v2 / Whisper) -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Офлайн-голос / STT (без Google)</strong>
+          <span id="sttStatusPill" class="pill">Системный</span>
+        </div>
+        <div class="muted">Работает даже в авиарежиме. Модель загружается в память только во время диктовки и выгружается кнопкой «Освободить RAM».</div>
+        <div class="sys-field">
+          <div class="muted">Режим распознавания речи</div>
+          <select id="cfgSttMode" style="width:100%;" onchange="saveSttMode()">
+            <option value="auto">Авто (Офлайн-модель → Системный Android)</option>
+            <option value="system">Только системный Android STT</option>
+          </select>
+        </div>
+        <div id="sttDlWrap" style="display:none;flex-direction:column;gap:5px;">
+          <div class="row" style="justify-content:space-between;font-size:12px;">
+            <span id="sttDlLabel">Скачивание модели речи...</span>
+            <div class="row">
+              <span id="sttDlPct" class="mono">0%</span>
+              <button class="btn danger sm" onclick="cancelSttDownload()">×</button>
+            </div>
+          </div>
+          <div class="bar-track"><div id="sttDlFill" class="bar-fill" style="width:0%;"></div></div>
+        </div>
+        <div id="sttModelsList" style="display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
+
       <!-- In-App Auto-Updater (GitHub Releases) -->
       <div class="card">
         <div class="row" style="justify-content:space-between;">
           <strong>Обновления (GitHub Releases)</strong>
-          <span id="updVersionPill" class="pill mono">v4.7.0</span>
+          <span id="updVersionPill" class="pill mono">v4.8.0</span>
         </div>
         <div id="updStatusText" class="muted">Репозиторий: github.com/Lenodez/brazhnichenko-hub</div>
         <div id="updProgWrap" style="display:none;flex-direction:column;gap:5px;">

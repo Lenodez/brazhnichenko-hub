@@ -75,6 +75,7 @@ public class MainActivity extends Activity {
     private static final int VOICE_REQ = 4104;
     private static final int CAMERA_REQ = 4105;
     private static final int DOC_REQ = 4106;
+    private static final int AUDIO_PERM_REQ = 4107;
     private static final String HUB_URL = "http://127.0.0.1:" + LocalHubServer.PORT + "/";
 
     private WebView webView;
@@ -593,16 +594,77 @@ public class MainActivity extends Activity {
 
     private void launchVoiceInput() {
         mainHandler.post(() -> {
-            try {
-                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU");
-                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Говорите запрос для локальной LLM...");
-                startActivityForResult(intent, VOICE_REQ);
-            } catch (Exception e) {
-                Toast.makeText(MainActivity.this, "Голосовой ввод недоступен на устройстве", Toast.LENGTH_SHORT).show();
+            if (OfflineVoiceEngine.isRecording()) {
+                OfflineVoiceEngine.stopRecording(false);
+                return;
+            }
+            String offlineModel = OfflineVoiceEngine.getActiveInstalledModel(this);
+            if (!offlineModel.isEmpty()) {
+                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, AUDIO_PERM_REQ);
+                    return;
+                }
+                startOfflineVoiceCapture();
+                return;
+            }
+            launchSystemVoiceInput();
+        });
+    }
+
+    private void startOfflineVoiceCapture() {
+        OfflineVoiceEngine.startCaptureAndTranscribe(this, new OfflineVoiceEngine.VoiceCallback() {
+            @Override
+            public void onState(String state, String detail, int levelPct, double seconds) {
+                evalJs("window.onAndroidVoiceState && window.onAndroidVoiceState("
+                        + JSONObject.quote(state) + ", " + JSONObject.quote(detail) + ", "
+                        + levelPct + ", " + String.format(Locale.US, "%.1f", seconds) + ")");
+            }
+
+            @Override
+            public void onResult(String text, long decodeMs) {
+                boolean autoSend = pendingAssistAutoSend;
+                boolean autoTts = pendingAssistAutoTts;
+                boolean webSearch = pendingAssistWebSearch;
+                pendingAssistAutoSend = false;
+                pendingAssistAutoTts = false;
+                pendingAssistWebSearch = false;
+                evalJs("window.onAndroidVoiceResult && window.onAndroidVoiceResult("
+                        + JSONObject.quote(text) + ", " + autoSend + ", " + autoTts + ", " + webSearch + ", " + decodeMs + ")");
+            }
+
+            @Override
+            public void onError(String message) {
+                pendingAssistAutoSend = false;
+                pendingAssistAutoTts = false;
+                pendingAssistWebSearch = false;
+                showToast(message);
             }
         });
+    }
+
+    private void launchSystemVoiceInput() {
+        try {
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU");
+            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Говорите запрос для локальной LLM...");
+            startActivityForResult(intent, VOICE_REQ);
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, "Голосовой ввод недоступен на устройстве", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == AUDIO_PERM_REQ) {
+            if (grantResults != null && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startOfflineVoiceCapture();
+            } else {
+                showToast("Нужен доступ к микрофону для офлайн-распознавания речи");
+            }
+        }
     }
 
     private void launchCamera() {
@@ -748,6 +810,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void startVoiceInput() {
             launchVoiceInput();
+        }
+
+        @JavascriptInterface
+        public void stopOfflineVoice(boolean cancel) {
+            OfflineVoiceEngine.stopRecording(cancel);
         }
 
         @JavascriptInterface

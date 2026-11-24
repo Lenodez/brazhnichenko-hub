@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "4.7.0",
+    [string]$Version = "4.8.0",
     [string]$AndroidSdk = $(if ($env:ANDROID_HOME) { $env:ANDROID_HOME } elseif ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { "d:\LocalMediaAI\android-sdk" })
 )
 
@@ -84,6 +84,22 @@ foreach ($so in $requiredSos) {
 $PrebuiltJni = Join-Path $AndroidProj "jni\prebuilt\arm64-v8a\libhub_jni.so"
 if (-not (Test-Path $PrebuiltJni)) { throw "libhub_jni.so not found at $PrebuiltJni" }
 Copy-Item $PrebuiltJni (Join-Path $JniDir "libhub_jni.so") -Force
+
+# 2c. Stage Sherpa-ONNX arm64-v8a self-contained JNI library for 100% offline Speech-to-Text (GigaAM v2 / Whisper)
+$SherpaTar = Join-Path $CacheDir "sherpa-onnx-v2.0.3-android-static.tar.bz2"
+if (-not (Test-Path $SherpaTar)) {
+    Write-Host "==> Downloading Sherpa-ONNX Android ARM64 offline STT engine..." -ForegroundColor Cyan
+    Invoke-WebRequest -Uri "https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.3/sherpa-onnx-v2.0.3-android-static-link-onnxruntime.tar.bz2" -OutFile $SherpaTar -Headers @{"User-Agent"="BrazhnichenkoHub/4.8"}
+}
+$SherpaStage = Join-Path $BuildDir "sherpa-extract"
+New-Item -ItemType Directory -Path $SherpaStage -Force | Out-Null
+tar -xjf $SherpaTar -C $SherpaStage "./jniLibs/arm64-v8a/libsherpa-onnx-jni.so"
+$SherpaSo = Join-Path $SherpaStage "jniLibs\arm64-v8a\libsherpa-onnx-jni.so"
+if (Test-Path $SherpaSo) {
+    Copy-Item $SherpaSo (Join-Path $JniDir "libsherpa-onnx-jni.so") -Force
+} else {
+    Write-Warning "libsherpa-onnx-jni.so missing after extract"
+}
 
 # 3. Compile Android resources with aapt2
 Write-Host "==> Compiling resources & linking base APK..." -ForegroundColor Cyan

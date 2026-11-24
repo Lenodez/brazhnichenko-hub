@@ -27,7 +27,7 @@ public partial class MainWindow
         CfgAutoCheckUpdatesCheck.IsChecked = cfg.AutoCheckUpdatesOnStartup;
 
         string activeUrl = AppUpdateService.EffectiveServerBaseUrl;
-        UpdateSettingsStatusText.Text = $"Сервер обновлений: {activeUrl} (TLS + токен + SHA-256)";
+        UpdateSettingsStatusText.Text = $"Источник обновлений: {activeUrl} (GitHub Releases / HTTPS + SHA-256)";
     }
 
     internal void UpdateServerToggleBtn_Click(object sender, RoutedEventArgs e)

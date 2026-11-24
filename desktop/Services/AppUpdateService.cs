@@ -22,9 +22,8 @@ public sealed record UpdateCheckResult(
 
 public sealed class AppUpdateService
 {
-    public const string DefaultServerBaseUrl = "https://github.com/Lenodez/brazhnichenko-hub/releases/latest";
-    private const string DefaultHubAccessToken = "";
-    private const string DefaultPinnedCertSha256 = "";
+    public const string DefaultGitHubRepo = "Lenodez/brazhnichenko-hub";
+    public const string DefaultServerBaseUrl = "https://github.com/" + DefaultGitHubRepo;
 
     public static string EffectiveServerBaseUrl
     {
@@ -35,55 +34,41 @@ public sealed class AppUpdateService
         }
     }
 
-    private static string EffectiveToken
-    {
-        get
-        {
-            string custom = (HubConfig.Current.UpdateServerToken ?? "").Trim();
-            return string.IsNullOrWhiteSpace(custom) ? DefaultHubAccessToken : custom;
-        }
-    }
+    private static bool IsGitHubMode(string url) =>
+        url.Contains("github.com/", StringComparison.OrdinalIgnoreCase)
+        || url.Contains("api.github.com/", StringComparison.OrdinalIgnoreCase);
 
-    private static string EffectiveCertSha256
-    {
-        get
-        {
-            string custom = (HubConfig.Current.UpdateCertSha256 ?? "").Trim().Replace(":", "").Replace(" ", "");
-            if (!string.IsNullOrWhiteSpace(custom)) return custom;
-            // Use built-in pin only for the built-in default server; for custom URL without pin allow valid CA or explicit "ANY"
-            return string.Equals(EffectiveServerBaseUrl, DefaultServerBaseUrl, StringComparison.OrdinalIgnoreCase)
-                ? DefaultPinnedCertSha256
-                : "";
-        }
-    }
+    private static string EffectiveToken => (HubConfig.Current.UpdateServerToken ?? "").Trim();
+
+    private static string EffectiveCertSha256 =>
+        (HubConfig.Current.UpdateCertSha256 ?? "").Trim().Replace(":", "").Replace(" ", "");
 
     public static string CurrentVersion
     {
         get
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;
-            if (v is null) return "2.3.1";
+            if (v is null) return "4.8.0";
             return $"{v.Major}.{v.Minor}.{Math.Max(0, v.Build)}";
         }
     }
 
-    private static HttpClient CreatePinnedClient(TimeSpan timeout)
+    private static HttpClient CreateHttpClient(TimeSpan timeout, bool includeCustomToken)
     {
         string expectedPin = EffectiveCertSha256;
-        string token = EffectiveToken;
+        string token = includeCustomToken ? EffectiveToken : "";
 
         var handler = new SocketsHttpHandler
         {
-            ConnectTimeout = TimeSpan.FromSeconds(6),
+            ConnectTimeout = TimeSpan.FromSeconds(8),
+            AllowAutoRedirect = true,
             SslOptions = new System.Net.Security.SslClientAuthenticationOptions
             {
                 RemoteCertificateValidationCallback = (_, cert, _, sslErrors) =>
                 {
                     if (cert is null) return false;
-                    // Standard trusted HTTPS CA (e.g. Let's Encrypt on a custom domain)
                     if (sslErrors == System.Net.Security.SslPolicyErrors.None)
                         return true;
-                    // Explicit self-signed trust mode if user entered "trust" / "*" for a custom IP
                     if (expectedPin.Equals("trust", StringComparison.OrdinalIgnoreCase) || expectedPin == "*")
                         return true;
                     if (!string.IsNullOrWhiteSpace(expectedPin))
@@ -92,9 +77,7 @@ public sealed class AppUpdateService
                         string fp = x509.GetCertHashString(HashAlgorithmName.SHA256);
                         return string.Equals(fp, expectedPin, StringComparison.OrdinalIgnoreCase);
                     }
-                    // If user switched to a custom IP without entering a cert SHA-256 pin yet,
-                    // allow self-signed TLS (payload integrity is still enforced by SHA-256 check on .exe!)
-                    return !string.Equals(EffectiveServerBaseUrl, DefaultServerBaseUrl, StringComparison.OrdinalIgnoreCase);
+                    return false;
                 }
             }
         };
@@ -102,7 +85,7 @@ public sealed class AppUpdateService
         var http = new HttpClient(handler) { Timeout = timeout };
         if (!string.IsNullOrWhiteSpace(token))
             http.DefaultRequestHeaders.Add("X-Hub-Token", token);
-        http.DefaultRequestHeaders.UserAgent.ParseAdd($"LocalAIHub/{CurrentVersion}");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd($"BrazhnichenkoHub/{CurrentVersion}");
         return http;
     }
 
@@ -110,9 +93,81 @@ public sealed class AppUpdateService
     {
         string cur = CurrentVersion;
         string baseUrl = EffectiveServerBaseUrl;
+        return IsGitHubMode(baseUrl)
+            ? await CheckGitHubReleaseAsync(baseUrl, cur, ct)
+            : await CheckCustomServerAsync(baseUrl, cur, ct);
+    }
+
+    private async Task<UpdateCheckResult> CheckGitHubReleaseAsync(string baseUrl, string cur, CancellationToken ct)
+    {
         try
         {
-            using var http = CreatePinnedClient(TimeSpan.FromSeconds(8));
+            string apiUrl = ResolveGitHubLatestApi(baseUrl);
+            using var http = CreateHttpClient(TimeSpan.FromSeconds(10), includeCustomToken: false);
+            http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+            using var resp = await http.GetAsync(apiUrl, ct);
+            resp.EnsureSuccessStatusCode();
+            string json = await resp.Content.ReadAsStringAsync(ct);
+
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            string tag = root.TryGetProperty("tag_name", out var tEl) ? (tEl.GetString() ?? "").Trim() : "";
+            string latest = tag.TrimStart('v', 'V');
+            string notes = root.TryGetProperty("body", out var bEl) ? (bEl.GetString() ?? "").Trim() : "";
+            if (notes.Length > 320) notes = notes[..320].Trim() + "…";
+            string pub = root.TryGetProperty("published_at", out var pEl) ? (pEl.GetString() ?? "").Trim() : "";
+
+            string exeUrl = "";
+            string sha256 = "";
+            long sizeBytes = 0;
+
+            if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var a in assets.EnumerateArray())
+                {
+                    string name = a.TryGetProperty("name", out var nEl) ? (nEl.GetString() ?? "") : "";
+                    if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) continue;
+                    exeUrl = a.TryGetProperty("browser_download_url", out var uEl) ? (uEl.GetString() ?? "").Trim() : "";
+                    sizeBytes = a.TryGetProperty("size", out var sEl) && sEl.TryGetInt64(out long sz) ? sz : 0;
+                    if (a.TryGetProperty("digest", out var dEl))
+                    {
+                        string dg = (dEl.GetString() ?? "").Trim();
+                        if (dg.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+                            sha256 = dg["sha256:".Length..].Trim();
+                    }
+                    if (name.Contains("Setup", StringComparison.OrdinalIgnoreCase)) break;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(latest))
+                return new UpdateCheckResult(false, false, cur, cur, "", "", "", 0, "", "Не найден tag_name в GitHub Release.");
+
+            bool hasUpdate = CompareVersions(latest, cur) > 0 && !string.IsNullOrWhiteSpace(exeUrl);
+            return new UpdateCheckResult(true, hasUpdate, cur, latest, notes, exeUrl, sha256, sizeBytes, pub);
+        }
+        catch (Exception ex)
+        {
+            return new UpdateCheckResult(false, false, cur, cur, "", "", "", 0, "", ex.Message);
+        }
+    }
+
+    private static string ResolveGitHubLatestApi(string url)
+    {
+        if (url.Contains("api.github.com/repos/", StringComparison.OrdinalIgnoreCase))
+            return url.EndsWith("/releases/latest", StringComparison.OrdinalIgnoreCase) ? url : url.TrimEnd('/') + "/releases/latest";
+
+        // Convert https://github.com/{owner}/{repo}[/...] -> https://api.github.com/repos/{owner}/{repo}/releases/latest
+        var uri = new Uri(url);
+        var segs = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+        string repo = segs.Length >= 2 ? $"{segs[0]}/{segs[1]}" : DefaultGitHubRepo;
+        return $"https://api.github.com/repos/{repo}/releases/latest";
+    }
+
+    private async Task<UpdateCheckResult> CheckCustomServerAsync(string baseUrl, string cur, CancellationToken ct)
+    {
+        try
+        {
+            using var http = CreateHttpClient(TimeSpan.FromSeconds(8), includeCustomToken: true);
             using var resp = await http.GetAsync($"{baseUrl}/latest.json", ct);
             resp.EnsureSuccessStatusCode();
             string json = await resp.Content.ReadAsStringAsync(ct);
@@ -153,7 +208,8 @@ public sealed class AppUpdateService
         string finalPath = Path.Combine(updatesDir, $"LocalAIHub-Setup-{safeVer}.exe");
         string partPath = finalPath + ".part";
 
-        using var http = CreatePinnedClient(TimeSpan.FromMinutes(3));
+        bool custom = !IsGitHubMode(info.DownloadUrl);
+        using var http = CreateHttpClient(TimeSpan.FromMinutes(3), includeCustomToken: custom);
         using var resp = await http.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
         resp.EnsureSuccessStatusCode();
 
@@ -173,7 +229,6 @@ public sealed class AppUpdateService
             }
         }
 
-        // Mandatory SHA-256 verification before executing downloaded binary
         if (!string.IsNullOrWhiteSpace(info.Sha256))
         {
             await using var fs = new FileStream(partPath, FileMode.Open, FileAccess.Read, FileShare.Read);
