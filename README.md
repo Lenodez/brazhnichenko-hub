@@ -10,17 +10,17 @@
 
 ## Скачать готовые сборки (Все платформы)
 
-Перейди в [**Releases → Latest (`v4.7.0`)**](https://github.com/Lenodez/brazhnichenko-hub/releases/latest) и выбери файл под свою систему:
+Перейди в [**Releases → Latest (`v4.9.0`)**](https://github.com/Lenodez/brazhnichenko-hub/releases/latest) и выбери файл под свою систему:
 
 | Платформа | Файл в Releases | Описание |
 |---|---|---|
-| **Android (ARM64 NPU/GPU)** | `BrazhnichenkoHub-Android-arm64.apk` (~61 МБ) | Snapdragon Hexagon NPU + Adreno GPU + CPU, системный ассистент, автообновление |
-| **Windows (x64)** | `LocalAIHub-Setup.exe` (~1.6 МБ) | Универсальный GUI-установщик WPF приложения (LLM, ComfyUI, фото/видео, голос) |
-| **macOS (Apple Silicon M1–M4)** | `BrazhnichenkoHub-macOS-arm64.tar.gz` (~74 МБ) | Готовый `Brazhnichenko Hub.app` бандл (self-contained) |
-| **Linux (x64)** | `BrazhnichenkoHub-linux-x64.tar.gz` (~80 МБ) | Self-contained сборка + `run.sh` и `install-desktop.sh` |
-| **Linux (ARM64)** | `BrazhnichenkoHub-linux-arm64.tar.gz` (~75 МБ) | Self-contained сборка для ARM64 устройств и серверов |
+| **Android (ARM64 NPU/GPU)** | `BrazhnichenkoHub-Android-arm64.apk` | Snapdragon Hexagon NPU + Adreno GPU + CPU, системный ассистент с отдельной моделью, офлайн-голос (Sherpa-ONNX), автообновление |
+| **Windows (x64)** | `LocalAIHub-Setup.exe` | Нативное WPF приложение (.NET 11): безопасный системный ассистент ПК (хоткей + трей + Vision экрана), локальные LLM, поиск в сети, ComfyUI, автообновление |
+| **macOS (Apple Silicon M1–M4)** | `BrazhnichenkoHub-macOS-arm64.tar.gz` | Готовый `Brazhnichenko Hub.app` бандл (self-contained) |
+| **Linux (x64)** | `BrazhnichenkoHub-linux-x64.tar.gz` | Self-contained сборка + `run.sh` и `install-desktop.sh` |
+| **Linux (ARM64)** | `BrazhnichenkoHub-linux-arm64.tar.gz` | Self-contained сборка для ARM64 устройств и серверов |
 
-> **Android:** после установки `v4.7.0` дальнейшие обновления приходят и устанавливаются **прямо внутри приложения** («Система» → «Обновления (GitHub Releases)»).
+> **Автообновление:** и на **Android**, и на **Windows** дальнейшие релизы проверяются и устанавливаются в 1 клик прямо из приложения через `GitHub Releases`.
 
 ---
 
@@ -38,7 +38,7 @@
 
 - **Нативное ускорение Qualcomm Hexagon NPU (HTP v73–v85) + Adreno OpenCL GPU + ARM64 CPU** — встроенный `llama.cpp` запускается в изолированном процессе `:llama` через собственный JNI-мост (`libhub_jni.so`), без root и без Termux. Проверено на Snapdragon `SM8850` (Galaxy Z Fold 8): `Qwen3-8B Q4_K_M` ~`11+ tok/s`, `Qwen3-4B` ~`25–40 tok/s`.
 - **Никакого автопрогрева и фонового расхода батареи** — модель не загружается в RAM/NPU до явного запроса пользователя и автоматически выгружается по таймеру простоя.
-- **Системный цифровой ассистент (замена Google Assistant / Gemini)** — полноценный `VoiceInteractionService`: вызов по зажатию кнопки питания, свайпу с угла или кнопке гарнитуры → голосовой ввод → ответ на NPU → офлайн-озвучка TTS + захват скриншота экрана для Vision-моделей.
+- **Системный цифровой ассистент с отдельной моделью (замена Google Assistant / Gemini)** — полноценный `VoiceInteractionService`: вызов по зажатию кнопки питания, свайпу с угла или кнопке гарнитуры → 100% офлайн-распознавание речи (**Sherpa-ONNX**: GigaAM v2 RU / Whisper Tiny) → ответ на выбранной именно для ассистента модели на NPU (не меняя основную модель чата) → офлайн-озвучка TTS + захват скриншота экрана для Vision-моделей.
 - **Гибридный веб-поиск (опционально)** — переключатель **`Сеть`** в капсуле ввода + автопоиск для системного ассистента. Из коробки работает бесплатно без ключей (`DuckDuckGo Lite + Google News RSS + Wikipedia`), опционально поддерживает API-ключи **Tavily** и **Brave Search**. При выключенном переключателе — **100% офлайн**.
 - **Контроль и сжатие контекста** — точный счётчик токенов из токенизатора `llama-server`, окно до `32 768`, кнопка **«Сжать контекст»** (суммаризация истории локальной LLM в компактную память), кастомный системный промпт на каждый чат, экспорт в Markdown, повтор генерации.
 - **Мультимодальность и документы** — Камера Vision, фото из галереи, чтение PDF (извлечение текста + рендер скан-страницы для Vision), TXT/MD/CSV/JSON.
@@ -50,7 +50,12 @@
 
 ## Возможности Windows Desktop (`desktop/`)
 
-- Нативное приложение на **.NET 8 WPF** для локальной работы с LLM (`llama.cpp`), генерации изображений/видео (`ComfyUI`), голосового ввода/TTS, каталога моделей и поиска по Hugging Face.
+- **Системный ассистент ПК (безопасный режим «Только чтение»)** — вызывается поверх любых окон по глобальному хоткею (`Alt+Space`, `Ctrl+Shift+Space`, `Alt+Q`) или кликом по отдельной иконке в системном трее:
+  - Автоматически видит текущий экран (**Vision** скриншот) и умеет переводить, объяснять и отвечать на вопросы по экрану.
+  - Поддерживает **голосовой (локальный Whisper STT)** и **текстовый** ввод (режим по умолчанию выбирается в настройках), гибридный **поиск в интернете** (DuckDuckGo + Google News + Wikipedia + опционально Tavily/Brave) и озвучку ответов (TTS).
+  - Выделенный выбор модели для ассистента — отдельно от основного чата.
+  - **Принципиально Read-Only по умолчанию:** ассистент не имеет инструментов для изменения файлов, запуска команд или модификации системы.
+- **Локальная AI-студия на .NET 11 WPF** — чистый локальный чат с гибридным поиском в сети и мультисессиями (`llama.cpp`), генерация фото и видео (`ComfyUI`), каталог моделей с анализом VRAM/RAM, поиск по Hugging Face, MCP-сервер и автообновление через `GitHub Releases`.
 
 ---
 
@@ -75,7 +80,7 @@ brazhnichenko-hub/
 3. Для подписи своим ключом опционально укажи `HUB_KEYSTORE_PATH`, `HUB_KEYSTORE_ALIAS`, `HUB_KEYSTORE_PASS` (иначе скрипт создаст локальный self-signed ключ автоматически).
 4. Запусти:
    ```powershell
-   pwsh -ExecutionPolicy Bypass -File .\desktop\Build-Android.ps1 -Version "4.7.0"
+   pwsh -ExecutionPolicy Bypass -File .\desktop\Build-Android.ps1 -Version "4.9.0"
    ```
    Готовый APK появится в `desktop\dist\BrazhnichenkoHub-Android-arm64.apk`.
 

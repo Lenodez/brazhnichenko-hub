@@ -44,6 +44,19 @@ public sealed class HubConfigData
     public string UpdateCertSha256 { get; set; } = "";
     public bool AutoCheckUpdatesOnStartup { get; set; } = true;
 
+    // System Desktop Assistant (Read-Only safe overlay via global hotkey & tray icon)
+    public bool DesktopAssistantEnabled { get; set; } = true;
+    public string DesktopAssistantHotkey { get; set; } = "Alt+Space";
+    public string DesktopAssistantModel { get; set; } = "";
+    public string DesktopAssistantInputMode { get; set; } = "text"; // text | voice
+    public bool DesktopAssistantAutoCaptureScreen { get; set; } = true;
+    public bool DesktopAssistantAutoWebSearch { get; set; } = true;
+    public bool DesktopAssistantAutoTts { get; set; } = false;
+
+    // Hybrid Web Search optional keys (free DuckDuckGo + Google News + Wikipedia works out of the box)
+    public string WebSearchTavilyKey { get; set; } = "";
+    public string WebSearchBraveKey { get; set; } = "";
+
     // UX state
     public bool FirstRunCompleted { get; set; } = false;
 }

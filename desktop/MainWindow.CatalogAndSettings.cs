@@ -780,9 +780,75 @@ public partial class MainWindow
 
     // ==================== SETTINGS, HF AUTH & MCP ====================
 
+    private void PopulateDesktopAssistantModelCombo()
+    {
+        if (CfgAssistModelCombo is null) return;
+        string current = HubConfig.Current.DesktopAssistantModel ?? "";
+        CfgAssistModelCombo.Items.Clear();
+        CfgAssistModelCombo.Items.Add(new ComboBoxItem { Content = "★ Текущая модель из чата (авто)", Tag = "" });
+
+        int selectedIdx = 0;
+        var models = _manager.GetAvailableLlmModels();
+        for (int i = 0; i < models.Count; i++)
+        {
+            var m = models[i];
+            bool hasVision = _manager.FindMatchingMmprojForModel(m.FileName) is not null;
+            string label = $"{m.DisplayName}{(hasVision ? " · Vision" : "")}";
+            CfgAssistModelCombo.Items.Add(new ComboBoxItem { Content = label, Tag = m.FileName });
+            if (string.Equals(m.FileName, current, StringComparison.OrdinalIgnoreCase))
+                selectedIdx = i + 1;
+        }
+
+        CfgAssistModelCombo.SelectedIndex = selectedIdx;
+    }
+
+    private void UpdateWebSearchBadgeUi()
+    {
+        if (CfgWebSearchBadgeText is null) return;
+        var cfg = HubConfig.Current;
+        bool hasTavily = !string.IsNullOrWhiteSpace(cfg.WebSearchTavilyKey);
+        bool hasBrave = !string.IsNullOrWhiteSpace(cfg.WebSearchBraveKey);
+        if (hasTavily && hasBrave)
+            CfgWebSearchBadgeText.Text = "Tavily + Brave + бесплатный";
+        else if (hasTavily)
+            CfgWebSearchBadgeText.Text = "Tavily + бесплатный";
+        else if (hasBrave)
+            CfgWebSearchBadgeText.Text = "Brave + бесплатный";
+        else
+            CfgWebSearchBadgeText.Text = "Бесплатный гибрид";
+    }
+
+    private static void SelectSettingsComboByTag(System.Windows.Controls.ComboBox? combo, string? tag)
+    {
+        if (combo is null) return;
+        for (int i = 0; i < combo.Items.Count; i++)
+        {
+            if (combo.Items[i] is ComboBoxItem item &&
+                string.Equals(item.Tag as string, tag, StringComparison.OrdinalIgnoreCase))
+            {
+                combo.SelectedIndex = i;
+                return;
+            }
+        }
+        if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+    }
+
     private void LoadSettingsForm()
     {
         var cfg = HubConfig.Current;
+
+        // Desktop Assistant & Hybrid Web Search
+        PopulateDesktopAssistantModelCombo();
+        SelectSettingsComboByTag(CfgAssistHotkeyCombo, cfg.DesktopAssistantHotkey);
+        SelectSettingsComboByTag(CfgAssistInputModeCombo, cfg.DesktopAssistantInputMode);
+        if (CfgAssistEnabledCheck is not null) CfgAssistEnabledCheck.IsChecked = cfg.DesktopAssistantEnabled;
+        if (CfgAssistScreenCheck is not null) CfgAssistScreenCheck.IsChecked = cfg.DesktopAssistantAutoCaptureScreen;
+        if (CfgAssistWebCheck is not null) CfgAssistWebCheck.IsChecked = cfg.DesktopAssistantAutoWebSearch;
+        if (CfgAssistTtsCheck is not null) CfgAssistTtsCheck.IsChecked = cfg.DesktopAssistantAutoTts;
+        if (CfgTavilyKeyBox is not null) CfgTavilyKeyBox.Password = cfg.WebSearchTavilyKey ?? "";
+        if (CfgBraveKeyBox is not null) CfgBraveKeyBox.Password = cfg.WebSearchBraveKey ?? "";
+        UpdateWebSearchBadgeUi();
+
         CfgLlmRootBox.Text = cfg.LlmRoot;
         CfgMediaRootBox.Text = cfg.MediaRoot;
         CfgStoriesRootBox.Text = cfg.StoriesRoot;
@@ -1015,6 +1081,39 @@ public partial class MainWindow
         finally
         {
             TestMcpBtn.IsEnabled = true;
+        }
+    }
+
+    internal void SaveDesktopAssistantBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var cfg = HubConfig.Current;
+        cfg.DesktopAssistantModel = (CfgAssistModelCombo?.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+        cfg.DesktopAssistantHotkey = (CfgAssistHotkeyCombo?.SelectedItem as ComboBoxItem)?.Tag as string ?? "Alt+Space";
+        cfg.DesktopAssistantInputMode = (CfgAssistInputModeCombo?.SelectedItem as ComboBoxItem)?.Tag as string ?? "text";
+        cfg.DesktopAssistantEnabled = CfgAssistEnabledCheck?.IsChecked ?? true;
+        cfg.DesktopAssistantAutoCaptureScreen = CfgAssistScreenCheck?.IsChecked ?? true;
+        cfg.DesktopAssistantAutoWebSearch = CfgAssistWebCheck?.IsChecked ?? true;
+        cfg.DesktopAssistantAutoTts = CfgAssistTtsCheck?.IsChecked ?? false;
+        cfg.WebSearchTavilyKey = CfgTavilyKeyBox?.Password.Trim() ?? "";
+        cfg.WebSearchBraveKey = CfgBraveKeyBox?.Password.Trim() ?? "";
+        HubConfig.Save();
+
+        bool hkOk = RefreshDesktopAssistantHooks();
+        UpdateWebSearchBadgeUi();
+
+        if (!hkOk && !string.Equals(cfg.DesktopAssistantHotkey, "None", StringComparison.OrdinalIgnoreCase))
+        {
+            string warn = $"Настройки сохранены, но комбинация {cfg.DesktopAssistantHotkey} занята другой программой — выбери другой хоткей (например Ctrl+Shift+Space или Alt+Q).";
+            StatusFooterText.Text = warn;
+            ShowToast("Хоткей занят другой программой", "warn");
+        }
+        else
+        {
+            string hkLabel = string.Equals(cfg.DesktopAssistantHotkey, "None", StringComparison.OrdinalIgnoreCase)
+                ? "вызов из трея"
+                : $"хоткей {cfg.DesktopAssistantHotkey}";
+            StatusFooterText.Text = $"Настройки Системного ассистента ПК и поиска сохранены ({hkLabel}).";
+            ShowToast("Настройки ассистента сохранены", "success");
         }
     }
 

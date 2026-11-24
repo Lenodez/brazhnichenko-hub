@@ -269,7 +269,7 @@ public sealed class AiServiceManager
             .ToList();
     }
 
-    private static string FriendlyLlmName(string fileName)
+    public static string FriendlyLlmName(string fileName)
     {
         string lower = fileName.ToLowerInvariant();
         if (lower.Contains("gemma-4-26b"))
@@ -381,6 +381,50 @@ public sealed class AiServiceManager
 
         await StartQwenAsync(onProgress, overrideModelFile: desired);
         return $"http://127.0.0.1:{HubConfig.Current.QwenPort}/v1/chat/completions";
+    }
+
+    public async Task<(string EndpointUrl, string ModelFile, bool HasVision)> EnsureLlmModelRunningAsync(
+        string? preferredModelFile,
+        Action<string>? onProgress = null)
+    {
+        string desired = !string.IsNullOrWhiteSpace(preferredModelFile)
+            ? preferredModelFile.Trim()
+            : GetActiveLlmFileName();
+
+        var available = GetAvailableLlmModels();
+        if (available.Count == 0 || !RuntimeInstaller.IsLlamaInstalled())
+            throw new InvalidOperationException("Нет установленной LLM или движка llama.cpp. Установи модель во вкладке «Модели и GPU».");
+
+        var match = available.FirstOrDefault(m => m.FileName.Equals(desired, StringComparison.OrdinalIgnoreCase))
+                    ?? available[0];
+        desired = match.FileName;
+        bool hasVision = FindMatchingMmprojForModel(desired) is not null;
+
+        var qwen = GetService("qwen");
+        bool qwenRunning = await IsRunningAsync(qwen);
+        if (qwenRunning)
+        {
+            string? loadedModel = _lastStartedQwenModel ?? await QueryLoadedQwenModelNameAsync();
+            if (loadedModel is not null && loadedModel.Contains(Path.GetFileNameWithoutExtension(desired), StringComparison.OrdinalIgnoreCase))
+                return ($"http://127.0.0.1:{HubConfig.Current.QwenPort}/v1/chat/completions", desired, hasVision);
+
+            onProgress?.Invoke($"Переключение на модель ассистента ({FriendlyLlmName(desired)})...");
+            await StopServiceAsync("qwen");
+        }
+        else
+        {
+            foreach (var other in Services.Where(s => s.UsesGpu && s.Id != "qwen"))
+            {
+                if (await IsRunningAsync(other))
+                {
+                    onProgress?.Invoke($"Освобождение GPU: остановка {other.Name}...");
+                    await StopServiceAsync(other.Id);
+                }
+            }
+        }
+
+        await StartQwenAsync(onProgress, overrideModelFile: desired);
+        return ($"http://127.0.0.1:{HubConfig.Current.QwenPort}/v1/chat/completions", desired, hasVision);
     }
 
     private static async Task<string?> QueryLoadedQwenModelNameAsync()

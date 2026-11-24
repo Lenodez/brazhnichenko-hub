@@ -18,7 +18,7 @@
         <div class="brand">
           <span class="brand-full">Brazhnichenko Hub</span>
           <span class="brand-short">Hub AI</span>
-          <span class="pill info mono ver-pill">v4.8</span>
+          <span class="pill info mono ver-pill">v4.9</span>
         </div>
       </div>
       <div class="head-right">
@@ -255,6 +255,12 @@
         </div>
         <div class="muted">Вызов по зажатию кнопки питания, свайпу с угла или кнопке гарнитуры. Работает офлайн на NPU, 0% расхода батареи в фоне.</div>
         <button class="btn primary" onclick="openAssistantSettings()">Выбрать Brazhnichenko Hub ассистентом</button>
+        <div class="sys-field">
+          <div class="muted">Нейросеть для ассистента</div>
+          <select id="cfgAssistModel" style="width:100%;" onchange="saveAssistSettings()">
+            <option value="">Текущая модель из чата (по умолчанию)</option>
+          </select>
+        </div>
         <div class="toggle-list">
           <label class="toggle-row">
             <span>Сразу включать микрофон при вызове</span>
@@ -381,7 +387,7 @@
       <div class="card">
         <div class="row" style="justify-content:space-between;">
           <strong>Обновления (GitHub Releases)</strong>
-          <span id="updVersionPill" class="pill mono">v4.8.0</span>
+          <span id="updVersionPill" class="pill mono">v4.9.0</span>
         </div>
         <div id="updStatusText" class="muted">Репозиторий: github.com/Lenodez/brazhnichenko-hub</div>
         <div id="updProgWrap" style="display:none;flex-direction:column;gap:5px;">

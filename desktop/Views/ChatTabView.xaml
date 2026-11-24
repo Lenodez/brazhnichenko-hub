@@ -7,8 +7,8 @@
                     <!-- Sub-mode pills -->
                     <DockPanel Grid.Row="0" Margin="0,0,0,9">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                            <Button x:Name="ChatModeAssistantBtn" Content="AI-Помощник по Хабу (RAG)" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Click="ChatModeAssistantBtn_Click" x:FieldModifier="internal" />
-                            <Button x:Name="ChatModeLlmBtn" Content="Локальная LLM (Веб-чат / Claude)" Style="{StaticResource DarkButton}" Click="ChatModeLlmBtn_Click" x:FieldModifier="internal" />
+                            <Button x:Name="ChatModeLlmBtn" Content="Локальный чат" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Click="ChatModeLlmBtn_Click" x:FieldModifier="internal" />
+                            <Button x:Name="ChatModeAssistantBtn" Content="Гид по Хабу (RAG)" Style="{StaticResource DarkButton}" Click="ChatModeAssistantBtn_Click" x:FieldModifier="internal" />
                         </StackPanel>
                         <TextBlock x:Name="ChatQuickLlmStatusText" Text="LLM: проверка..." FontSize="12" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" x:FieldModifier="internal" />
                     </DockPanel>
@@ -74,35 +74,37 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <!-- Row 0: Compact LLM Control Bar -->
-                        <Border Grid.Row="0" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,0,0,8">
+                        <!-- Row 0: Clean Single-Row LLM Bar + Collapsed Tools Expander -->
+                        <Border Grid.Row="0" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="11,8" Margin="0,0,0,8">
                             <StackPanel>
-                                <DockPanel Margin="0,0,0,6">
+                                <DockPanel>
                                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0">
                                         <Border x:Name="LocalChatVisionBadge" Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="0,0,6,0" VerticalAlignment="Center" ToolTip="Поддержка картинок: скачай файл mmproj-*.gguf для этой модели в Каталоге HF" x:FieldModifier="internal">
                                             <TextBlock x:Name="LocalChatVisionBadgeText" Text="Текст" FontSize="11" Foreground="{StaticResource TextMutedBrush}" x:FieldModifier="internal" />
                                         </Border>
-                                        <Border x:Name="ChatLlmStatusBadge" Background="{StaticResource Surface2Brush}" CornerRadius="10" Padding="9,3" VerticalAlignment="Center" x:FieldModifier="internal">
+                                        <Border x:Name="ChatLlmStatusBadge" Background="{StaticResource Surface2Brush}" CornerRadius="10" Padding="9,3" Margin="0,0,8,0" VerticalAlignment="Center" x:FieldModifier="internal">
                                             <TextBlock x:Name="ChatLlmStatusBadgeText" Text="○ Остановлен" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" x:FieldModifier="internal" />
                                         </Border>
+                                        <Button x:Name="ChatLlmStartBtn" Content="Запустить" Style="{StaticResource PrimaryButton}" Padding="12,5" FontSize="12" Margin="0,0,4,0" Click="ChatLlmStartBtn_Click" x:FieldModifier="internal" />
+                                        <Button x:Name="ChatLlmOpenUiBtn" Content="Веб ↗" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,4,0" Visibility="Collapsed" Click="ChatLlmOpenUiBtn_Click" x:FieldModifier="internal" />
+                                        <Button x:Name="ChatLlmStopBtn" Content="Стоп" Style="{StaticResource DangerButton}" Padding="10,5" FontSize="12" Visibility="Collapsed" Click="ChatLlmStopBtn_Click" x:FieldModifier="internal" />
                                     </StackPanel>
-                                    <Button x:Name="LocalChatToggleSidebarBtn" Style="{StaticResource DarkButton}" Padding="8,4" Margin="0,0,8,0" DockPanel.Dock="Left" ToolTip="Показать / скрыть список диалогов" Click="LocalChatToggleSidebarBtn_Click" x:FieldModifier="internal">
+                                    <Button x:Name="LocalChatToggleSidebarBtn" Style="{StaticResource DarkButton}" Padding="8,5" Margin="0,0,8,0" DockPanel.Dock="Left" ToolTip="Показать / скрыть список диалогов" Click="LocalChatToggleSidebarBtn_Click" x:FieldModifier="internal">
                                         <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconSidebar}" />
                                     </Button>
-                                    <TextBlock Text="Локальная LLM:" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0" DockPanel.Dock="Left" />
-                                    <ComboBox x:Name="ChatLlmModelCombo" DisplayMemberPath="DisplayName" SelectedValuePath="FileName" FontSize="12" Padding="8,4" SelectionChanged="ChatLlmModelCombo_SelectionChanged" x:FieldModifier="internal" />
+                                    <TextBlock Text="Модель:" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0" DockPanel.Dock="Left" />
+                                    <ComboBox x:Name="ChatLlmModelCombo" DisplayMemberPath="DisplayName" SelectedValuePath="FileName" FontSize="12.5" Padding="8,4" SelectionChanged="ChatLlmModelCombo_SelectionChanged" x:FieldModifier="internal" />
                                 </DockPanel>
 
-                                <WrapPanel>
-                                    <Button x:Name="ChatLlmStartBtn" Content="Запустить LLM (авто-GPU)" Style="{StaticResource PrimaryButton}" Padding="12,4" FontSize="12" Margin="0,0,6,2" Click="ChatLlmStartBtn_Click" x:FieldModifier="internal" />
-                                    <Button x:Name="ChatLlmOpenUiBtn" Content="Веб-чат ↗" Style="{StaticResource SuccessButton}" Padding="11,4" FontSize="12" Margin="0,0,6,2" Visibility="Collapsed" Click="ChatLlmOpenUiBtn_Click" x:FieldModifier="internal" />
-                                    <Button x:Name="ChatLlmStopBtn" Content="Остановить" Style="{StaticResource DangerButton}" Padding="11,4" FontSize="12" Margin="0,0,6,2" Visibility="Collapsed" Click="ChatLlmStopBtn_Click" x:FieldModifier="internal" />
-                                    <Button Content="Claude Desktop" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,2" Click="ChatLlmClaudeBtn_Click" />
-                                    <Button Content="Каталог LLM →" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,2" Click="ChatJumpCatalogTextBtn_Click" />
-                                    <Button Content="Анти-луп" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,2" Click="ApplyQwenAntiLoopBtn_Click" />
-                                    <Button Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,2" ToolTip="Скопировать контекст всех моделей и правил промптинга для внешнего чата" Click="CopyStackContextBtn_Click"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconClipboard}" Margin="0,0,6,0" /><TextBlock Text="Контекст" VerticalAlignment="Center" /></StackPanel></Button>
-                                    <Button Content="Контекст .md" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,0,2" Click="OpenStackContextFileBtn_Click" />
-                                </WrapPanel>
+                                <Expander Header="Дополнительно (Claude, Каталог, Анти-луп, Контекст)" IsExpanded="False" Style="{StaticResource StudioExpanderStyle}" Margin="0,7,0,0" FontSize="11.5">
+                                    <WrapPanel Margin="8,6,8,6">
+                                        <Button Content="Каталог LLM →" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,2" Click="ChatJumpCatalogTextBtn_Click" />
+                                        <Button Content="Claude Desktop" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,2" Click="ChatLlmClaudeBtn_Click" />
+                                        <Button Content="Анти-луп Qwen" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,2" Click="ApplyQwenAntiLoopBtn_Click" />
+                                        <Button Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,6,2" ToolTip="Скопировать контекст всех моделей и правил промптинга для внешнего чата" Click="CopyStackContextBtn_Click"><StackPanel Orientation="Horizontal"><Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconClipboard}" Margin="0,0,6,0" /><TextBlock Text="Скопировать контекст" VerticalAlignment="Center" /></StackPanel></Button>
+                                        <Button Content="Контекст .md" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="12" Margin="0,0,0,2" Click="OpenStackContextFileBtn_Click" />
+                                    </WrapPanel>
+                                </Expander>
                             </StackPanel>
                         </Border>
 
@@ -202,38 +204,41 @@
                                         </DockPanel>
                                     </Border>
 
-                                    <DockPanel Margin="0,0,0,5">
+                                    <DockPanel Margin="0,0,0,6">
+                                        <CheckBox x:Name="LocalChatWebSearchCheck" Content="Поиск в сети" IsChecked="False" DockPanel.Dock="Right" Foreground="#93C5FD" FontSize="12" VerticalAlignment="Center" Margin="12,0,2,0" ToolTip="Добавляет свежие факты из интернета (DuckDuckGo + Google News + Wikipedia, либо Tavily/Brave) перед ответом модели" x:FieldModifier="internal" />
                                         <TextBlock x:Name="LocalChatStatsText" Text="Готов к чату • Enter — отправить • Shift+Enter — новая строка • Ctrl+V — фото" FontSize="12" FontFamily="{StaticResource MonoFontFamily}" Typography.NumeralAlignment="Tabular" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" x:FieldModifier="internal" />
                                     </DockPanel>
 
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                                    <Border Background="#131722" BorderBrush="#2E3B56" BorderThickness="1" CornerRadius="12" Padding="6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
 
-                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,7,0" VerticalAlignment="Stretch">
-                                            <Button x:Name="LocalChatAttachImgBtn" Style="{StaticResource DarkButton}" Padding="10,8" Margin="0,0,5,0" ToolTip="Прикрепить картинку (Vision) или перетащи файл / нажми Ctrl+V" Click="LocalChatAttachImgBtn_Click" x:FieldModifier="internal">
-                                                <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconImagePlus}" />
-                                            </Button>
-                                            <Button x:Name="LocalChatMicBtn" Style="{StaticResource DarkButton}" Padding="10,8" ToolTip="Голосовой ввод (локальный Whisper STT): нажми для записи, нажми ещё раз для распознавания" Click="LocalChatMicBtn_Click" x:FieldModifier="internal">
-                                                <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconMic}" />
-                                            </Button>
-                                        </StackPanel>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,6,0" VerticalAlignment="Bottom">
+                                                <Button x:Name="LocalChatAttachImgBtn" Style="{StaticResource GhostButton}" Padding="9,8" Margin="0,0,2,0" ToolTip="Прикрепить картинку (Vision) или перетащи файл / нажми Ctrl+V" Click="LocalChatAttachImgBtn_Click" x:FieldModifier="internal">
+                                                    <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconImagePlus}" />
+                                                </Button>
+                                                <Button x:Name="LocalChatMicBtn" Style="{StaticResource GhostButton}" Padding="9,8" ToolTip="Голосовой ввод (локальный Whisper STT): нажми для записи, нажми ещё раз для распознавания" Click="LocalChatMicBtn_Click" x:FieldModifier="internal">
+                                                    <Path Style="{StaticResource UiIcon16}" Data="{StaticResource IconMic}" />
+                                                </Button>
+                                            </StackPanel>
 
-                                        <TextBox x:Name="LocalChatInputBox" Grid.Column="1" MinHeight="42" MaxHeight="110" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#131722" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="#35425E" BorderThickness="1" Padding="11,9" FontSize="13" PreviewKeyDown="LocalChatInputBox_PreviewKeyDown" x:FieldModifier="internal" />
+                                            <TextBox x:Name="LocalChatInputBox" Grid.Column="1" MinHeight="38" MaxHeight="116" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="Transparent" Foreground="{StaticResource TextPrimaryBrush}" CaretBrush="{StaticResource AccentBrush}" BorderThickness="0" Padding="6,8" FontSize="13.5" PreviewKeyDown="LocalChatInputBox_PreviewKeyDown" x:FieldModifier="internal" />
 
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Stretch" Margin="7,0,0,0">
-                                            <Button x:Name="LocalChatSendBtn" Content="Отправить" Style="{StaticResource PrimaryButton}" Padding="16,10" VerticalAlignment="Stretch" Click="LocalChatSendBtn_Click" x:FieldModifier="internal" />
-                                            <Button x:Name="LocalChatStopBtn" Style="{StaticResource DangerButton}" Padding="13,10" Margin="6,0,0,0" VerticalAlignment="Stretch" Visibility="Collapsed" Click="LocalChatStopBtn_Click" x:FieldModifier="internal">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconStop}" Margin="0,0,6,0" />
-                                                    <TextBlock Text="Стоп" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                        </StackPanel>
-                                    </Grid>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="6,0,0,0">
+                                                <Button x:Name="LocalChatSendBtn" Content="Отправить" Style="{StaticResource PrimaryButton}" Padding="15,8" Click="LocalChatSendBtn_Click" x:FieldModifier="internal" />
+                                                <Button x:Name="LocalChatStopBtn" Style="{StaticResource DangerButton}" Padding="12,8" Margin="5,0,0,0" Visibility="Collapsed" Click="LocalChatStopBtn_Click" x:FieldModifier="internal">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconStop}" Margin="0,0,6,0" />
+                                                        <TextBlock Text="Стоп" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </StackPanel>
                             </Grid>
                         </Grid>

@@ -23,8 +23,28 @@ public partial class MainWindow : Window
     private System.Windows.Controls.ComboBox? _llmModelCombo;
     private bool _suppressLlmChange;
     private Forms.NotifyIcon? _trayIcon;
+    private Forms.NotifyIcon? _assistantTrayIcon;
+    private AssistantOverlayWindow? _assistantOverlay;
+    private HwndSource? _hwndSource;
+    private bool _hotkeyRegistered;
     private bool _pollInFlight;
     private bool _forceExit;
+
+    private const int WM_HOTKEY = 0x0312;
+    private const int ASSISTANT_HOTKEY_ID = 0x4842;
+    private const uint MOD_ALT = 0x0001;
+    private const uint MOD_CONTROL = 0x0002;
+    private const uint MOD_SHIFT = 0x0004;
+    private const uint MOD_NOREPEAT = 0x4000;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr hIcon);
 
     private sealed class ServiceCardUi
     {
@@ -39,7 +59,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        SourceInitialized += (_, _) => EnableDarkTitleBar();
+        SourceInitialized += (_, _) =>
+        {
+            EnableDarkTitleBar();
+            InitDesktopAssistantHotkeyHook();
+        };
         BuildServiceCards();
         InitStudio();
         InitStories();
@@ -52,10 +76,11 @@ public partial class MainWindow : Window
         InitQueueAndPresets();
         InitLogSelector();
         LoadModelsTable();
-        SetChatSubMode("assistant");
+        SetChatSubMode("llm");
         SetSystemSubMode("services");
         ApplyInitialTabSelection();
         SetupTrayIcon();
+        RefreshDesktopAssistantHooks();
 
         _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
         _pollTimer.Tick += async (_, _) => await RefreshStatusAsync();
@@ -98,6 +123,7 @@ public partial class MainWindow : Window
             Visible = true
         };
         var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add("Ассистент ПК (экран / голос / сеть)", null, (_, _) => Dispatcher.Invoke(() => _ = OpenDesktopAssistantOverlayAsync()));
         menu.Items.Add("Открыть Brazhnichenko Hub", null, (_, _) => Dispatcher.Invoke(RestoreFromTray));
         menu.Items.Add("Освободить GPU (остановить всё)", null, async (_, _) =>
         {
@@ -111,6 +137,185 @@ public partial class MainWindow : Window
         }));
         _trayIcon.ContextMenuStrip = menu;
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(RestoreFromTray);
+    }
+
+    private void InitDesktopAssistantHotkeyHook()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        _hwndSource = HwndSource.FromHwnd(hwnd);
+        _hwndSource?.AddHook(DesktopAssistantWndProc);
+        RegisterAssistantHotkey(HubConfig.Current.DesktopAssistantHotkey);
+    }
+
+    private IntPtr DesktopAssistantWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_HOTKEY && wParam.ToInt32() == ASSISTANT_HOTKEY_ID)
+        {
+            handled = true;
+            Dispatcher.BeginInvoke(() => _ = OpenDesktopAssistantOverlayAsync());
+        }
+        return IntPtr.Zero;
+    }
+
+    internal bool RefreshDesktopAssistantHooks()
+    {
+        var cfg = HubConfig.Current;
+
+        // Dedicated single-click System Tray icon for Desktop Assistant
+        if (cfg.DesktopAssistantEnabled)
+        {
+            if (_assistantTrayIcon is null)
+            {
+                Icon assistIco = CreateAssistantBadgeIcon();
+                _assistantTrayIcon = new Forms.NotifyIcon
+                {
+                    Text = $"Ассистент ПК ({cfg.DesktopAssistantHotkey}) — клик для вызова",
+                    Icon = assistIco,
+                    Visible = true
+                };
+                var amenu = new Forms.ContextMenuStrip();
+                amenu.Items.Add("Открыть Ассистента ПК", null, (_, _) => Dispatcher.Invoke(() => _ = OpenDesktopAssistantOverlayAsync()));
+                amenu.Items.Add("Открыть Brazhnichenko Hub", null, (_, _) => Dispatcher.Invoke(RestoreFromTray));
+                amenu.Items.Add("Освободить GPU", null, async (_, _) => await Dispatcher.InvokeAsync(async () => await StopAllAsync()));
+                amenu.Items.Add(new Forms.ToolStripSeparator());
+                amenu.Items.Add("Выход", null, (_, _) => Dispatcher.Invoke(() =>
+                {
+                    _forceExit = true;
+                    Close();
+                }));
+                _assistantTrayIcon.ContextMenuStrip = amenu;
+                _assistantTrayIcon.MouseClick += (_, args) =>
+                {
+                    if (args.Button == Forms.MouseButtons.Left)
+                        Dispatcher.Invoke(() => _ = OpenDesktopAssistantOverlayAsync());
+                };
+            }
+            else
+            {
+                _assistantTrayIcon.Text = $"Ассистент ПК ({cfg.DesktopAssistantHotkey}) — клик для вызова";
+                _assistantTrayIcon.Visible = true;
+            }
+        }
+        else if (_assistantTrayIcon is not null)
+        {
+            _assistantTrayIcon.Visible = false;
+            _assistantTrayIcon.Dispose();
+            _assistantTrayIcon = null;
+        }
+
+        return RegisterAssistantHotkey(cfg.DesktopAssistantHotkey);
+    }
+
+    private static Icon CreateAssistantBadgeIcon()
+    {
+        try
+        {
+            using var bmp = new Bitmap(32, 32, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.Clear(System.Drawing.Color.Transparent);
+                using var bg = new SolidBrush(System.Drawing.Color.FromArgb(255, 45, 110, 245));
+                using var ring = new System.Drawing.Pen(System.Drawing.Color.FromArgb(255, 130, 195, 255), 2f);
+                g.FillEllipse(bg, 2, 2, 28, 28);
+                g.DrawEllipse(ring, 2, 2, 28, 28);
+                // Crisp 4-point sparkle star in center
+                var pts = new PointF[]
+                {
+                    new(16, 6), new(18.6f, 13.4f), new(26, 16), new(18.6f, 18.6f),
+                    new(16, 26), new(13.4f, 18.6f), new(6, 16), new(13.4f, 13.4f)
+                };
+                using var star = new SolidBrush(System.Drawing.Color.White);
+                g.FillPolygon(star, pts);
+            }
+            IntPtr hIcon = bmp.GetHicon();
+            try
+            {
+                using var temp = System.Drawing.Icon.FromHandle(hIcon);
+                return (System.Drawing.Icon)temp.Clone();
+            }
+            finally
+            {
+                DestroyIcon(hIcon);
+            }
+        }
+        catch
+        {
+            return SystemIcons.Information;
+        }
+    }
+
+    private bool RegisterAssistantHotkey(string? spec)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return true;
+
+        if (_hotkeyRegistered)
+        {
+            UnregisterHotKey(hwnd, ASSISTANT_HOTKEY_ID);
+            _hotkeyRegistered = false;
+        }
+
+        if (string.IsNullOrWhiteSpace(spec) || spec.Equals("None", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        uint mods = MOD_NOREPEAT;
+        uint vk = 0;
+        switch (spec.Trim())
+        {
+            case "Alt+Space":
+                mods |= MOD_ALT;
+                vk = 0x20; // VK_SPACE
+                break;
+            case "Ctrl+Shift+Space":
+                mods |= MOD_CONTROL | MOD_SHIFT;
+                vk = 0x20;
+                break;
+            case "Alt+Q":
+                mods |= MOD_ALT;
+                vk = (uint)'Q';
+                break;
+            default:
+                return true;
+        }
+
+        _hotkeyRegistered = RegisterHotKey(hwnd, ASSISTANT_HOTKEY_ID, mods, vk);
+        return _hotkeyRegistered;
+    }
+
+    private void UnregisterAssistantHotkey()
+    {
+        if (!_hotkeyRegistered) return;
+        try
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+                UnregisterHotKey(hwnd, ASSISTANT_HOTKEY_ID);
+        }
+        catch { }
+        _hotkeyRegistered = false;
+    }
+
+    internal async void OpenDesktopAssistantBtn_Click(object sender, RoutedEventArgs e) =>
+        await OpenDesktopAssistantOverlayAsync();
+
+    internal async Task OpenDesktopAssistantOverlayAsync()
+    {
+        try
+        {
+            if (_assistantOverlay is null || !_assistantOverlay.IsLoaded)
+            {
+                _assistantOverlay = new AssistantOverlayWindow(_manager, _voiceService);
+                _assistantOverlay.Closed += (_, _) => _assistantOverlay = null;
+            }
+            await _assistantOverlay.OpenAndActivateAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusFooterText.Text = $"Ошибка запуска Ассистента ПК: {ex.Message}";
+            ShowToast("Не удалось открыть Ассистента ПК", "warn");
+        }
     }
 
     public void RestoreFromTray()
@@ -139,6 +344,23 @@ public partial class MainWindow : Window
         _genCts?.Cancel();
         _catalogDlCts?.Cancel();
         _ = HubAssistantService.StopAssistantServerAsync();
+        UnregisterAssistantHotkey();
+        if (_hwndSource is not null)
+        {
+            _hwndSource.RemoveHook(DesktopAssistantWndProc);
+            _hwndSource = null;
+        }
+        if (_assistantOverlay is not null)
+        {
+            try { _assistantOverlay.Close(); } catch { }
+            _assistantOverlay = null;
+        }
+        if (_assistantTrayIcon is not null)
+        {
+            _assistantTrayIcon.Visible = false;
+            _assistantTrayIcon.Dispose();
+            _assistantTrayIcon = null;
+        }
         if (_trayIcon is not null)
         {
             _trayIcon.Visible = false;
@@ -940,6 +1162,7 @@ public partial class MainWindow : Window
         ModelsSummaryText.Text = $"Найдено файлов: {models.Count} • Общий объём: {totalGb:F1} ГБ";
         ModelCountBadge.Text = $"{models.Count} моделей ({totalGb:F1} ГБ)";
         RefreshLlmSelector();
+        PopulateDesktopAssistantModelCombo();
         RefreshStudioEngineStatuses();
         RefreshAssistantStatusUi();
     }

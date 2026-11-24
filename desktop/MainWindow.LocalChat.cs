@@ -604,6 +604,33 @@ public partial class MainWindow
 
         try
         {
+            string? webContextBlock = null;
+            if (LocalChatWebSearchCheck?.IsChecked == true && !string.IsNullOrWhiteSpace(text))
+            {
+                statusBubble = AppendLocalChatStatusBubble("Ищу актуальную информацию в интернете...");
+                ScrollLocalChatToEnd(force: true);
+                if (LocalChatStatsText is not null)
+                    LocalChatStatsText.Text = "Поиск в интернете...";
+
+                try
+                {
+                    var searchRes = await DesktopWebSearchService.SearchAsync(text, ct);
+                    if (searchRes.Results.Count > 0)
+                    {
+                        webContextBlock = searchRes.BuildPromptContext();
+                        if (LocalChatStatsText is not null)
+                            LocalChatStatsText.Text = $"Найдено источников: {searchRes.Results.Count} ({searchRes.Provider})";
+                    }
+                }
+                catch { /* fallback silently to local knowledge */ }
+
+                if (statusBubble is not null)
+                {
+                    LocalChatMessagesPanel?.Children.Remove(statusBubble);
+                    statusBubble = null;
+                }
+            }
+
             var qwenSvc = _manager.GetService("qwen");
             if (!await _manager.IsRunningAsync(qwenSvc))
             {
@@ -638,7 +665,7 @@ public partial class MainWindow
                 }
             }
 
-            var apiMessages = BuildLocalChatApiMessages(text, attachedImage);
+            var apiMessages = BuildLocalChatApiMessages(text, attachedImage, webContextBlock);
             var cfg = HubConfig.Current;
             int maxTokens = Math.Max(
                 2048,
@@ -927,13 +954,18 @@ public partial class MainWindow
         }
     }
 
-    private List<object> BuildLocalChatApiMessages(string currentUserMessage, string? currentImagePath)
+    private List<object> BuildLocalChatApiMessages(string currentUserMessage, string? currentImagePath, string? webContextBlock = null)
     {
         var messages = new List<object>();
 
         var persona = ChatSessionService.GetPersona(_activeChatSession.PersonaId);
-        if (!string.IsNullOrWhiteSpace(persona.SystemPrompt))
-            messages.Add(new { role = "system", content = persona.SystemPrompt });
+        string sysPrompt = persona.SystemPrompt ?? "";
+        if (!string.IsNullOrWhiteSpace(webContextBlock))
+        {
+            sysPrompt = (string.IsNullOrWhiteSpace(sysPrompt) ? "" : sysPrompt + "\n\n") + webContextBlock;
+        }
+        if (!string.IsNullOrWhiteSpace(sysPrompt))
+            messages.Add(new { role = "system", content = sysPrompt });
 
         var recent = _activeChatSession.Messages
             .TakeLast(LocalChatContextMessages - 1)

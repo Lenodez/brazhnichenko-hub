@@ -89,6 +89,7 @@ public class MainActivity extends Activity {
     private volatile boolean pendingAssistAutoSend = false;
     private volatile boolean pendingAssistAutoTts = false;
     private volatile boolean pendingAssistWebSearch = false;
+    private volatile String pendingAssistModel = "";
     private volatile boolean jsOverlayOpen = false;
     private Object backInvokedCallbackObj = null;
     private boolean backCallbackRegistered = false;
@@ -242,6 +243,7 @@ public class MainActivity extends Activity {
             boolean autoTts = p.getBoolean("assist_auto_tts", true);
             boolean autoAttachScreen = p.getBoolean("assist_attach_screen", false);
             boolean assistWeb = p.getBoolean("assist_web_search", true);
+            String assistModel = p.getString("assist_model", "").trim();
             boolean hasShot = intent.getBooleanExtra(EXTRA_HAS_SCREENSHOT, false)
                     && HubAssistSession.getAssistScreenFile(this).exists();
             try {
@@ -251,6 +253,7 @@ public class MainActivity extends Activity {
                 opts.put("autoVoice", autoVoice);
                 opts.put("autoTts", autoTts);
                 opts.put("webSearch", assistWeb);
+                opts.put("assistModel", assistModel);
                 evalJsWhenReady("window.onAndroidAssistLaunch && window.onAndroidAssistLaunch(" + opts.toString() + ")");
             } catch (Exception ignored) { }
 
@@ -258,6 +261,7 @@ public class MainActivity extends Activity {
                 pendingAssistAutoSend = true;
                 pendingAssistAutoTts = autoTts;
                 pendingAssistWebSearch = assistWeb;
+                pendingAssistModel = assistModel;
                 mainHandler.postDelayed(this::launchVoiceInput, 220);
             }
             return;
@@ -359,15 +363,17 @@ public class MainActivity extends Activity {
             boolean autoSend = pendingAssistAutoSend;
             boolean autoTts = pendingAssistAutoTts;
             boolean webSearch = pendingAssistWebSearch;
+            String assistModel = pendingAssistModel;
             pendingAssistAutoSend = false;
             pendingAssistAutoTts = false;
             pendingAssistWebSearch = false;
+            pendingAssistModel = "";
             if (resultCode == RESULT_OK && data != null) {
                 ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
                 if (matches != null && !matches.isEmpty()) {
                     String text = matches.get(0);
                     evalJs("window.onAndroidVoiceResult && window.onAndroidVoiceResult("
-                            + JSONObject.quote(text) + ", " + autoSend + ", " + autoTts + ", " + webSearch + ")");
+                            + JSONObject.quote(text) + ", " + autoSend + ", " + autoTts + ", " + webSearch + ", 0, " + JSONObject.quote(assistModel) + ")");
                 }
             }
             return;
@@ -625,11 +631,13 @@ public class MainActivity extends Activity {
                 boolean autoSend = pendingAssistAutoSend;
                 boolean autoTts = pendingAssistAutoTts;
                 boolean webSearch = pendingAssistWebSearch;
+                String assistModel = pendingAssistModel;
                 pendingAssistAutoSend = false;
                 pendingAssistAutoTts = false;
                 pendingAssistWebSearch = false;
+                pendingAssistModel = "";
                 evalJs("window.onAndroidVoiceResult && window.onAndroidVoiceResult("
-                        + JSONObject.quote(text) + ", " + autoSend + ", " + autoTts + ", " + webSearch + ", " + decodeMs + ")");
+                        + JSONObject.quote(text) + ", " + autoSend + ", " + autoTts + ", " + webSearch + ", " + decodeMs + ", " + JSONObject.quote(assistModel) + ")");
             }
 
             @Override
@@ -637,6 +645,7 @@ public class MainActivity extends Activity {
                 pendingAssistAutoSend = false;
                 pendingAssistAutoTts = false;
                 pendingAssistWebSearch = false;
+                pendingAssistModel = "";
                 showToast(message);
             }
         });

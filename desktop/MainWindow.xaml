@@ -16,18 +16,21 @@
                     <Image Source="pack://application:,,,/Assets/app.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,10,0" VerticalAlignment="Center" />
                     <TextBlock Text="Brazhnichenko Hub" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
                     <Border Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="10,2,0,0" VerticalAlignment="Center">
-                        <TextBlock x:Name="AppVersionBadgeText" Text="v4.0 • Local AI Studio" FontSize="11" Foreground="{StaticResource TextMutedBrush}" />
+                        <TextBlock x:Name="AppVersionBadgeText" Text="v4.9 • Local AI Studio" FontSize="11" Foreground="{StaticResource TextMutedBrush}" />
                     </Border>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Name="AskAiGlobalBtn" Style="{StaticResource PrimaryButton}" Padding="12,6" Margin="0,0,10,0" ToolTip="Спросить AI-Помощника про текущий экран или любую настройку" Click="AskAiGlobalBtn_Click">
+                    <Button x:Name="OpenDesktopAssistantBtn" Style="{StaticResource PrimaryButton}" Padding="12,6" Margin="0,0,8,0" ToolTip="Открыть системного ассистента ПК (видит экран, голос/текст, поиск в сети, режим только чтения)" Click="OpenDesktopAssistantBtn_Click">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconSparkles}" Margin="0,0,6,0" />
-                            <TextBlock Text="Спросить AI" VerticalAlignment="Center" />
+                            <TextBlock Text="Ассистент ПК" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <CheckBox x:Name="MinimizeToTrayCheck" Content="Сворачивать в трей" IsChecked="False" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <Button x:Name="AskAiGlobalBtn" Style="{StaticResource DarkButton}" Padding="11,6" Margin="0,0,10,0" ToolTip="Спросить AI-гида по настройкам и моделям Хаба" Click="AskAiGlobalBtn_Click">
+                        <TextBlock Text="Гид AI" VerticalAlignment="Center" />
+                    </Button>
+                    <CheckBox x:Name="MinimizeToTrayCheck" Content="В трей" ToolTip="Сворачивать окно в системный трей при закрытии" IsChecked="False" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <Button x:Name="StopAllBtn" Style="{StaticResource GhostDangerButton}" Padding="11,6" ToolTip="Остановить все запущенные локальные модели и освободить VRAM" Click="StopAllBtn_Click">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconPower}" Margin="0,0,6,0" />

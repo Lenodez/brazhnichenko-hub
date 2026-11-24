@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "4.8.0",
+    [string]$Version = "4.9.0",
     [string]$AndroidSdk = $(if ($env:ANDROID_HOME) { $env:ANDROID_HOME } elseif ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { "d:\LocalMediaAI\android-sdk" })
 )
 

@@ -5,7 +5,8 @@ let attachedDoc = null; // { name, text }
 let abortCtrl = null;
 let lastStatus = null;
 let maxViewportH = window.innerHeight || 700;
-let assistSettings = { assistAutoVoice: true, assistAutoTts: true, assistAttachScreen: false, assistWebSearch: true };
+let assistSettings = { assistAutoVoice: true, assistAutoTts: true, assistAttachScreen: false, assistWebSearch: true, assistModel: '' };
+let pendingManualAssistModel = '';
 let catalogModelsCache = [];
 let activeModelFilter = 'all';
 let latestUpdateInfo = null;
@@ -593,8 +594,9 @@ async function pollStatus() {
     if (sel && sel.dataset.sig !== sig) {
       sel.dataset.sig = sig;
       sel.innerHTML = st.availableLlms.length
-        ? st.availableLlms.map(x => `<option value="${esc(x.fileName)}" ${x.fileName === st.activeLlm ? 'selected' : ''}>${esc(shortModelLabel(x.fileName, x.sizeGB))}</option>`).join('')
+        ? st.availableLlms.map(x => `<option value="${esc(x.fileName)}" ${x.fileName === st.activeLlm ? 'selected' : ''}>${esc(shortModelLabel(x.fileName, x.sizeGB))}${x.hasVision ? ' · Vision' : ''}</option>`).join('')
         : '<option value="">Скачай модель во вкладке «Модели»</option>';
+      populateAssistModelSelect(st.availableLlms || []);
     }
 
     const bar = document.getElementById('jobsBar');
@@ -1086,7 +1088,7 @@ window.onAndroidVoiceState = function(state, detail, levelPct, seconds) {
   }
 };
 
-window.onAndroidVoiceResult = function(text, autoSend, speakReply, forceWebSearch, decodeMs) {
+window.onAndroidVoiceResult = function(text, autoSend, speakReply, forceWebSearch, decodeMs, assistModel) {
   const vb = document.getElementById('voiceBar');
   if (vb) vb.style.display = 'none';
   if (!text) return;
@@ -1096,7 +1098,11 @@ window.onAndroidVoiceResult = function(text, autoSend, speakReply, forceWebSearc
   autoGrowInput();
   if (autoSend) {
     toast(forceWebSearch ? 'Ассистент: ищу в сети и отвечаю...' : 'Ассистент: отправляю запрос...');
-    sendChat({ speakReply: !!speakReply, webSearch: typeof forceWebSearch === 'boolean' ? forceWebSearch : undefined });
+    sendChat({
+      speakReply: !!speakReply,
+      webSearch: typeof forceWebSearch === 'boolean' ? forceWebSearch : undefined,
+      modelOverride: assistModel || ''
+    });
   } else {
     inp.focus();
     toast(decodeMs ? `Распознано офлайн за ${(decodeMs / 1000).toFixed(2)}с` : 'Распознано голосом');
@@ -1106,6 +1112,7 @@ window.onAndroidVoiceResult = function(text, autoSend, speakReply, forceWebSearc
 window.onAndroidAssistLaunch = function(opts) {
   switchView('chat');
   opts = opts || {};
+  pendingManualAssistModel = opts.assistModel || '';
   const banner = document.getElementById('assistScreenOffer');
   if (opts.hasScreenshot) {
     if (opts.autoAttachScreen) {
@@ -1332,6 +1339,10 @@ async function sendChat(opts) {
   let rawStreamText = '';
   let lastRenderTs = 0;
 
+  const useModelOverride = (opts.modelOverride || pendingManualAssistModel || '').trim();
+  pendingManualAssistModel = '';
+  const targetModelFile = useModelOverride || (document.getElementById('modelSelect').value || '');
+
   try {
     const res = await fetch('/api/chat/stream', {
       method: 'POST',
@@ -1342,7 +1353,8 @@ async function sendChat(opts) {
         message: text,
         personaId: document.getElementById('personaSelect').value,
         temperature: Number(document.getElementById('chatTemp').value),
-        modelFile: document.getElementById('modelSelect').value || '',
+        modelFile: targetModelFile,
+        temporaryModel: !!useModelOverride,
         imageBase64: img || '',
         docName: doc ? doc.name : '',
         docText: doc ? doc.text : '',
@@ -1406,6 +1418,18 @@ async function sendChat(opts) {
 function abortChat() { if (abortCtrl) abortCtrl.abort(); }
 
 // ==================== SETTINGS & LOGS ====================
+function populateAssistModelSelect(llms) {
+  const sel = document.getElementById('cfgAssistModel');
+  if (!sel) return;
+  const cur = assistSettings.assistModel || sel.value || '';
+  const opts = ['<option value="">Текущая модель из чата (по умолчанию)</option>'];
+  for (const x of (llms || [])) {
+    opts.push(`<option value="${esc(x.fileName)}" ${x.fileName === cur ? 'selected' : ''}>${esc(shortModelLabel(x.fileName, x.sizeGB))}${x.hasVision ? ' · Vision' : ''}</option>`);
+  }
+  sel.innerHTML = opts.join('');
+  if (cur) sel.value = cur;
+}
+
 async function loadSettings() {
   const res = await fetch('/api/settings');
   const s = await res.json();
@@ -1418,6 +1442,7 @@ async function loadSettings() {
   assistSettings.assistAutoTts = s.assistAutoTts !== false;
   assistSettings.assistAttachScreen = !!s.assistAttachScreen;
   assistSettings.assistWebSearch = s.assistWebSearch !== false;
+  assistSettings.assistModel = s.assistModel || '';
   const elV = document.getElementById('cfgAssistAutoVoice');
   const elT = document.getElementById('cfgAssistAutoTts');
   const elS = document.getElementById('cfgAssistAttachScreen');
@@ -1426,6 +1451,9 @@ async function loadSettings() {
   if (elT) elT.checked = assistSettings.assistAutoTts;
   if (elS) elS.checked = assistSettings.assistAttachScreen;
   if (elW) elW.checked = assistSettings.assistWebSearch;
+  if (lastStatus && lastStatus.availableLlms) populateAssistModelSelect(lastStatus.availableLlms);
+  const elM = document.getElementById('cfgAssistModel');
+  if (elM) elM.value = assistSettings.assistModel;
 
   const sp = document.getElementById('cfgSearchProvider');
   if (sp) sp.value = s.searchProvider || 'auto';
@@ -1440,11 +1468,13 @@ async function loadSettings() {
 }
 
 async function saveAssistSettings() {
+  const elM = document.getElementById('cfgAssistModel');
   const body = {
     assistAutoVoice: !!document.getElementById('cfgAssistAutoVoice').checked,
     assistAutoTts: !!document.getElementById('cfgAssistAutoTts').checked,
     assistAttachScreen: !!document.getElementById('cfgAssistAttachScreen').checked,
-    assistWebSearch: !!document.getElementById('cfgAssistWebSearch').checked
+    assistWebSearch: !!document.getElementById('cfgAssistWebSearch').checked,
+    assistModel: elM ? elM.value : ''
   };
   await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   Object.assign(assistSettings, body);

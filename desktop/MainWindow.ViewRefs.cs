@@ -44,6 +44,7 @@ public partial class MainWindow
     private System.Windows.Controls.Image LocalChatPendingImg => ChatTabView?.LocalChatPendingImg!;
     private System.Windows.Controls.TextBlock LocalChatPendingImgName => ChatTabView?.LocalChatPendingImgName!;
     private System.Windows.Controls.TextBlock LocalChatStatsText => ChatTabView?.LocalChatStatsText!;
+    private System.Windows.Controls.CheckBox LocalChatWebSearchCheck => ChatTabView?.LocalChatWebSearchCheck!;
     private System.Windows.Controls.Button LocalChatAttachImgBtn => ChatTabView?.LocalChatAttachImgBtn!;
     private System.Windows.Controls.Button LocalChatMicBtn => ChatTabView?.LocalChatMicBtn!;
     private System.Windows.Controls.TextBox LocalChatInputBox => ChatTabView?.LocalChatInputBox!;
@@ -260,6 +261,16 @@ public partial class MainWindow
     private System.Windows.Controls.ScrollViewer SysServicesView => SystemTabView?.SysServicesView!;
     private System.Windows.Controls.Primitives.UniformGrid ServicesGrid => SystemTabView?.ServicesGrid!;
     private System.Windows.Controls.ScrollViewer SysSettingsView => SystemTabView?.SysSettingsView!;
+    private System.Windows.Controls.ComboBox CfgAssistModelCombo => SystemTabView?.CfgAssistModelCombo!;
+    private System.Windows.Controls.ComboBox CfgAssistHotkeyCombo => SystemTabView?.CfgAssistHotkeyCombo!;
+    private System.Windows.Controls.ComboBox CfgAssistInputModeCombo => SystemTabView?.CfgAssistInputModeCombo!;
+    private System.Windows.Controls.CheckBox CfgAssistEnabledCheck => SystemTabView?.CfgAssistEnabledCheck!;
+    private System.Windows.Controls.CheckBox CfgAssistScreenCheck => SystemTabView?.CfgAssistScreenCheck!;
+    private System.Windows.Controls.CheckBox CfgAssistWebCheck => SystemTabView?.CfgAssistWebCheck!;
+    private System.Windows.Controls.CheckBox CfgAssistTtsCheck => SystemTabView?.CfgAssistTtsCheck!;
+    private System.Windows.Controls.TextBlock CfgWebSearchBadgeText => SystemTabView?.CfgWebSearchBadgeText!;
+    private System.Windows.Controls.PasswordBox CfgTavilyKeyBox => SystemTabView?.CfgTavilyKeyBox!;
+    private System.Windows.Controls.PasswordBox CfgBraveKeyBox => SystemTabView?.CfgBraveKeyBox!;
     private System.Windows.Controls.Button UpdateServerToggleBtn => SystemTabView?.UpdateServerToggleBtn!;
     private System.Windows.Controls.Button UpdateCheckBtn => SystemTabView?.UpdateCheckBtn!;
     private System.Windows.Controls.Button UpdateSettingsInstallBtn => SystemTabView?.UpdateSettingsInstallBtn!;

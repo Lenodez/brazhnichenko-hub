@@ -124,7 +124,7 @@ public class LocalHubServer {
                 JSONObject o = new JSONObject();
                 o.put("ok", true);
                 o.put("app", "Brazhnichenko Hub Android");
-                o.put("version", "4.8.0");
+                o.put("version", "4.9.0");
                 sendJson(rawOut, 200, o.toString());
                 return;
             }
@@ -277,6 +277,7 @@ public class LocalHubServer {
                     if (req.has("assistAutoTts")) ed.putBoolean("assist_auto_tts", req.getBoolean("assistAutoTts"));
                     if (req.has("assistAttachScreen")) ed.putBoolean("assist_attach_screen", req.getBoolean("assistAttachScreen"));
                     if (req.has("assistWebSearch")) ed.putBoolean("assist_web_search", req.getBoolean("assistWebSearch"));
+                    if (req.has("assistModel")) ed.putString("assist_model", req.getString("assistModel").trim());
                     if (req.has("searchProvider")) ed.putString("search_provider", req.getString("searchProvider"));
                     if (req.has("tavilyKey")) ed.putString("tavily_api_key", req.getString("tavilyKey").trim());
                     if (req.has("braveKey")) ed.putString("brave_api_key", req.getString("braveKey").trim());
@@ -296,6 +297,7 @@ public class LocalHubServer {
                 o.put("assistAutoTts", p.getBoolean("assist_auto_tts", true));
                 o.put("assistAttachScreen", p.getBoolean("assist_attach_screen", false));
                 o.put("assistWebSearch", p.getBoolean("assist_web_search", true));
+                o.put("assistModel", p.getString("assist_model", ""));
                 o.put("searchProvider", p.getString("search_provider", "auto"));
                 o.put("tavilyConnected", !p.getString("tavily_api_key", "").trim().isEmpty());
                 o.put("braveConnected", !p.getString("brave_api_key", "").trim().isEmpty());
@@ -474,9 +476,15 @@ public class LocalHubServer {
             String docName = req.optString("docName", "").trim();
             String docText = req.optString("docText", "").trim();
             boolean webSearch = req.optBoolean("webSearch", false);
+            boolean temporaryModel = req.optBoolean("temporaryModel", false);
 
-            if (!modelFile.isEmpty()) models.setActiveModelFile(modelFile);
-            String activeFile = models.getActiveModelFile();
+            String activeFile;
+            if (!modelFile.isEmpty() && temporaryModel) {
+                activeFile = modelFile;
+            } else {
+                if (!modelFile.isEmpty()) models.setActiveModelFile(modelFile);
+                activeFile = models.getActiveModelFile();
+            }
             if (activeFile.isEmpty()) {
                 sendSse(out, "error", "Нет установленных моделей. Открой вкладку «Модели» и скачай Qwen 3 4B или Gemma 3 4B Vision.");
                 return;
@@ -729,7 +737,7 @@ public class LocalHubServer {
         }
 
         JSONObject o = new JSONObject();
-        o.put("version", "4.8.0");
+        o.put("version", "4.9.0");
         o.put("device", models.getDeviceSocLabel());
         o.put("androidVersion", "Android " + Build.VERSION.RELEASE);
         o.put("cpuCores", Runtime.getRuntime().availableProcessors());
