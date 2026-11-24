@@ -37,9 +37,9 @@ public class HubWidgetProvider extends AppWidgetProvider {
 
         String sub = (statusText != null && !statusText.trim().isEmpty())
                 ? statusText
-                : (running ? "Hexagon NPU активен" : "Brazhnichenko Hub · Офлайн");
+                : (running ? "■ Hexagon NPU активен" : "Brazhnichenko Hub · Офлайн");
         rv.setTextViewText(R.id.widget_status, sub);
-        rv.setTextColor(R.id.widget_status, Color.parseColor(running ? "#7CF0A8" : "#94A0B8"));
+        rv.setTextColor(R.id.widget_status, Color.parseColor(running ? "#34D399" : "#8E8E99"));
 
         rv.setOnClickPendingIntent(R.id.widget_ask, makeActionPi(ctx, MainActivity.ACTION_SHORTCUT_ASK, 101));
         rv.setOnClickPendingIntent(R.id.widget_camera, makeActionPi(ctx, MainActivity.ACTION_SHORTCUT_CAMERA, 102));

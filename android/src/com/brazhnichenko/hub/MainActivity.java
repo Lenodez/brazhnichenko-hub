@@ -114,8 +114,8 @@ public class MainActivity extends Activity {
 
         Window win = getWindow();
         win.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        win.setStatusBarColor(Color.parseColor("#0D1017"));
-        win.setNavigationBarColor(Color.parseColor("#0D1017"));
+        win.setStatusBarColor(Color.parseColor("#0B0B0D"));
+        win.setNavigationBarColor(Color.parseColor("#0B0B0D"));
 
         if (Build.VERSION.SDK_INT >= 33) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -138,7 +138,7 @@ public class MainActivity extends Activity {
         });
 
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.parseColor("#0D1017"));
+        root.setBackgroundColor(Color.parseColor("#080809"));
         if (Build.VERSION.SDK_INT >= 30) {
             root.setOnApplyWindowInsetsListener((v, insets) -> {
                 android.graphics.Insets sys = insets.getInsets(
@@ -151,7 +151,7 @@ public class MainActivity extends Activity {
         }
 
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.parseColor("#0D1017"));
+        webView.setBackgroundColor(Color.parseColor("#080809"));
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
         webView.requestFocus(View.FOCUS_DOWN);
@@ -300,6 +300,10 @@ public class MainActivity extends Activity {
         if (ACTION_ASSIST_LAUNCH.equals(action)
                 || Intent.ACTION_ASSIST.equals(action)
                 || Intent.ACTION_VOICE_COMMAND.equals(action)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(true);
+                setTurnScreenOn(true);
+            }
             SharedPreferences p = getSharedPreferences("hub_prefs", Context.MODE_PRIVATE);
             boolean autoVoice = p.getBoolean("assist_auto_voice", true) || Intent.ACTION_VOICE_COMMAND.equals(action);
             boolean autoTts = p.getBoolean("assist_auto_tts", true);
@@ -919,6 +923,16 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void openAssistantSettings() {
             mainHandler.post(() -> {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        android.app.role.RoleManager rm = getSystemService(android.app.role.RoleManager.class);
+                        if (rm != null && rm.isRoleAvailable(android.app.role.RoleManager.ROLE_ASSISTANT)
+                                && !rm.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT)) {
+                            startActivityForResult(rm.createRequestRoleIntent(android.app.role.RoleManager.ROLE_ASSISTANT), 4109);
+                            return;
+                        }
+                    }
+                } catch (Exception ignored) { }
                 try {
                     Intent i = new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS);
                     startActivity(i);

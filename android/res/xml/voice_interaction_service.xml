@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:sessionService="com.brazhnichenko.hub.HubAssistSessionService"
+    android:recognitionService="com.brazhnichenko.hub.HubRecognitionService"
+    android:settingsActivity="com.brazhnichenko.hub.MainActivity"
     android:supportsAssist="true"
     android:supportsLaunchVoiceAssistFromKeyguard="true"
     android:supportsLocalInteraction="true" />

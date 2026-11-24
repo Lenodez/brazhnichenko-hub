@@ -39,7 +39,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="Спросить локальную AI..."
-                android:textColor="#EDF2FA"
+                android:textColor="#F4F4F6"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -50,7 +50,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="Brazhnichenko Hub · Офлайн"
-                android:textColor="#94A0B8"
+                android:textColor="#8E8E99"
                 android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>

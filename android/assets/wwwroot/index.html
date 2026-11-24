@@ -16,15 +16,21 @@
           <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
         <div class="brand">
-          <span class="brand-full">Brazhnichenko Hub</span>
-          <span class="brand-short">Hub AI</span>
+          <svg class="brand-dial" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="1.5" y="1.5" width="21" height="21" rx="5" fill="#141418" stroke="#2E2E38" stroke-width="1.4"/>
+            <circle cx="12" cy="12" r="6.8" fill="#0B0B0E" stroke="#383844" stroke-width="1.2"/>
+            <line x1="12" y1="12" x2="16.2" y2="7.8" stroke="#FF521B" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="1.7" fill="#FF521B"/>
+          </svg>
+          <span class="brand-full mono">BRAZHNICHENKO HUB</span>
+          <span class="brand-short mono">HUB</span>
           <span class="pill info mono ver-pill">v5.0.0</span>
         </div>
       </div>
       <div class="head-right">
         <button id="llmToggleBtn" class="llm-pill" onclick="toggleLlmPower()" title="Запустить или остановить локальную нейросеть">
           <span class="dot"></span>
-          <span id="llmTopText" class="mono">LLM: выкл</span>
+          <span id="llmTopText" class="mono">СТАРТ LLM</span>
         </button>
         <button id="btnNewChatTop" class="btn icon-sm mobile-only" title="Новый чат" aria-label="Новый чат" onclick="newSession()">
           <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -35,15 +41,15 @@
     <!-- Desktop / unfolded tablet telemetry strip (hidden on folded < 680px, shown in full on System tab) -->
     <div class="tele-strip desktop-tele">
       <div class="tele-pill">
-        <span class="k">Устройство / SoC</span>
+        <span class="k mono">SOC / NPU</span>
         <span id="devSoc" class="v">Определение...</span>
       </div>
       <div class="tele-pill">
-        <span class="k">RAM (ОЗУ)</span>
+        <span class="k mono">RAM</span>
         <span id="devRam" class="v mono">—</span>
       </div>
       <div class="tele-pill">
-        <span class="k">Память / Батарея</span>
+        <span class="k mono">STORAGE / BAT</span>
         <span id="devDisk" class="v mono">—</span>
       </div>
     </div>
@@ -401,7 +407,7 @@
           <button id="btnCheckUpdate" class="btn" style="flex:1;" onclick="checkAppUpdate(false)">Проверить обновления</button>
           <button id="btnInstallUpdate" class="btn primary" style="display:none;flex:1;" onclick="startAppUpdate()">Обновить APK</button>
         </div>
-        <a id="btnDirectApkLink" href="https://github.com/Lenodez/brazhnichenko-hub/releases/latest" style="display:none;font-size:12px;color:var(--accent);text-decoration:underline;margin-top:2px;">Скачать APK напрямую в браузере ↗</a>
+        <a id="btnDirectApkLink" href="https://github.com/Lenodez/brazhnichenko-hub/releases/latest" style="display:none;font-size:12px;color:var(--signal);text-decoration:underline;margin-top:2px;">Скачать APK напрямую в браузере ↗</a>
       </div>
 
       <!-- Offline TTS -->
@@ -441,7 +447,7 @@
       Поиск HF
     </button>
     <button class="nav-btn" data-view="system" onclick="switchView('system')">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9"/></svg>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       Система
     </button>
   </nav>

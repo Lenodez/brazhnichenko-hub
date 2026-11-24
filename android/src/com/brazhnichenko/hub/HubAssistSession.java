@@ -1,23 +1,27 @@
 package com.brazhnichenko.hub;
 
+import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.service.voice.VoiceInteractionSession;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Handles system assistant invocations (long-press power button, corner swipe, headset trigger).
+ * Handles system assistant invocations (long-press power button / Side Key, corner swipe, headset trigger).
  * Optionally captures the system-provided screenshot for offline Vision analysis,
- * then hands off cleanly to MainActivity in voice-first Assistant mode.
+ * then launches MainActivity via privileged startAssistantActivity() (exempt from Android 14–16 BAL blocks).
  */
 public class HubAssistSession extends VoiceInteractionSession {
+    private static final String TAG = "HubAssist";
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final AtomicBoolean launched = new AtomicBoolean(false);
     private final Runnable fallbackLaunch = () -> launchAssistantUi(false);
@@ -27,18 +31,29 @@ public class HubAssistSession extends VoiceInteractionSession {
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        // Disable empty session Dialog window so startAssistantActivity transitions cleanly without focus flicker
+        setUiEnabled(false);
+    }
+
+    @Override
     public void onShow(Bundle args, int showFlags) {
         super.onShow(args, showFlags);
+        Log.i(TAG, "onShow invoked (showFlags=" + showFlags + ")");
         launched.set(false);
-        // Delete any stale screenshot from a previous invocation
         try {
             File f = getAssistScreenFile(getContext());
             if (f.exists()) f.delete();
         } catch (Exception ignored) { }
 
-        // Give Android up to 180ms to deliver onHandleScreenshot(Bitmap) if screen analysis is enabled
+        // If screenshot flag is not set or disabled by user/system, launch immediately without waiting 180ms
         handler.removeCallbacks(fallbackLaunch);
-        handler.postDelayed(fallbackLaunch, 180);
+        if ((showFlags & SHOW_WITH_SCREENSHOT) != 0) {
+            handler.postDelayed(fallbackLaunch, 180);
+        } else {
+            handler.postDelayed(fallbackLaunch, 60);
+        }
     }
 
     @Override
@@ -76,23 +91,39 @@ public class HubAssistSession extends VoiceInteractionSession {
     private void launchAssistantUi(boolean hasScreenshot) {
         if (!launched.compareAndSet(false, true)) return;
         handler.removeCallbacks(fallbackLaunch);
+
+        Intent assistIntent = new Intent(getContext(), MainActivity.class);
+        assistIntent.setAction(MainActivity.ACTION_ASSIST_LAUNCH);
+        assistIntent.putExtra(MainActivity.EXTRA_HAS_SCREENSHOT, hasScreenshot);
+        assistIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        boolean started = false;
         try {
-            Intent intent = new Intent(getContext(), MainActivity.class);
-            intent.setAction(MainActivity.ACTION_ASSIST_LAUNCH);
-            intent.putExtra(MainActivity.EXTRA_HAS_SCREENSHOT, hasScreenshot);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            getContext().startActivity(intent);
-        } catch (Exception ignored) {
-            try {
-                Intent fallback = new Intent(getContext(), MainActivity.class);
-                fallback.setAction(MainActivity.ACTION_ASSIST_LAUNCH);
-                fallback.putExtra(MainActivity.EXTRA_HAS_SCREENSHOT, hasScreenshot);
-                startAssistantActivity(fallback);
-            } catch (Exception ignored2) { }
+            if (Build.VERSION.SDK_INT >= 34) {
+                ActivityOptions opts = ActivityOptions.makeBasic();
+                startAssistantActivity(assistIntent, opts.toBundle());
+            } else {
+                startAssistantActivity(assistIntent);
+            }
+            started = true;
+            Log.i(TAG, "startAssistantActivity succeeded (hasScreenshot=" + hasScreenshot + ")");
+        } catch (Exception e) {
+            Log.w(TAG, "startAssistantActivity threw, falling back to Context.startActivity: " + e.getMessage());
         }
-        try {
-            finish();
-        } catch (Exception ignored) { }
+
+        if (!started) {
+            try {
+                getContext().startActivity(assistIntent);
+            } catch (Exception e2) {
+                Log.e(TAG, "Fallback startActivity failed: " + e2.getMessage());
+            }
+        }
+
+        // Keep session alive briefly until ActivityTaskManager brings MainActivity forward
+        handler.postDelayed(() -> {
+            try { hide(); } catch (Exception ignored) { }
+            try { finish(); } catch (Exception ignored) { }
+        }, 350);
     }
 
     @Override

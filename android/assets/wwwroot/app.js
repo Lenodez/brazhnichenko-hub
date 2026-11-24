@@ -550,6 +550,9 @@ function onModelSelectChanged() {
     const isVis = /gemma-3|vl|vision|llava|minicpm/i.test(item.fileName);
     updateVisionBadge(item.fileName === lastStatus.activeLlm ? lastStatus.activeLlmHasVision : isVis);
   }
+  if (lastStatus.llmRunning && sel && sel !== lastStatus.activeLlm) {
+    startLlm();
+  }
 }
 
 async function pollStatus() {
@@ -584,7 +587,7 @@ async function pollStatus() {
     const txt = document.getElementById('llmTopText');
     if (btn && txt) {
       btn.classList.toggle('running', !!st.llmRunning);
-      txt.textContent = st.llmRunning ? `${String(st.activeBackend || 'NPU').toUpperCase()} · Стоп` : 'Старт LLM';
+      txt.textContent = st.llmRunning ? `${String(st.activeBackend || 'NPU').toUpperCase()} · СТОП` : 'СТАРТ LLM';
     }
 
     updateVisionBadge(!!st.activeLlmHasVision);
@@ -992,13 +995,14 @@ function renderMessages() {
   if (!s || !s.messages || !s.messages.length) {
     box.innerHTML = memHtml + `
       <div class="welcome-card">
-        <div class="welcome-title">Локальная AI офлайн · Hexagon NPU</div>
-        <div class="welcome-sub">Приватный чат без интернета и облака. Задай вопрос, продиктуй голосом, сфотографируй документ или выбери быстрый сценарий ниже.</div>
+        <div class="welcome-kicker mono">LOCAL AI · HEXAGON NPU</div>
+        <div class="welcome-title">Автономный ИИ без облака</div>
+        <div class="welcome-sub">Все вычисления выполняются локально на процессоре смартфона. Напиши запрос, продиктуй офлайн, прикрепи фото/PDF или выбери быстрый сценарий ниже.</div>
         <div class="welcome-tags">
-          <span class="pill info">NPU + GPU</span>
-          <span class="pill">Vision (Фото)</span>
-          <span class="pill">PDF / Документы</span>
-          <span class="pill">Голос + TTS</span>
+          <span class="pill info mono">NPU + GPU</span>
+          <span class="pill mono">VISION OCR</span>
+          <span class="pill mono">PDF / DOCS</span>
+          <span class="pill mono">SHERPA STT</span>
         </div>
       </div>`;
     updateQuickChipsVisibility(true);
@@ -1643,7 +1647,11 @@ async function checkAppUpdate(silent) {
       }
       if (!silent) toast(`Найдена новая версия v${d.latestVersion}!`);
     } else {
-      if (txt) txt.textContent = `Установлена актуальная версия v${d.currentVersion} (GitHub: v${d.latestVersion})`;
+      if (txt) {
+        txt.textContent = d.message
+          ? `${d.message} · установлена v${d.currentVersion}`
+          : `Установлена актуальная версия v${d.currentVersion} (GitHub: v${d.latestVersion})`;
+      }
       if (instBtn) instBtn.style.display = 'none';
       if (directLink) directLink.style.display = 'none';
       if (!silent) toast(`У тебя последняя версия v${d.currentVersion}`);

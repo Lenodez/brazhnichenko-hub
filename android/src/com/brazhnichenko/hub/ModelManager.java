@@ -304,17 +304,17 @@ public class ModelManager {
             String speed;
             if (totalRam >= m.idealRamGB - 0.5) {
                 level = "ideal";
-                badge = "Идеально";
+                badge = "■ Оптимально";
                 speed = m.totalSizeGB <= 1.5 ? "~40–65 tok/s"
                         : m.totalSizeGB <= 3.5 ? "~22–40 tok/s"
                         : m.totalSizeGB <= 5.5 ? "~12–22 tok/s" : "~8–14 tok/s";
             } else if (totalRam >= m.minRamGB - 0.5) {
                 level = "tight";
-                badge = "Впритык";
+                badge = "◧ Впритык";
                 speed = "~7–14 tok/s (закрой фоновые приложения)";
             } else {
                 level = "unsupported";
-                badge = "Мало RAM";
+                badge = "▲ Мало RAM";
                 speed = "Нужно " + (int) m.minRamGB + "+ ГБ RAM";
             }
 
