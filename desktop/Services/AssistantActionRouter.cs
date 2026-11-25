@@ -77,6 +77,39 @@ public static class AssistantActionRouter
         return s;
     }
 
+    private static readonly Regex SmallTalkRx = new(
+        @"^(?:привет|здравствуй(?:те)?|добр(?:ое|ый|ого)\s+(?:утр[оа]|ден[ья]|вечер[а]?)|хай|салют|ку|йоу|как\s+(?:ты\s+)?поживаешь|как\s+(?:у\s+тебя\s+)?дела|как\s+(?:твоя\s+)?жизнь|как\s+(?:твоё\s+|твое\s+)?настроение|как\s+(?:ты|сам)|что\s+(?:ты\s+)?умеешь|кто\s+ты|ты\s+кто|спасибо|благодарю|круто|класс|отлично|молодец|пока|до\s+свидания|тест|проверка|раз\s+два|hello|hi|hey|how\s+are\s+you|thanks?|thank\s+you|bye)(?:[\s,!?.—–\-]+(?:привет|как\s+(?:ты\s+)?поживаешь|как\s+(?:ты|дела)|дела|жизнь|ассистент|бот|друг|там|у\s+тебя|сегодня|бро))*[\s,!?.]*$",
+        RegexOptions.IgnoreCase);
+
+    private static readonly Regex LocalOnlyTaskRx = new(
+        @"^(?:перевед(?:и|ите|ить)|перепиш(?:и|ите)|сократ(?:и|ите)|исправ(?:ь|ьте)|проверь\s+орфографию|сделай\s+(?:выжимку|резюме|короче)|объясни\s+(?:что\s+)?(?:сейчас\s+)?на\s+экране|что\s+(?:сейчас\s+)?(?:видишь\s+)?на\s+экране|разбери\s+экран|прочитай\s+(?:с\s+)?экрана|опиши\s+(?:что\s+)?на\s+экране|translate|summarize|rewrite|what(?:'s|\s+is)\s+on\s+(?:my\s+)?screen)\b",
+        RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Smart Web-Search classifier: prevents unnecessary internet searches on casual greetings,
+    /// small talk ("как поживаешь?"), pure screen-Vision queries, and local text transformations,
+    /// while still triggering automatically for factual/live queries and explicit web searches.
+    /// </summary>
+    public static bool ShouldRunWebSearch(string userText, AssistantIntentKind routedIntent, bool webCheckboxEnabled)
+    {
+        if (routedIntent == AssistantIntentKind.WebSearch)
+            return true;
+        if (!webCheckboxEnabled || routedIntent != AssistantIntentKind.ChatOrScreen)
+            return false;
+
+        string normalized = StripConversationalLeadIn(userText ?? "");
+        string raw = (userText ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(raw) || raw.Length < 4)
+            return false;
+
+        if (SmallTalkRx.IsMatch(raw) || SmallTalkRx.IsMatch(normalized))
+            return false;
+        if (LocalOnlyTaskRx.IsMatch(raw) || LocalOnlyTaskRx.IsMatch(normalized))
+            return false;
+
+        return true;
+    }
+
     public static AssistantIntentMatch RouteUserInput(string userText, DateTime? nowOverride = null)
     {
         string text = (userText ?? "").Trim();

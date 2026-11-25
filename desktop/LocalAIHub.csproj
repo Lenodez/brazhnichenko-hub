@@ -9,7 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>LocalAIHub</AssemblyName>
     <RootNamespace>LocalAIHub</RootNamespace>
-    <Version>5.3.1</Version>
+    <Version>5.3.2</Version>
     <ServerGarbageCollection>false</ServerGarbageCollection>
     <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
     <ApplicationTitle>Brazhnichenko Hub</ApplicationTitle>

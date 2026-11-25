@@ -482,8 +482,11 @@ public partial class AssistantOverlayWindow : Window
                 return;
             }
 
-            // ---- SAFE ACTION 3 & 4: WEB SEARCH + READ-ONLY VISION / CHAT ----
-            bool useWeb = WebSearchCheck.IsChecked == true || intent.Kind == AssistantIntentKind.WebSearch;
+            // ---- SAFE ACTION 3 & 4: SMART WEB SEARCH + READ-ONLY VISION / CHAT ----
+            bool useWeb = AssistantActionRouter.ShouldRunWebSearch(
+                userText,
+                intent.Kind,
+                WebSearchCheck.IsChecked == true);
             string searchQuery = intent.Kind == AssistantIntentKind.WebSearch && !string.IsNullOrWhiteSpace(intent.ExtractedPayload)
                 ? intent.ExtractedPayload
                 : userText;
@@ -509,13 +512,12 @@ public partial class AssistantOverlayWindow : Window
 
             ModelBadgeText.Text = $"{AiServiceManager.FriendlyLlmName(modelFile)}{(hasVision ? " · Vision" : "")}";
 
-            // Safe-Tools system prompt (strictly informational + whitelisted note/reminder action tags)
+            // Strictly informational system prompt: notes & reminders are executed ONLY by the deterministic
+            // AssistantActionRouter so compact 4B models never accidentally create notes during casual chat.
             string sysPrompt =
                 $"Ты приватный локальный ассистент пользователя на ПК (Brazhnichenko Hub). Текущая дата: {DateTime.Now:yyyy-MM-dd (dddd)}.\n" +
-                "Работаешь в безопасном режиме: ты можешь объяснять содержимое экрана, переводить текст, искать факты, а также сохранять заметки и ставить напоминания. У тебя нет доступа к терминалу, настройкам или сторонним файлам ПК.\n" +
-                "Если пользователь просит сохранить заметку, добавь в конец ответа ровно один тег: <hub_action>{\"action\":\"save_note\",\"title\":\"Заголовок\",\"content\":\"Текст заметки\",\"tags\":[\"тег\"]}</hub_action>.\n" +
-                "Если пользователь просит поставить напоминание/таймер, добавь тег: <hub_action>{\"action\":\"set_reminder\",\"minutes\":15,\"text\":\"О чём напомнить\"}</hub_action>.\n" +
-                "Отвечай чётко, компактно, структурированно и на языке пользователя.";
+                "Работаешь в безопасном режиме: отвечай на вопросы, объясняй содержимое экрана, переводи текст и опирайся на результаты поиска, если они приложены ниже. У тебя нет доступа к терминалу, настройкам или сторонним файлам ПК.\n" +
+                "Отвечай чётко, естественно, компактно и на языке пользователя.";
             if (!string.IsNullOrEmpty(webBlock))
                 sysPrompt += "\n\n" + webBlock;
 
@@ -605,31 +607,7 @@ public partial class AssistantOverlayWindow : Window
             }
 
             sw.Stop();
-            var (finalReply, llmAction) = AssistantActionRouter.ExtractLlmAction(fullText.ToString().Trim());
-            if (llmAction is not null)
-            {
-                if (llmAction.Action == "save_note")
-                {
-                    var saved = AssistantNotesService.SaveNote(llmAction.Title, llmAction.Content, llmAction.Tags);
-                    RenderNoteSavedCard(asstContainer, bodyHost, metaText, saved, usedLlm: true);
-                    StatusText.Text = $"Заметка сохранена: {saved.FileName}";
-                    _history.Add(("user", userText));
-                    _history.Add(("assistant", $"Заметка «{saved.Title}» сохранена."));
-                    if (AutoTtsCheck.IsChecked == true)
-                        _ = SpeakReplyAsync($"Заметка {saved.Title} сохранена.");
-                    return;
-                }
-                if (llmAction.Action == "set_reminder" && llmAction.ReminderMinutes is > 0)
-                {
-                    var item = _reminders.AddReminder(llmAction.Content, DateTime.Now.AddMinutes(llmAction.ReminderMinutes.Value));
-                    RenderReminderSavedCard(asstContainer, bodyHost, metaText, item);
-                    StatusText.Text = $"Напоминание установлено на {item.FireAtLocal:HH:mm}";
-                    _history.Add(("user", userText));
-                    _history.Add(("assistant", $"Напоминание на {item.FireAtLocal:HH:mm}: {item.Text}"));
-                    return;
-                }
-            }
-
+            string finalReply = fullText.ToString().Trim();
             bodyHost.Child = MarkdownUiRenderer.Build(string.IsNullOrEmpty(finalReply) ? "(пустой ответ)" : finalReply, 13);
             double tps = tok / Math.Max(0.15, sw.Elapsed.TotalSeconds);
             metaText.Text = $"{tps:F1} tok/s · {tok} ток · {AiServiceManager.FriendlyLlmName(modelFile)}";
