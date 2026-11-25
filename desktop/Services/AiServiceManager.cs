@@ -202,6 +202,7 @@ public sealed class AiServiceManager
 
     public async Task StopAllGpuAsync()
     {
+        SherpaDesktopSttEngine.UnloadCachedModel();
         await HubAssistantService.StopAssistantServerAsync();
         foreach (var id in new[] { "qwen", "comfyui" })
         {

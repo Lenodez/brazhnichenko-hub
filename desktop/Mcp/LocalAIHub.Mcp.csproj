@@ -4,10 +4,12 @@
     <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>LocalAIHub.Mcp</AssemblyName>
     <RootNamespace>LocalAIHub.Mcp</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Services\*.cs" Link="Services\%(Filename)%(Extension)" />
+    <Compile Include="..\Services\SherpaOnnx\*.cs" Link="Services\SherpaOnnx\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

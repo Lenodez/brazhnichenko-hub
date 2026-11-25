@@ -212,6 +212,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,10">
@@ -227,16 +228,25 @@
                             <Button x:Name="InstallComfyBtn" Grid.Row="1" Grid.Column="1" Content="Установить / Обновить" Style="{StaticResource SuccessButton}" VerticalAlignment="Center" Margin="0,0,0,10" Click="InstallComfyBtn_Click" x:FieldModifier="internal" />
 
                             <StackPanel Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,10">
-                                <TextBlock Text="Whisper STT (Локальная диктовка)" FontSize="13" FontWeight="SemiBold" />
+                                <TextBlock Text="Sherpa-ONNX STT (GigaAM v2 RU / Parakeet v3 — как на Android)" FontSize="13" FontWeight="SemiBold" />
+                                <TextBlock x:Name="VoiceSherpaStatusText" Text="Проверка..." FontSize="11.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" x:FieldModifier="internal" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,10">
+                                <Button x:Name="InstallGigaAmBtn" Content="GigaAM v2 RU (230 МБ)" Style="{StaticResource SuccessButton}" Margin="0,0,6,0" Click="InstallGigaAmBtn_Click" x:FieldModifier="internal" />
+                                <Button x:Name="InstallParakeetBtn" Content="Parakeet v3 RU+EN (670 МБ)" Style="{StaticResource DarkButton}" Click="InstallParakeetBtn_Click" x:FieldModifier="internal" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,10">
+                                <TextBlock Text="Whisper STT (Резервная диктовка)" FontSize="13" FontWeight="SemiBold" />
                                 <TextBlock x:Name="VoiceWhisperStatusText" Text="Проверка..." FontSize="11.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" x:FieldModifier="internal" />
                             </StackPanel>
-                            <Button x:Name="InstallWhisperBtn" Grid.Row="2" Grid.Column="1" Content="Установить Whisper (~150 МБ)" Style="{StaticResource DarkButton}" VerticalAlignment="Center" Margin="0,0,0,10" Click="InstallWhisperBtn_Click" x:FieldModifier="internal" />
+                            <Button x:Name="InstallWhisperBtn" Grid.Row="3" Grid.Column="1" Content="Установить Whisper (~150 МБ)" Style="{StaticResource DarkButton}" VerticalAlignment="Center" Margin="0,0,0,10" Click="InstallWhisperBtn_Click" x:FieldModifier="internal" />
 
-                            <StackPanel Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <StackPanel Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
                                 <TextBlock Text="Piper HD TTS (Локальный синтез речи)" FontSize="13" FontWeight="SemiBold" />
                                 <TextBlock x:Name="VoicePiperStatusText" Text="Проверка..." FontSize="11.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" x:FieldModifier="internal" />
                             </StackPanel>
-                            <Button x:Name="InstallPiperBtn" Grid.Row="3" Grid.Column="1" Content="Установить Piper HD (~80 МБ)" Style="{StaticResource DarkButton}" VerticalAlignment="Center" Click="InstallPiperBtn_Click" x:FieldModifier="internal" />
+                            <Button x:Name="InstallPiperBtn" Grid.Row="4" Grid.Column="1" Content="Установить Piper HD (~80 МБ)" Style="{StaticResource DarkButton}" VerticalAlignment="Center" Click="InstallPiperBtn_Click" x:FieldModifier="internal" />
                         </Grid>
                     </StackPanel>
                 </Border>

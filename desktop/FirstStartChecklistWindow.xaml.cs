@@ -62,6 +62,8 @@ public partial class FirstStartChecklistWindow : Window
         var rt = RuntimeInstaller.GetStatus();
         var llmModels = _manager.GetAvailableLlmModels();
         var voice = LocalVoiceService.GetStatus();
+        var sherpa = SherpaDesktopSttEngine.GetStatus();
+        bool anySttReady = sherpa.AnyReady || voice.WhisperReady;
         var hw = _getHardware();
         bool isNvidia = RuntimeInstaller.IsNvidiaGpu(hw);
 
@@ -70,7 +72,7 @@ public partial class FirstStartChecklistWindow : Window
             HwLineText.Text = $"Оборудование: {hw.OverallTierSummaryRu}";
         }
 
-        int coreDone = (rt.LlamaInstalled ? 1 : 0) + (llmModels.Count > 0 ? 1 : 0) + (voice.WhisperReady ? 1 : 0);
+        int coreDone = (rt.LlamaInstalled ? 1 : 0) + (llmModels.Count > 0 ? 1 : 0) + (anySttReady ? 1 : 0);
         int totalDone = coreDone + (voice.PiperReady ? 1 : 0) + (rt.ComfyInstalled ? 1 : 0);
         ReadinessSummaryBadge.Text = coreDone == 3
             ? $"✓ БАЗА ГОТОВА ({totalDone}/5)"
@@ -113,17 +115,19 @@ public partial class FirstStartChecklistWindow : Window
 
         AddModuleCard(
             stepTag: "БАЗА · 3",
-            title: "Офлайн-диктовка голосом (Whisper STT, ~150 МБ)",
-            purpose: "Нужна для кнопки «Голос» в ассистенте Alt+Space и голосовой диктовки заметок/команд без интернета.",
-            installed: voice.WhisperReady,
-            installedDetail: voice.WhisperReady ? "Установлен — кнопка «Голос» готова к работе" : "Не установлен — без него кнопка «Голос» не сможет распознать речь",
+            title: "Офлайн-голос GigaAM v2 RU (Sherpa-ONNX, как на Android)",
+            purpose: "Мгновенная офлайн-диктовка (~0.2 с) с авто-стопом по паузе для кнопки «Голос» в ассистенте Alt+Space.",
+            installed: anySttReady,
+            installedDetail: sherpa.AnyReady
+                ? $"Установлен: {sherpa.ActiveModelLabel} — мгновенная диктовка готова"
+                : (voice.WhisperReady ? "Установлен Whisper STT (можно также добавить GigaAM v2 в Настройках)" : "Не установлен — установи GigaAM v2 (~230 МБ) для мгновенной диктовки"),
             required: true,
-            actionLabel: "Установить Whisper (~150 МБ)",
+            actionLabel: "Установить GigaAM v2 (~230 МБ)",
             onAction: async btn =>
             {
                 btn.IsEnabled = false;
-                btn.Content = "Установка Whisper...";
-                LiveStatusText.Text = "Скачивание и распаковка Whisper STT (~150 МБ)...";
+                btn.Content = "Установка GigaAM v2...";
+                LiveStatusText.Text = "Скачивание Sherpa-ONNX + GigaAM v2 Russian (~230 МБ)...";
                 await _installWhisper();
                 RefreshChecklist();
                 LiveStatusText.Text = "Готово! Статусы обновлены.";

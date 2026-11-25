@@ -4,11 +4,12 @@
     <TargetFramework>net11.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>LocalAIHub</AssemblyName>
     <RootNamespace>LocalAIHub</RootNamespace>
-    <Version>5.2.3</Version>
+    <Version>5.3.0</Version>
     <ServerGarbageCollection>false</ServerGarbageCollection>
     <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
     <ApplicationTitle>Brazhnichenko Hub</ApplicationTitle>

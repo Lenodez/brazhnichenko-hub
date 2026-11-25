@@ -53,6 +53,8 @@ public sealed class HubConfigData
     public bool DesktopAssistantAutoWebSearch { get; set; } = true;
     public bool DesktopAssistantAutoTts { get; set; } = false;
     public string AssistantNotesDir { get; set; } = ""; // Default: Documents\Notes
+    public string DesktopSttModel { get; set; } = "gigaam-v2-ru"; // gigaam-v2-ru | parakeet-tdt-v3 | whisper
+    public bool DesktopVoiceAutoStop { get; set; } = true; // Auto-stop mic on silence (~1.25s) like Android
 
     // Hybrid Web Search optional keys (free DuckDuckGo + Google News + Wikipedia works out of the box)
     public string WebSearchTavilyKey { get; set; } = "";

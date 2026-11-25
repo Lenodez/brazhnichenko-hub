@@ -31,10 +31,12 @@ public partial class AssistantOverlayWindow : Window
     private readonly LocalVoiceService _voice;
     private readonly AssistantReminderService _reminders;
     private readonly Action<string?> _openNotesViewer;
+    private readonly LiveMicRecorder _liveMic = new();
     private readonly List<(string Role, string Content)> _history = [];
     private CancellationTokenSource? _cts;
     private string? _capturedScreenBase64;
     private bool _recording;
+    private bool _transcribing;
     private bool _busy;
 
     public AssistantOverlayWindow(
@@ -48,6 +50,11 @@ public partial class AssistantOverlayWindow : Window
         _voice = voice;
         _reminders = reminders;
         _openNotesViewer = openNotesViewer;
+
+        _liveMic.LevelUpdated += OnLiveMicLevelUpdated;
+        _liveMic.AutoStopped += samples => Dispatcher.BeginInvoke(() => _ = FinalizeLiveVoiceAsync(samples));
+        Closed += (_, _) => _liveMic.Dispose();
+
         ShowWelcomeHint();
     }
 
@@ -78,8 +85,9 @@ public partial class AssistantOverlayWindow : Window
         Activate();
         Focus();
 
+        bool anySttReady = SherpaDesktopSttEngine.GetStatus().AnyReady || LocalVoiceService.GetStatus().WhisperReady;
         if (string.Equals(cfg.DesktopAssistantInputMode, "voice", StringComparison.OrdinalIgnoreCase)
-            && LocalVoiceService.GetStatus().WhisperReady
+            && anySttReady
             && !_recording)
         {
             ToggleVoiceCapture();
@@ -186,7 +194,7 @@ public partial class AssistantOverlayWindow : Window
     {
         if (_recording)
         {
-            _voice.CancelRecording();
+            _liveMic.Cancel();
             _recording = false;
             MicBtnText.Text = "Голос";
         }
@@ -313,23 +321,39 @@ public partial class AssistantOverlayWindow : Window
 
     private void MicBtn_Click(object sender, RoutedEventArgs e) => ToggleVoiceCapture();
 
-    private async void ToggleVoiceCapture()
+    private void OnLiveMicLevelUpdated(int levelPct, double elapsedSec, bool speechDetected)
     {
-        if (_busy) return;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!_recording) return;
+            int bars = Math.Clamp((int)Math.Round(levelPct / 16.0), 0, 6);
+            string meter = new string('█', bars) + new string('░', 6 - bars);
+            MicBtnText.Text = $"Стоп · {elapsedSec:F1}с";
+            StatusText.Text = speechDetected
+                ? $"● Речь [{meter}] · пауза 1.2с отправит сама"
+                : $"○ Слушаю [{meter}] · говори…";
+        });
+    }
+
+    private void ToggleVoiceCapture()
+    {
+        if (_busy || _transcribing) return;
         if (!_recording)
         {
-            var st = LocalVoiceService.GetStatus();
-            if (!st.WhisperReady)
+            var sherpa = SherpaDesktopSttEngine.GetStatus();
+            var whisper = LocalVoiceService.GetStatus();
+            if (!sherpa.AnyReady && !whisper.WhisperReady)
             {
                 ShowWhisperMissingCard();
                 return;
             }
             try
             {
-                _voice.StartRecording();
+                _liveMic.Start(autoStopOnSilence: HubConfig.Current.DesktopVoiceAutoStop);
                 _recording = true;
                 MicBtnText.Text = "Стоп…";
-                StatusText.Text = "Идёт запись с микрофона — нажми «Стоп…» для распознавания";
+                string engine = sherpa.AnyReady ? sherpa.ActiveModelLabel : "Whisper";
+                StatusText.Text = $"○ Слушаю ({engine}) — говори, пауза 1.2с отправит сама";
             }
             catch (Exception ex)
             {
@@ -338,28 +362,66 @@ public partial class AssistantOverlayWindow : Window
         }
         else
         {
-            _recording = false;
-            MicBtnText.Text = "Голос";
-            StatusText.Text = "Распознаю речь локально (Whisper)...";
-            try
+            float[] samples = _liveMic.StopAndGetSamples();
+            _ = FinalizeLiveVoiceAsync(samples);
+        }
+    }
+
+    private async Task FinalizeLiveVoiceAsync(float[] samples)
+    {
+        if (_transcribing) return;
+        _recording = false;
+        _transcribing = true;
+        MicBtnText.Text = "Голос";
+
+        try
+        {
+            if (samples.Length < LiveMicRecorder.SampleRate / 5)
             {
-                string wav = _voice.StopRecording();
-                string text = await _voice.TranscribeWavAsync(wav, "ru");
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    InputBox.Text = string.IsNullOrWhiteSpace(InputBox.Text) ? text : $"{InputBox.Text.Trim()} {text}";
-                    StatusText.Text = "Распознано локально — отправляю...";
-                    await SendAsync();
-                }
-                else
-                {
-                    StatusText.Text = "Речь не распознана — попробуй ещё раз";
-                }
+                StatusText.Text = "Слишком короткая запись — попробуй ещё раз";
+                return;
             }
-            catch (Exception ex)
+
+            var sherpa = SherpaDesktopSttEngine.GetStatus();
+            bool preferWhisper = string.Equals(HubConfig.Current.DesktopSttModel, "whisper", StringComparison.OrdinalIgnoreCase);
+            string text;
+            string metaEngine;
+
+            if (sherpa.AnyReady && !preferWhisper)
             {
-                StatusText.Text = "Ошибка Whisper: " + ex.Message;
+                StatusText.Text = $"Распознаю мгновенно ({sherpa.ActiveModelLabel})...";
+                var (decoded, ms, label) = await SherpaDesktopSttEngine.TranscribeSamplesAsync(samples);
+                text = decoded;
+                metaEngine = $"{label} · {ms} мс";
             }
+            else
+            {
+                StatusText.Text = "Распознаю речь локально (Whisper)...";
+                string wav = Path.Combine(LocalVoiceService.VoiceOutDir, $"mic_{DateTime.Now:yyyyMMdd_HHmmss}.wav");
+                LiveMicRecorder.SaveFloatPcmToWav(samples, wav);
+                text = await _voice.TranscribeWavAsync(wav, "ru");
+                metaEngine = "Whisper";
+            }
+
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                InputBox.Text = string.IsNullOrWhiteSpace(InputBox.Text) ? text : $"{InputBox.Text.Trim()} {text}";
+                StatusText.Text = $"Распознано ({metaEngine}) — отправляю...";
+                _transcribing = false;
+                await SendAsync();
+            }
+            else
+            {
+                StatusText.Text = "Речь не распознана — скажи чуть громче";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Ошибка распознавания: " + ex.Message;
+        }
+        finally
+        {
+            _transcribing = false;
         }
     }
 
@@ -936,7 +998,7 @@ public partial class AssistantOverlayWindow : Window
 
     private void ShowWhisperMissingCard()
     {
-        StatusText.Text = "Нужен модуль Whisper STT (~150 МБ) для голосового ввода";
+        StatusText.Text = "Нужен голосовой модуль GigaAM v2 (как на Android) или Whisper";
         var card = new Border
         {
             Background = new SolidColorBrush(MediaColor.FromRgb(26, 20, 14)),
@@ -949,7 +1011,7 @@ public partial class AssistantOverlayWindow : Window
         var sp = new StackPanel();
         sp.Children.Add(new TextBlock
         {
-            Text = "ДЛЯ ГОЛОСОВОГО ВВОДА НУЖЕН WHISPER STT",
+            Text = "УСТАНОВИ БЫСТРЫЙ ГОЛОСОВОЙ МОДУЛЬ (КАК НА ANDROID)",
             FontSize = 10.5,
             FontFamily = new System.Windows.Media.FontFamily("Consolas"),
             FontWeight = FontWeights.SemiBold,
@@ -957,45 +1019,61 @@ public partial class AssistantOverlayWindow : Window
         });
         var desc = new TextBlock
         {
-            Text = "Модуль распознавания речи (Whisper, ~150 МБ) ещё не установлен. Установи его в 1 клик — после этого диктовка заработает полностью офлайн.",
+            Text = "GigaAM v2 Russian (Сбер · Sherpa-ONNX, ~230 МБ) работает прямо в памяти за ~0.2 сек с авто-стопом по паузе — намного точнее и отзывчивее Whisper.",
             FontSize = 12,
             Foreground = new SolidColorBrush(MediaColor.FromRgb(212, 212, 216)),
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 4, 0, 8)
         };
         sp.Children.Add(desc);
-        var installBtn = new System.Windows.Controls.Button
+        var btnRow = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
+        var installGigaBtn = new System.Windows.Controls.Button
         {
-            Content = "Установить Whisper (~150 МБ)",
+            Content = "Установить GigaAM v2 RU (~230 МБ)",
             Style = (Style)FindResource("SuccessButton"),
             Padding = new Thickness(12, 5, 12, 5),
             FontSize = 12,
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Left
+            Margin = new Thickness(0, 0, 8, 0)
         };
-        installBtn.Click += async (_, _) =>
+        var installParaBtn = new System.Windows.Controls.Button
         {
-            installBtn.IsEnabled = false;
-            installBtn.Content = "Установка Whisper...";
+            Content = "Parakeet v3 RU+EN (~670 МБ)",
+            Style = (Style)FindResource("DarkButton"),
+            Padding = new Thickness(10, 5, 10, 5),
+            FontSize = 11.5
+        };
+
+        async Task RunInstall(string modelId, System.Windows.Controls.Button clickedBtn)
+        {
+            installGigaBtn.IsEnabled = false;
+            installParaBtn.IsEnabled = false;
+            clickedBtn.Content = "Установка...";
             try
             {
-                await _voice.InstallWhisperAsync(msg => Dispatcher.Invoke(() =>
+                await SherpaDesktopSttEngine.InstallRuntimeAndModelAsync(modelId, msg => Dispatcher.Invoke(() =>
                 {
                     desc.Text = msg;
                     StatusText.Text = msg;
                 }));
-                installBtn.Content = "✓ Whisper установлен — нажми «Голос»";
-                desc.Text = "Whisper STT успешно установлен! Теперь нажми кнопку «Голос» ниже, чтобы начать диктовку.";
-                StatusText.Text = "Whisper готов — можно диктовать";
+                clickedBtn.Content = "✓ Готово — нажми «Голос»";
+                desc.Text = "Модуль установлен! Нажми «Голос» ниже — запись сама остановится через 1.2 сек после твоей фразы.";
+                StatusText.Text = "Офлайн-голос готов — можно диктовать";
             }
             catch (Exception ex)
             {
-                installBtn.IsEnabled = true;
-                installBtn.Content = "Повторить установку Whisper";
+                installGigaBtn.IsEnabled = true;
+                installParaBtn.IsEnabled = true;
+                clickedBtn.Content = "Повторить установку";
                 desc.Text = "Ошибка установки: " + ex.Message;
-                StatusText.Text = "Ошибка установки Whisper";
+                StatusText.Text = "Ошибка установки голосового модуля";
             }
-        };
-        sp.Children.Add(installBtn);
+        }
+
+        installGigaBtn.Click += async (_, _) => await RunInstall(SherpaDesktopSttEngine.ModelGigaAm, installGigaBtn);
+        installParaBtn.Click += async (_, _) => await RunInstall(SherpaDesktopSttEngine.ModelParakeet, installParaBtn);
+        btnRow.Children.Add(installGigaBtn);
+        btnRow.Children.Add(installParaBtn);
+        sp.Children.Add(btnRow);
         card.Child = sp;
         MessagesPanel.Children.Add(card);
         MessagesScroll.ScrollToEnd();

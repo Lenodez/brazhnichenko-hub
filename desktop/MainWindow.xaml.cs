@@ -323,7 +323,7 @@ public partial class MainWindow : Window
 
         bool coreMissing = !RuntimeInstaller.IsLlamaInstalled()
             || _manager.GetAvailableLlmModels().Count == 0
-            || !LocalVoiceService.GetStatus().WhisperReady;
+            || (!SherpaDesktopSttEngine.GetStatus().AnyReady && !LocalVoiceService.GetStatus().WhisperReady);
 
         if (!cfg.FirstRunCompleted || coreMissing)
         {
@@ -344,7 +344,7 @@ public partial class MainWindow : Window
                     MainTabs.SelectedItem = CatalogTab;
                     SetCatalogView("text");
                 },
-                async () => await InstallWhisperWithUiAsync(),
+                async () => await InstallOrSelectSherpaModelAsync(SherpaDesktopSttEngine.ModelGigaAm),
                 async () => await InstallPiperWithUiAsync(),
                 async () => await InstallRuntimeWithUiAsync("comfyui"));
             win.Owner = this;

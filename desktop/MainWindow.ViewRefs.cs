@@ -296,6 +296,9 @@ public partial class MainWindow
     private System.Windows.Controls.Button InstallLlamaBtn => SystemTabView?.InstallLlamaBtn!;
     private System.Windows.Controls.TextBlock RuntimeComfyStatusText => SystemTabView?.RuntimeComfyStatusText!;
     private System.Windows.Controls.Button InstallComfyBtn => SystemTabView?.InstallComfyBtn!;
+    private System.Windows.Controls.TextBlock VoiceSherpaStatusText => SystemTabView?.VoiceSherpaStatusText!;
+    private System.Windows.Controls.Button InstallGigaAmBtn => SystemTabView?.InstallGigaAmBtn!;
+    private System.Windows.Controls.Button InstallParakeetBtn => SystemTabView?.InstallParakeetBtn!;
     private System.Windows.Controls.TextBlock VoiceWhisperStatusText => SystemTabView?.VoiceWhisperStatusText!;
     private System.Windows.Controls.Button InstallWhisperBtn => SystemTabView?.InstallWhisperBtn!;
     private System.Windows.Controls.TextBlock VoicePiperStatusText => SystemTabView?.VoicePiperStatusText!;

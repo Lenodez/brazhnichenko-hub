@@ -30,7 +30,7 @@
                         <Image Source="pack://application:,,,/Assets/app.png" Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,10,0" VerticalAlignment="Center" />
                         <TextBlock Text="BRAZHNICHENKO HUB" FontSize="13.5" FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
                         <Border Background="#18181C" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="3" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="AppVersionBadgeText" Text="v5.2 • LOCAL WORKSTATION" FontSize="10.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
+                            <TextBlock x:Name="AppVersionBadgeText" Text="v5.3 • LOCAL WORKSTATION" FontSize="10.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
                         </Border>
                     </StackPanel>
 

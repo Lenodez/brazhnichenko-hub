@@ -26,6 +26,8 @@ public partial class SystemTabView : System.Windows.Controls.UserControl
     private void InstallComfyBtn_Click(object sender, RoutedEventArgs e) => Host?.InstallComfyBtn_Click(sender, e);
     private void InstallLlamaBtn_Click(object sender, RoutedEventArgs e) => Host?.InstallLlamaBtn_Click(sender, e);
     private void InstallPiperBtn_Click(object sender, RoutedEventArgs e) => Host?.InstallPiperBtn_Click(sender, e);
+    private void InstallGigaAmBtn_Click(object sender, RoutedEventArgs e) => Host?.InstallGigaAmBtn_Click(sender, e);
+    private void InstallParakeetBtn_Click(object sender, RoutedEventArgs e) => Host?.InstallParakeetBtn_Click(sender, e);
     private void InstallWhisperBtn_Click(object sender, RoutedEventArgs e) => Host?.InstallWhisperBtn_Click(sender, e);
     private void JumpAssistantBtn_Click(object sender, RoutedEventArgs e) => Host?.JumpAssistantBtn_Click(sender, e);
     private void JumpCatalogBtn_Click(object sender, RoutedEventArgs e) => Host?.JumpCatalogBtn_Click(sender, e);

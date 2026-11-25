@@ -37,6 +37,29 @@ public partial class MainWindow
 
     private void RefreshVoiceStatusUi()
     {
+        var sh = SherpaDesktopSttEngine.GetStatus();
+        if (VoiceSherpaStatusText is not null)
+        {
+            VoiceSherpaStatusText.Text = sh.AnyReady
+                ? $"● Активен: {sh.ActiveModelLabel} (в памяти, ~0.2 с, авто-стоп по паузе)"
+                : "○ Не установлен — GigaAM v2 (Сбер) и Parakeet v3 работают в 5–10× быстрее и точнее Whisper";
+            VoiceSherpaStatusText.Foreground = BrushFromHex(sh.AnyReady ? "#34D399" : "#F59E0B");
+        }
+        if (InstallGigaAmBtn is not null)
+        {
+            InstallGigaAmBtn.Content = sh.GigaAmReady ? (sh.ActiveModelId == SherpaDesktopSttEngine.ModelGigaAm ? "✓ GigaAM v2 (Активен)" : "Выбрать GigaAM v2") : "GigaAM v2 RU (230 МБ)";
+            if (TryFindResource(sh.ActiveModelId == SherpaDesktopSttEngine.ModelGigaAm ? "PrimaryButton" : (sh.GigaAmReady ? "DarkButton" : "SuccessButton")) is Style gs)
+                InstallGigaAmBtn.Style = gs;
+            InstallGigaAmBtn.IsEnabled = !_voiceBusy;
+        }
+        if (InstallParakeetBtn is not null)
+        {
+            InstallParakeetBtn.Content = sh.ParakeetReady ? (sh.ActiveModelId == SherpaDesktopSttEngine.ModelParakeet ? "✓ Parakeet v3 (Активен)" : "Выбрать Parakeet v3") : "Parakeet v3 RU+EN (670 МБ)";
+            if (TryFindResource(sh.ActiveModelId == SherpaDesktopSttEngine.ModelParakeet ? "PrimaryButton" : "DarkButton") is Style ps)
+                InstallParakeetBtn.Style = ps;
+            InstallParakeetBtn.IsEnabled = !_voiceBusy;
+        }
+
         var st = LocalVoiceService.GetStatus();
         if (VoiceWhisperStatusText is not null)
         {
@@ -267,7 +290,48 @@ public partial class MainWindow
         }
     }
 
-    // ==================== ONE-CLICK INSTALLERS (Whisper & Piper HD) ====================
+    // ==================== ONE-CLICK INSTALLERS (Sherpa-ONNX, Whisper & Piper HD) ====================
+
+    internal async void InstallGigaAmBtn_Click(object sender, RoutedEventArgs e) =>
+        await InstallOrSelectSherpaModelAsync(SherpaDesktopSttEngine.ModelGigaAm);
+
+    internal async void InstallParakeetBtn_Click(object sender, RoutedEventArgs e) =>
+        await InstallOrSelectSherpaModelAsync(SherpaDesktopSttEngine.ModelParakeet);
+
+    internal async Task InstallOrSelectSherpaModelAsync(string modelId)
+    {
+        if (_voiceBusy) return;
+        if (SherpaDesktopSttEngine.IsRuntimeDllReady() && SherpaDesktopSttEngine.IsModelInstalled(modelId))
+        {
+            HubConfig.Current.DesktopSttModel = modelId;
+            HubConfig.Save();
+            RefreshVoiceStatusUi();
+            ShowToast($"Активный голосовой движок: {SherpaDesktopSttEngine.GetStatus().ActiveModelLabel}", "success");
+            return;
+        }
+
+        _voiceBusy = true;
+        RefreshVoiceStatusUi();
+        try
+        {
+            await SherpaDesktopSttEngine.InstallRuntimeAndModelAsync(modelId, msg => Dispatcher.Invoke(() =>
+            {
+                StatusFooterText.Text = msg;
+                if (VoiceSherpaStatusText is not null) VoiceSherpaStatusText.Text = msg;
+            }));
+            ShowToast($"Голосовой движок {SherpaDesktopSttEngine.GetStatus().ActiveModelLabel} готов!", "success");
+        }
+        catch (Exception ex)
+        {
+            StatusFooterText.Text = $"Ошибка установки Sherpa-ONNX: {ex.Message}";
+            HubDialogWindow.Show(ex.Message, "Установка Sherpa-ONNX STT", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _voiceBusy = false;
+            RefreshVoiceStatusUi();
+        }
+    }
 
     internal async void InstallWhisperBtn_Click(object sender, RoutedEventArgs e) =>
         await InstallWhisperWithUiAsync();
