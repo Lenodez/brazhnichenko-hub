@@ -39,7 +39,8 @@ public sealed record HardwareProfile(
     string RamAdviceRu,
     string OverallTierSummaryRu,
     bool IsAppleSilicon = false,
-    AppleSiliconWikiEntry? MatchedAppleChip = null
+    AppleSiliconWikiEntry? MatchedAppleChip = null,
+    bool IsVulkanGpu = false
 );
 
 public enum ModelFitLevel
@@ -371,6 +372,11 @@ public static class HardwareAdvisor
 
         var matched = MatchGpu(gpuName, vramGB);
         double effVram = vramGB > 0 ? vramGB : (matched?.VramGB ?? 0);
+        bool isVulkanGpu = matched is null && !string.IsNullOrWhiteSpace(gpuName) &&
+            (gpuName.Contains("Intel", StringComparison.OrdinalIgnoreCase)
+             || gpuName.Contains("Arc", StringComparison.OrdinalIgnoreCase)
+             || gpuName.Contains("AMD", StringComparison.OrdinalIgnoreCase)
+             || gpuName.Contains("Radeon", StringComparison.OrdinalIgnoreCase));
         var (ramLabel, ramAdvice) = DescribeRamTier(ramGB, effVram);
 
         string summary;
@@ -380,6 +386,10 @@ public static class HardwareAdvisor
                           (matched.NativeFp8 ? "FP8 + " : "") +
                           (matched.NativeBf16 ? "BF16" : matched.NativeFp16 ? "FP16" : "FP32");
             summary = $"{matched.ModelName} ({matched.Architecture}, {effVram:F0} ГБ VRAM, {caps}) + {ramGB:F0} ГБ RAM — {matched.TierLabel}.";
+        }
+        else if (isVulkanGpu && effVram > 0)
+        {
+            summary = $"{gpuName} ({effVram:F0} ГБ Vulkan) + {ramGB:F0} ГБ RAM — Vulkan GPU-ускорение LLM (llama.cpp).";
         }
         else if (effVram > 0)
         {
@@ -398,7 +408,8 @@ public static class HardwareAdvisor
             matched,
             ramLabel,
             ramAdvice,
-            summary);
+            summary,
+            IsVulkanGpu: isVulkanGpu);
     }
 
     public static HardwareProfile BuildSimulatedProfile(GpuWikiEntry gpu, double ramGB, double freeDiskGB = 200)
@@ -431,9 +442,12 @@ public static class HardwareAdvisor
 
         double vram = hw.DetectedVramGB;
         double ram = hw.DetectedRamGB;
-        bool hasFp8 = hw.MatchedWiki?.NativeFp8 ?? (vram >= 16);
-        bool hasBf16 = hw.MatchedWiki?.NativeBf16 ?? (vram >= 8);
-        int bw = hw.MatchedWiki?.BandwidthGBs ?? (vram >= 16 ? 700 : 360);
+        bool hasFp8 = !hw.IsVulkanGpu && (hw.MatchedWiki?.NativeFp8 ?? (vram >= 16));
+        bool hasBf16 = !hw.IsVulkanGpu && (hw.MatchedWiki?.NativeBf16 ?? (vram >= 8));
+        int bw = hw.MatchedWiki?.BandwidthGBs
+            ?? (hw.IsVulkanGpu
+                ? (hw.DetectedGpuName.Contains("140V", StringComparison.OrdinalIgnoreCase) || hw.DetectedGpuName.Contains("130V", StringComparison.OrdinalIgnoreCase) ? 136 : 220)
+                : (vram >= 16 ? 700 : 360));
 
         // ===================== 1. ТЕКСТОВЫЕ LLM (честное разделение VRAM vs VRAM+RAM) =====================
         if (model.Category == "text")
@@ -447,16 +461,18 @@ public static class HardwareAdvisor
             {
                 // Realistic tok/s scaled by GPU memory bandwidth & model size
                 double estTok = model.IsMoe
-                    ? Math.Clamp(bw / 8.5, 45, 130)
-                    : Math.Clamp((bw * 0.72) / Math.Max(2.2, model.TotalSizeGB), 18, 140);
-                int lo = Math.Max(15, (int)(estTok * 0.80));
-                int hi = Math.Max(lo + 8, (int)(estTok * 1.15));
-                string speed = $"~{lo}–{hi} tok/s (100% VRAM)";
+                    ? Math.Clamp(bw / 8.5, hw.IsVulkanGpu ? 18 : 45, 130)
+                    : Math.Clamp((bw * 0.72) / Math.Max(2.2, model.TotalSizeGB), hw.IsVulkanGpu ? 10 : 18, 140);
+                int lo = Math.Max(hw.IsVulkanGpu ? 8 : 15, (int)(estTok * 0.80));
+                int hi = Math.Max(lo + 6, (int)(estTok * 1.15));
+                string speed = hw.IsVulkanGpu ? $"~{lo}–{hi} tok/s (Vulkan)" : $"~{lo}–{hi} tok/s (100% VRAM)";
 
                 return new(
                     ModelFitLevel.Ideal,
-                    "■ 100% VRAM",
-                    $"Целиком помещается в твои {vram:F0} ГБ VRAM (весит {model.TotalSizeGB:0.##} ГБ) — максимальная скорость и мгновенный отклик.",
+                    hw.IsVulkanGpu ? "■ 100% VULKAN" : "■ 100% VRAM",
+                    hw.IsVulkanGpu
+                        ? $"Целиком помещается в {vram:F0} ГБ памяти Vulkan GPU (весит {model.TotalSizeGB:0.##} ГБ) — быстрый локальный отклик."
+                        : $"Целиком помещается в твои {vram:F0} ГБ VRAM (весит {model.TotalSizeGB:0.##} ГБ) — максимальная скорость и мгновенный отклик.",
                     speed,
                     ModelPlacementGroup.FullVram);
             }

@@ -499,10 +499,18 @@ public sealed class AiServiceManager
             ];
         }
 
-        // Apply HubConfig tuning overrides or smart Dense 27B auto-profile
+        // Apply HubConfig tuning overrides or smart Dense 27B / compact laptop Vulkan auto-profile
+        long modelBytes = 0;
+        try { modelBytes = new FileInfo(modelPath).Length; } catch { }
+        string exeDir = Path.GetDirectoryName(exe) ?? "";
+        bool isWindowsVulkan = OperatingSystem.IsWindows()
+            && File.Exists(Path.Combine(exeDir, "ggml-vulkan.dll"))
+            && !File.Exists(Path.Combine(exeDir, "ggml-cuda.dll"));
+
         int targetCtx = cfg.LlmCtxSize > 0
             ? cfg.LlmCtxSize
-            : (activeFile.Contains("qwen3.8", StringComparison.OrdinalIgnoreCase) ? 32768 : 0);
+            : (activeFile.Contains("qwen3.8", StringComparison.OrdinalIgnoreCase) ? 32768
+                : (isWindowsVulkan && modelBytes > 0 && modelBytes <= 5_500_000_000L ? 16384 : 0));
         int targetFit = cfg.LlmFitTargetMiB > 0
             ? cfg.LlmFitTargetMiB
             : (activeFile.Contains("qwen3.8", StringComparison.OrdinalIgnoreCase) ? 512 : 0);
@@ -582,7 +590,7 @@ public sealed class AiServiceManager
         catch { }
 
         var allArgs = new List<string> { "-m", modelPath };
-        if (OperatingSystem.IsMacOS() && !extraArgs.Contains("-ngl") && !extraArgs.Contains("--n-gpu-layers"))
+        if ((OperatingSystem.IsMacOS() || isWindowsVulkan) && !extraArgs.Contains("-ngl") && !extraArgs.Contains("--n-gpu-layers"))
         {
             allArgs.Add("-ngl");
             allArgs.Add("99");
@@ -1450,34 +1458,154 @@ public sealed class AiServiceManager
         if (OperatingSystem.IsMacOS())
             return await QueryMacAppleSiliconAsync();
 
+        if (!_nvidiaSmiMissing)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "nvidia-smi",
+                    Arguments = "--query-gpu=name,memory.used,memory.total,utilization.gpu,temperature.gpu --format=csv,noheader,nounits",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                };
+                using var p = Process.Start(psi);
+                if (p is not null)
+                {
+                    string line = (await p.StandardOutput.ReadToEndAsync()).Trim();
+                    await p.WaitForExitAsync();
+                    var parts = line.Split(',').Select(s => s.Trim()).ToArray();
+                    if (parts.Length >= 5 &&
+                        int.TryParse(parts[1], CultureInfo.InvariantCulture, out int memUsed) &&
+                        int.TryParse(parts[2], CultureInfo.InvariantCulture, out int memTotal) &&
+                        int.TryParse(parts[3], CultureInfo.InvariantCulture, out int utilPct) &&
+                        double.TryParse(parts[4], CultureInfo.InvariantCulture, out double tempC))
+                    {
+                        return new GpuMetrics(parts[0], memUsed, memTotal, utilPct, tempC);
+                    }
+                }
+            }
+            catch
+            {
+                _nvidiaSmiMissing = true;
+            }
+        }
+
+        if (OperatingSystem.IsLinux())
+            return await QueryLinuxAmdGpuAsync();
+        if (OperatingSystem.IsWindows())
+            return QueryWindowsNonNvidiaGpu();
+        return null;
+    }
+
+    private static bool _nvidiaSmiMissing;
+    private static (string Name, long DedicatedBytes)? _cachedWinGpuHardware;
+    private static bool _winGpuProbed;
+
+    public static int EstimateWindowsVulkanGpuVramMiB(string gpuName, long dedicatedBytes, double systemRamGB)
+    {
+        double dedicatedGB = dedicatedBytes / (1024.0 * 1024.0 * 1024.0);
+        // Discrete Intel Arc (e.g., B580 12 GB, A770 16 GB) or AMD Radeon RX (8-24 GB)
+        if (dedicatedGB >= 3.5)
+            return (int)Math.Round(dedicatedGB * 1024.0);
+
+        // Integrated UMA GPU (Intel Arc 140V / 130V / Iris Xe, AMD Radeon 780M / 890M / 8060S):
+        // Windows WDDM exposes 50% of system RAM as shared GPU memory for Vulkan compute.
+        if (systemRamGB >= 8)
+        {
+            double sharedGB = Math.Clamp(Math.Round(systemRamGB * 0.5, 1), 4.0, 48.0);
+            return (int)Math.Round(sharedGB * 1024.0);
+        }
+
+        return dedicatedBytes > 0 ? (int)Math.Round(dedicatedBytes / (1024.0 * 1024.0)) : 0;
+    }
+
+    private static GpuMetrics? QueryWindowsNonNvidiaGpu()
+    {
         try
         {
-            var psi = new ProcessStartInfo
+            if (!_winGpuProbed)
             {
-                FileName = "nvidia-smi",
-                Arguments = "--query-gpu=name,memory.used,memory.total,utilization.gpu,temperature.gpu --format=csv,noheader,nounits",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true
-            };
-            using var p = Process.Start(psi);
-            if (p is null) return null;
-            string line = (await p.StandardOutput.ReadToEndAsync()).Trim();
-            await p.WaitForExitAsync();
-            var parts = line.Split(',').Select(s => s.Trim()).ToArray();
-            if (parts.Length < 5) return null;
-            return new GpuMetrics(
-                parts[0],
-                int.Parse(parts[1], CultureInfo.InvariantCulture),
-                int.Parse(parts[2], CultureInfo.InvariantCulture),
-                int.Parse(parts[3], CultureInfo.InvariantCulture),
-                double.Parse(parts[4], CultureInfo.InvariantCulture)
-            );
+                _winGpuProbed = true;
+                _cachedWinGpuHardware = ProbeWindowsDisplayAdapterFromRegistry();
+            }
+
+            if (_cachedWinGpuHardware is null) return null;
+            var (name, dedicatedBytes) = _cachedWinGpuHardware.Value;
+            var (ramUsedGB, ramTotalGB) = QueryRam();
+            int totalMiB = EstimateWindowsVulkanGpuVramMiB(name, dedicatedBytes, ramTotalGB);
+            if (totalMiB <= 0) return null;
+
+            // Estimate active UMA footprint when llama-server is running, otherwise lightweight baseline
+            bool isUma = dedicatedBytes < 3_500_000_000L;
+            int usedMiB = isUma
+                ? (int)Math.Round(Math.Min(ramUsedGB * 0.25, totalMiB / 1024.0) * 1024.0)
+                : 0;
+            return new GpuMetrics(name, usedMiB, totalMiB, 0, 0);
         }
         catch
         {
-            return OperatingSystem.IsLinux() ? await QueryLinuxAmdGpuAsync() : null;
+            return null;
         }
+    }
+
+    private static (string Name, long DedicatedBytes)? ProbeWindowsDisplayAdapterFromRegistry()
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+        try
+        {
+            using var classKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                @"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}");
+            if (classKey is null) return null;
+
+            (string Name, long DedicatedBytes, int Priority)? best = null;
+            foreach (string subName in classKey.GetSubKeyNames())
+            {
+                if (subName.Length != 4 || !subName.All(char.IsDigit)) continue;
+                using var sub = classKey.OpenSubKey(subName);
+                if (sub is null) continue;
+
+                string desc = sub.GetValue("DriverDesc") as string ?? "";
+                if (string.IsNullOrWhiteSpace(desc)) continue;
+                string upper = desc.ToUpperInvariant();
+                if (upper.Contains("BASIC DISPLAY") || upper.Contains("REMOTE") || upper.Contains("PARSEC") || upper.Contains("VIRTUAL"))
+                    continue;
+
+                long memBytes = ReadRegistryQwordOrDword(sub, "HardwareInformation.qwMemorySize");
+                if (memBytes <= 0)
+                    memBytes = ReadRegistryQwordOrDword(sub, "HardwareInformation.MemorySize");
+
+                int priority = 10;
+                if (upper.Contains("ARC") || upper.Contains("RADEON RX")) priority = 100;
+                else if (upper.Contains("AMD") || upper.Contains("RADEON")) priority = 80;
+                else if (upper.Contains("INTEL")) priority = 70;
+                if (memBytes >= 4L * 1024 * 1024 * 1024) priority += 25;
+
+                if (best is null || priority > best.Value.Priority || (priority == best.Value.Priority && memBytes > best.Value.DedicatedBytes))
+                    best = (desc.Trim(), memBytes, priority);
+            }
+
+            return best is null ? null : (best.Value.Name, best.Value.DedicatedBytes);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static long ReadRegistryQwordOrDword(Microsoft.Win32.RegistryKey key, string valueName)
+    {
+        object? raw = key.GetValue(valueName);
+        return raw switch
+        {
+            long l when l > 0 => l,
+            int i when i > 0 => i,
+            uint u when u > 0 => u,
+            byte[] b when b.Length >= 8 => BitConverter.ToInt64(b, 0),
+            byte[] b when b.Length >= 4 => BitConverter.ToUInt32(b, 0),
+            _ => 0
+        };
     }
 
     private static async Task<GpuMetrics?> QueryLinuxAmdGpuAsync()

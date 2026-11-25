@@ -30,15 +30,18 @@
                         <Image Source="pack://application:,,,/Assets/app.png" Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,10,0" VerticalAlignment="Center" />
                         <TextBlock Text="BRAZHNICHENKO HUB" FontSize="13.5" FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
                         <Border Background="#18181C" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="3" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="AppVersionBadgeText" Text="v5.0 • LOCAL WORKSTATION" FontSize="10.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
+                            <TextBlock x:Name="AppVersionBadgeText" Text="v5.2 • LOCAL WORKSTATION" FontSize="10.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" />
                         </Border>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button x:Name="OpenDesktopAssistantBtn" Style="{StaticResource PrimaryButton}" Padding="11,5" Margin="0,0,6,0" ToolTip="Системный ассистент экрана ПК (видит экран, голос/текст, поиск в сети, режим только чтения)" Click="OpenDesktopAssistantBtn_Click">
+                        <Button x:Name="OpenNotesHeaderBtn" Style="{StaticResource DarkButton}" Padding="10,5" Margin="0,0,6,0" ToolTip="Открыть заметки ассистента (Документы\Notes · .md)" Click="OpenNotesViewerBtn_Click">
+                            <TextBlock Text="Заметки" VerticalAlignment="Center" FontSize="12" />
+                        </Button>
+                        <Button x:Name="OpenDesktopAssistantBtn" Style="{StaticResource PrimaryButton}" Padding="11,5" Margin="0,0,6,0" ToolTip="Персональный ассистент ПК (заметки .md, таймеры, экран Vision, голос/текст, поиск в сети)" Click="OpenDesktopAssistantBtn_Click">
                             <StackPanel Orientation="Horizontal">
                                 <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconSparkles}" Margin="0,0,6,0" />
-                                <TextBlock Text="Экран · Alt+Space" VerticalAlignment="Center" FontSize="12" />
+                                <TextBlock Text="Ассистент · Alt+Space" VerticalAlignment="Center" FontSize="12" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="AskAiGlobalBtn" Style="{StaticResource DarkButton}" Padding="10,5" Margin="0,0,10,0" ToolTip="Открыть базу знаний и диагностику Хаба" Click="AskAiGlobalBtn_Click">

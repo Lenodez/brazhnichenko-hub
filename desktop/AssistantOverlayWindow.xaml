@@ -28,6 +28,7 @@
             <Border Grid.Row="0" Background="#121216" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="14,9" MouseLeftButtonDown="Header_MouseLeftButtonDown">
                 <DockPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                        <Button x:Name="OpenNotesBtn" Style="{StaticResource DarkButton}" Padding="9,4" FontSize="11.5" Margin="0,0,6,0" ToolTip="Открыть встроенный вьювер заметок (.md)" Click="OpenNotesBtn_Click" Content="Заметки" />
                         <Button x:Name="CaptureScreenBtn" Style="{StaticResource DarkButton}" Padding="9,4" FontSize="11.5" Margin="0,0,6,0" ToolTip="Обновить снимок экрана (Vision)" Click="CaptureScreenBtn_Click">
                             <StackPanel Orientation="Horizontal">
                                 <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconPhoto}" Margin="0,0,5,0" />
@@ -42,13 +43,13 @@
 
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Image Source="pack://application:,,,/Assets/app.png" Width="20" Height="20" Margin="0,0,8,0" RenderOptions.BitmapScalingMode="HighQuality" />
-                        <TextBlock Text="ЭКРАН · АССИСТЕНТ" FontSize="12" FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" VerticalAlignment="Center" />
+                        <TextBlock Text="АССИСТЕНТ ПК" FontSize="12" FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" VerticalAlignment="Center" />
                         <Border Background="#18181D" BorderBrush="#2C2C35" BorderThickness="1" CornerRadius="3" Padding="7,2" Margin="8,0,0,0" VerticalAlignment="Center"
-                                ToolTip="Режим только чтения: нет доступа к изменению файлов и запуску команд.">
-                            <TextBlock Text="READ-ONLY" FontSize="10" FontFamily="{StaticResource MonoFontFamily}" Foreground="#34D399" />
+                                ToolTip="Безопасный белый список: заметки (.md в папке Notes), локальные таймеры, веб-поиск и чтение экрана. Без доступа к системе и другим файлам.">
+                            <TextBlock Text="SAFE-TOOLS" FontSize="10" FontFamily="{StaticResource MonoFontFamily}" Foreground="#34D399" />
                         </Border>
                         <Border Background="#18181D" BorderBrush="#2C2C35" BorderThickness="1" CornerRadius="3" Padding="7,2" Margin="6,0,0,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="ModelBadgeText" Text="Авто" FontSize="10.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextSecondaryBrush}" MaxWidth="190" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="ModelBadgeText" Text="Авто" FontSize="10.5" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextSecondaryBrush}" MaxWidth="170" TextTrimming="CharacterEllipsis" />
                         </Border>
                     </StackPanel>
                 </DockPanel>
@@ -74,9 +75,10 @@
 
             <!-- Row 2: Quick Actions -->
             <WrapPanel Grid.Row="2" Margin="14,8,14,4">
+                <Button Content="+ Заметка" Style="{StaticResource PrimaryButton}" Padding="9,4" FontSize="11.5" Margin="0,0,5,4" Click="QuickNoteChip_Click" ToolTip="Сохранить заметку в Документы\Notes (.md)" />
+                <Button Content="Напомни" Style="{StaticResource DarkButton}" Padding="9,4" FontSize="11.5" Margin="0,0,5,4" Click="QuickReminderChip_Click" ToolTip="Поставить локальный таймер или напоминание" />
                 <Button Content="Разобрать экран" Style="{StaticResource DarkButton}" Padding="9,4" FontSize="11.5" Margin="0,0,5,4" Click="QuickChip_Click" Tag="Объясни кратко, что сейчас на экране, и помоги разобраться:" />
                 <Button Content="Перевести" Style="{StaticResource DarkButton}" Padding="9,4" FontSize="11.5" Margin="0,0,5,4" Click="QuickChip_Click" Tag="Переведи текст на экране (или в моём сообщении) естественно на русский:" />
-                <Button Content="Суть в 3 пунктах" Style="{StaticResource DarkButton}" Padding="9,4" FontSize="11.5" Margin="0,0,5,4" Click="QuickChip_Click" Tag="Сделай краткую выжимку в 3-5 пунктах без воды:" />
                 <Button Content="Поиск в сети" Style="{StaticResource DarkButton}" Padding="9,4" FontSize="11.5" Margin="0,0,0,4" Click="QuickWebChip_Click" />
             </WrapPanel>
 

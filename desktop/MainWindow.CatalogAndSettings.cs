@@ -869,6 +869,7 @@ public partial class MainWindow
         if (CfgAssistScreenCheck is not null) CfgAssistScreenCheck.IsChecked = cfg.DesktopAssistantAutoCaptureScreen;
         if (CfgAssistWebCheck is not null) CfgAssistWebCheck.IsChecked = cfg.DesktopAssistantAutoWebSearch;
         if (CfgAssistTtsCheck is not null) CfgAssistTtsCheck.IsChecked = cfg.DesktopAssistantAutoTts;
+        if (CfgAssistNotesDirBox is not null) CfgAssistNotesDirBox.Text = HubConfig.AssistantNotesDir;
         if (CfgTavilyKeyBox is not null) CfgTavilyKeyBox.Password = cfg.WebSearchTavilyKey ?? "";
         if (CfgBraveKeyBox is not null) CfgBraveKeyBox.Password = cfg.WebSearchBraveKey ?? "";
         UpdateWebSearchBadgeUi();
@@ -1108,6 +1109,20 @@ public partial class MainWindow
         }
     }
 
+    internal void BrowseAssistNotesDirBtn_Click(object sender, RoutedEventArgs e)
+    {
+        using var dlg = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "Выбери папку для хранения Markdown-заметок ассистента (.md)",
+            UseDescriptionForTitle = true,
+            SelectedPath = Directory.Exists(HubConfig.AssistantNotesDir) ? HubConfig.AssistantNotesDir : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        };
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(dlg.SelectedPath))
+        {
+            if (CfgAssistNotesDirBox is not null) CfgAssistNotesDirBox.Text = dlg.SelectedPath;
+        }
+    }
+
     internal void SaveDesktopAssistantBtn_Click(object sender, RoutedEventArgs e)
     {
         var cfg = HubConfig.Current;
@@ -1118,9 +1133,12 @@ public partial class MainWindow
         cfg.DesktopAssistantAutoCaptureScreen = CfgAssistScreenCheck?.IsChecked ?? true;
         cfg.DesktopAssistantAutoWebSearch = CfgAssistWebCheck?.IsChecked ?? true;
         cfg.DesktopAssistantAutoTts = CfgAssistTtsCheck?.IsChecked ?? false;
+        string notesDir = CfgAssistNotesDirBox?.Text.Trim() ?? "";
+        cfg.AssistantNotesDir = string.IsNullOrWhiteSpace(notesDir) ? HubConfig.DefaultAssistantNotesDir : notesDir;
         cfg.WebSearchTavilyKey = CfgTavilyKeyBox?.Password.Trim() ?? "";
         cfg.WebSearchBraveKey = CfgBraveKeyBox?.Password.Trim() ?? "";
         HubConfig.Save();
+        _notesViewer?.ReloadNotes();
 
         bool hkOk = RefreshDesktopAssistantHooks();
         UpdateWebSearchBadgeUi();

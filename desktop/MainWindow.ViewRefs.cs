@@ -264,6 +264,7 @@ public partial class MainWindow
     private System.Windows.Controls.ComboBox CfgAssistModelCombo => SystemTabView?.CfgAssistModelCombo!;
     private System.Windows.Controls.ComboBox CfgAssistHotkeyCombo => SystemTabView?.CfgAssistHotkeyCombo!;
     private System.Windows.Controls.ComboBox CfgAssistInputModeCombo => SystemTabView?.CfgAssistInputModeCombo!;
+    private System.Windows.Controls.TextBox CfgAssistNotesDirBox => SystemTabView?.CfgAssistNotesDirBox!;
     private System.Windows.Controls.CheckBox CfgAssistEnabledCheck => SystemTabView?.CfgAssistEnabledCheck!;
     private System.Windows.Controls.CheckBox CfgAssistScreenCheck => SystemTabView?.CfgAssistScreenCheck!;
     private System.Windows.Controls.CheckBox CfgAssistWebCheck => SystemTabView?.CfgAssistWebCheck!;

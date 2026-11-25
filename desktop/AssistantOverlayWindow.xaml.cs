@@ -29,17 +29,25 @@ public partial class AssistantOverlayWindow : Window
 
     private readonly AiServiceManager _manager;
     private readonly LocalVoiceService _voice;
+    private readonly AssistantReminderService _reminders;
+    private readonly Action<string?> _openNotesViewer;
     private readonly List<(string Role, string Content)> _history = [];
     private CancellationTokenSource? _cts;
     private string? _capturedScreenBase64;
     private bool _recording;
     private bool _busy;
 
-    public AssistantOverlayWindow(AiServiceManager manager, LocalVoiceService voice)
+    public AssistantOverlayWindow(
+        AiServiceManager manager,
+        LocalVoiceService voice,
+        AssistantReminderService reminders,
+        Action<string?> openNotesViewer)
     {
         InitializeComponent();
         _manager = manager;
         _voice = voice;
+        _reminders = reminders;
+        _openNotesViewer = openNotesViewer;
         ShowWelcomeHint();
     }
 
@@ -216,6 +224,45 @@ public partial class AssistantOverlayWindow : Window
         ShowWelcomeHint();
     }
 
+    private void OpenNotesBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _openNotesViewer(null);
+    }
+
+    private void QuickNoteChip_Click(object sender, RoutedEventArgs e)
+    {
+        string cur = InputBox.Text.Trim();
+        if (string.IsNullOrEmpty(cur))
+        {
+            InputBox.Text = "Сделай заметку: ";
+            InputBox.CaretIndex = InputBox.Text.Length;
+            InputBox.Focus();
+        }
+        else
+        {
+            if (!cur.StartsWith("Сделай заметку", StringComparison.OrdinalIgnoreCase))
+                InputBox.Text = "Сделай заметку: " + cur;
+            _ = SendAsync();
+        }
+    }
+
+    private void QuickReminderChip_Click(object sender, RoutedEventArgs e)
+    {
+        string cur = InputBox.Text.Trim();
+        if (string.IsNullOrEmpty(cur))
+        {
+            InputBox.Text = "Напомни через 15 минут: ";
+            InputBox.CaretIndex = InputBox.Text.Length;
+            InputBox.Focus();
+        }
+        else
+        {
+            if (!cur.StartsWith("Напомни", StringComparison.OrdinalIgnoreCase))
+                InputBox.Text = "Напомни " + cur;
+            _ = SendAsync();
+        }
+    }
+
     private void ShowWelcomeHint()
     {
         MessagesPanel.Children.Clear();
@@ -228,7 +275,7 @@ public partial class AssistantOverlayWindow : Window
             Padding = new Thickness(12, 10, 12, 10),
             Child = new TextBlock
             {
-                Text = "Локальный ассистент ПК (режим «Только чтение»). Спроси про текущий экран, попроси перевести текст или найти информацию в сети — файлы и настройки ПК не изменяются.",
+                Text = "Локальный ассистент ПК (безопасный режим): диктуй «Сделай заметку ...» (.md в Документы\\Notes), «Напомни через 20 минут ...», «Найди в интернете ...» или спрашивай про текущий экран. Без доступа к системе и сторонним файлам.",
                 FontSize = 12.5,
                 Foreground = new SolidColorBrush(MediaColor.FromRgb(161, 161, 170)),
                 TextWrapping = TextWrapping.Wrap
@@ -342,14 +389,50 @@ public partial class AssistantOverlayWindow : Window
 
         try
         {
-            bool useWeb = WebSearchCheck.IsChecked == true;
+            var intent = AssistantActionRouter.RouteUserInput(userText);
+
+            // ---- SAFE ACTION 1: LOCAL REMINDER / TIMER (Zero-latency, no GPU required!) ----
+            if (intent.Kind == AssistantIntentKind.SetReminder && intent.ReminderFireAt.HasValue)
+            {
+                var item = _reminders.AddReminder(intent.ExtractedPayload, intent.ReminderFireAt.Value);
+                RenderReminderSavedCard(asstContainer, bodyHost, metaText, item);
+                StatusText.Text = $"Напоминание установлено на {item.FireAtLocal:HH:mm}";
+                _history.Add(("user", userText));
+                _history.Add(("assistant", $"Напоминание установлено на {item.FireAtLocal:dd.MM HH:mm}: {item.Text}"));
+                if (AutoTtsCheck.IsChecked == true)
+                    _ = SpeakReplyAsync($"Хорошо, напомню в {item.FireAtLocal:HH:mm}: {item.Text}");
+                return;
+            }
+
+            // ---- SAFE ACTION 2: MARKDOWN NOTE (Documents\Notes\*.md) ----
+            if (intent.Kind == AssistantIntentKind.SaveNote)
+            {
+                StatusText.Text = "Оформление заметки...";
+                metaText.Text = "Сохранение в Notes...";
+                var structured = await StructureNoteWithRunningLlmOrFallbackAsync(intent.ExtractedPayload, _cts.Token);
+                var saved = AssistantNotesService.SaveNote(structured.Title, structured.BodyMarkdown, structured.Tags);
+                RenderNoteSavedCard(asstContainer, bodyHost, metaText, saved, structured.UsedLlm);
+                StatusText.Text = $"Заметка сохранена: {saved.FileName}";
+                _history.Add(("user", userText));
+                _history.Add(("assistant", $"Заметка «{saved.Title}» сохранена в {saved.FilePath}"));
+                if (AutoTtsCheck.IsChecked == true)
+                    _ = SpeakReplyAsync($"Заметка {saved.Title} сохранена.");
+                return;
+            }
+
+            // ---- SAFE ACTION 3 & 4: WEB SEARCH + READ-ONLY VISION / CHAT ----
+            bool useWeb = WebSearchCheck.IsChecked == true || intent.Kind == AssistantIntentKind.WebSearch;
+            string searchQuery = intent.Kind == AssistantIntentKind.WebSearch && !string.IsNullOrWhiteSpace(intent.ExtractedPayload)
+                ? intent.ExtractedPayload
+                : userText;
+
             DesktopSearchResponse? searchResp = null;
             string webBlock = "";
-            if (useWeb && !string.IsNullOrWhiteSpace(userText))
+            if (useWeb && !string.IsNullOrWhiteSpace(searchQuery))
             {
                 StatusText.Text = "Поиск в интернете...";
                 metaText.Text = "Поиск в интернете...";
-                searchResp = await DesktopWebSearchService.SearchAsync(userText, _cts.Token);
+                searchResp = await DesktopWebSearchService.SearchAsync(searchQuery, _cts.Token);
                 if (searchResp.Results.Count > 0)
                 {
                     webBlock = searchResp.BuildPromptContext();
@@ -364,11 +447,11 @@ public partial class AssistantOverlayWindow : Window
 
             ModelBadgeText.Text = $"{AiServiceManager.FriendlyLlmName(modelFile)}{(hasVision ? " · Vision" : "")}";
 
-            // Read-Only system prompt (strictly informational, zero system-modification capability)
+            // Safe-Tools system prompt (strictly informational, zero system-modification capability)
             string sysPrompt =
                 $"Ты приватный локальный ассистент пользователя на ПК (Brazhnichenko Hub). Текущая дата: {DateTime.Now:yyyy-MM-dd (dddd)}.\n" +
-                "Работаешь в безопасном режиме «Только чтение»: ты можешь объяснять содержимое экрана, переводить текст, искать факты и отвечать на вопросы, но НЕ имеешь права и инструментов изменять файлы или настройки компьютера.\n" +
-                "Отвечай чётко, структурированно и на языке пользователя.";
+                "Работаешь в безопасном режиме: ты можешь объяснять содержимое экрана, переводить текст, искать факты и отвечать на вопросы. У тебя нет доступа к терминалу, настройкам или сторонним файлам ПК.\n" +
+                "Отвечай чётко, компактно, структурированно и на языке пользователя.";
             if (!string.IsNullOrEmpty(webBlock))
                 sysPrompt += "\n\n" + webBlock;
 
@@ -625,6 +708,204 @@ public partial class AssistantOverlayWindow : Window
         row.Children.Add(copyBtn);
         row.Children.Add(speakBtn);
         container.Children.Add(row);
+    }
+
+    private async Task<(string Title, string BodyMarkdown, string[] Tags, bool UsedLlm)> StructureNoteWithRunningLlmOrFallbackAsync(
+        string payload,
+        CancellationToken ct)
+    {
+        var fallback = AssistantActionRouter.BuildFallbackNoteStructure(payload);
+        // Only invoke LLM structuring if llama-server is already warm AND payload benefits from formatting
+        try
+        {
+            var qwenSvc = _manager.GetService("qwen");
+            if (payload.Length >= 40 && await _manager.IsRunningAsync(qwenSvc))
+            {
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
+
+                string reqJson = JsonSerializer.Serialize(new
+                {
+                    messages = new object[]
+                    {
+                        new { role = "system", content = AssistantActionRouter.BuildNoteStructuringSystemPrompt() },
+                        new { role = "user", content = payload }
+                    },
+                    temperature = 0.2,
+                    top_p = 0.9,
+                    presence_penalty = 0.0,
+                    repeat_penalty = 1.05,
+                    dry_multiplier = 0.0,
+                    max_tokens = 512,
+                    stream = false
+                });
+
+                using var req = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{HubConfig.Current.QwenPort}/v1/chat/completions")
+                {
+                    Content = new StringContent(reqJson, Encoding.UTF8, "application/json")
+                };
+                using var resp = await StreamHttp.SendAsync(req, timeoutCts.Token);
+                if (resp.IsSuccessStatusCode)
+                {
+                    using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(timeoutCts.Token));
+                    string? reply = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+                    var parsed = AssistantActionRouter.ParseStructuredNoteOrFallback(reply, payload);
+                    return (parsed.Title, parsed.BodyMarkdown, parsed.Tags, true);
+                }
+            }
+        }
+        catch { }
+
+        return (fallback.Title, fallback.BodyMarkdown, fallback.Tags, false);
+    }
+
+    private void RenderNoteSavedCard(StackPanel container, Border bodyHost, TextBlock metaText, AssistantNoteEntry saved, bool usedLlm)
+    {
+        var card = new Border
+        {
+            Background = new SolidColorBrush(MediaColor.FromRgb(17, 24, 20)),
+            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(38, 89, 68)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(12, 10, 12, 10)
+        };
+        var sp = new StackPanel();
+        sp.Children.Add(new TextBlock
+        {
+            Text = "ЗАМЕТКА СОХРАНЕНА (.MD)",
+            FontSize = 10.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(52, 211, 153))
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = saved.Title,
+            FontSize = 14,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(244, 244, 246)),
+            Margin = new Thickness(0, 4, 0, 3),
+            TextWrapping = TextWrapping.Wrap
+        });
+        if (!string.IsNullOrWhiteSpace(saved.Preview))
+        {
+            sp.Children.Add(new TextBlock
+            {
+                Text = saved.Preview,
+                FontSize = 12,
+                Foreground = new SolidColorBrush(MediaColor.FromRgb(180, 180, 188)),
+                TextWrapping = TextWrapping.Wrap
+            });
+        }
+        string tagsText = saved.Tags.Length > 0 ? string.Join(" ", saved.Tags.Select(t => "#" + t)) + " · " : "";
+        sp.Children.Add(new TextBlock
+        {
+            Text = $"{tagsText}{saved.FilePath}",
+            FontSize = 10.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(126, 126, 135)),
+            Margin = new Thickness(0, 5, 0, 0),
+            TextWrapping = TextWrapping.Wrap
+        });
+        card.Child = sp;
+        bodyHost.Child = card;
+
+        metaText.Text = usedLlm
+            ? $"Оформлено локальной LLM · {saved.FileName}"
+            : $"Сохранено мгновенно · {saved.FileName}";
+
+        var btnRow = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+        var viewBtn = new System.Windows.Controls.Button
+        {
+            Content = "Открыть в Заметках",
+            Style = (Style)FindResource("PrimaryButton"),
+            Padding = new Thickness(10, 4, 10, 4),
+            FontSize = 11.5,
+            Margin = new Thickness(0, 0, 6, 0)
+        };
+        viewBtn.Click += (_, _) => _openNotesViewer(saved.FilePath);
+
+        var openFileBtn = new System.Windows.Controls.Button
+        {
+            Content = "Открыть .md ↗",
+            Style = (Style)FindResource("DarkButton"),
+            Padding = new Thickness(9, 4, 9, 4),
+            FontSize = 11.5,
+            Margin = new Thickness(0, 0, 6, 0)
+        };
+        openFileBtn.Click += (_, _) => AiServiceManager.OpenExternal(saved.FilePath);
+
+        btnRow.Children.Add(viewBtn);
+        btnRow.Children.Add(openFileBtn);
+        container.Children.Add(btnRow);
+    }
+
+    private void RenderReminderSavedCard(StackPanel container, Border bodyHost, TextBlock metaText, AssistantReminderItem item)
+    {
+        var delta = item.FireAtLocal - DateTime.Now;
+        string eta = delta.TotalHours >= 1
+            ? $"через {(int)delta.TotalHours} ч {delta.Minutes} мин"
+            : delta.TotalMinutes >= 1
+                ? $"через {Math.Max(1, (int)Math.Round(delta.TotalMinutes))} мин"
+                : $"через {Math.Max(1, (int)Math.Round(delta.TotalSeconds))} сек";
+
+        var card = new Border
+        {
+            Background = new SolidColorBrush(MediaColor.FromRgb(26, 20, 14)),
+            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(255, 82, 27)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(12, 10, 12, 10)
+        };
+        var sp = new StackPanel();
+        sp.Children.Add(new TextBlock
+        {
+            Text = $"НАПОМИНАНИЕ · {item.FireAtLocal:HH:mm} ({eta})",
+            FontSize = 10.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 82, 27))
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = item.Text,
+            FontSize = 13.5,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(244, 244, 246)),
+            Margin = new Thickness(0, 4, 0, 2),
+            TextWrapping = TextWrapping.Wrap
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = $"Сработает {item.FireAtLocal:dd.MM.yyyy в HH:mm} — придёт системное уведомление Windows со звуком.",
+            FontSize = 11.5,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(161, 161, 170)),
+            TextWrapping = TextWrapping.Wrap
+        });
+        card.Child = sp;
+        bodyHost.Child = card;
+        metaText.Text = $"Локальный таймер #{item.Id} · 0% GPU";
+
+        var cancelBtn = new System.Windows.Controls.Button
+        {
+            Content = "Отменить напоминание",
+            Style = (Style)FindResource("DarkButton"),
+            Padding = new Thickness(9, 4, 9, 4),
+            FontSize = 11,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+            Margin = new Thickness(0, 6, 0, 0)
+        };
+        cancelBtn.Click += (_, _) =>
+        {
+            if (_reminders.CancelReminder(item.Id))
+            {
+                cancelBtn.Content = "Отменено";
+                cancelBtn.IsEnabled = false;
+                metaText.Text = "Напоминание отменено";
+                StatusText.Text = "Напоминание отменено";
+            }
+        };
+        container.Children.Add(cancelBtn);
     }
 
     private async Task SpeakReplyAsync(string raw)

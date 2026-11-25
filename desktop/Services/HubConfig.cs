@@ -44,7 +44,7 @@ public sealed class HubConfigData
     public string UpdateCertSha256 { get; set; } = "";
     public bool AutoCheckUpdatesOnStartup { get; set; } = true;
 
-    // System Desktop Assistant (Read-Only safe overlay via global hotkey & tray icon)
+    // System Desktop Assistant (Safe-Tools overlay via global hotkey & tray icon)
     public bool DesktopAssistantEnabled { get; set; } = true;
     public string DesktopAssistantHotkey { get; set; } = "Alt+Space";
     public string DesktopAssistantModel { get; set; } = "";
@@ -52,6 +52,7 @@ public sealed class HubConfigData
     public bool DesktopAssistantAutoCaptureScreen { get; set; } = true;
     public bool DesktopAssistantAutoWebSearch { get; set; } = true;
     public bool DesktopAssistantAutoTts { get; set; } = false;
+    public string AssistantNotesDir { get; set; } = ""; // Default: Documents\Notes
 
     // Hybrid Web Search optional keys (free DuckDuckGo + Google News + Wikipedia works out of the box)
     public string WebSearchTavilyKey { get; set; } = "";
@@ -143,6 +144,10 @@ public static class HubConfig
         {
             cfg.StoriesRoot = Path.Combine(cfg.MediaRoot, "Stories");
         }
+        if (string.IsNullOrWhiteSpace(cfg.AssistantNotesDir))
+        {
+            cfg.AssistantNotesDir = DefaultAssistantNotesDir;
+        }
 
         if (isNew)
         {
@@ -183,6 +188,14 @@ public static class HubConfig
     public static string DirectorContextPath => Path.Combine(LlmRoot, "media-director-context.md");
     public static string ClaudeBridgePath => Path.Combine(LlmRoot, "claude-bridge.cjs");
     public static string ClaudeConfigDir => Path.Combine(LlmRoot, "claude-config");
+
+    public static string DefaultAssistantNotesDir =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Notes");
+
+    public static string AssistantNotesDir =>
+        string.IsNullOrWhiteSpace(Current.AssistantNotesDir) ? DefaultAssistantNotesDir : Current.AssistantNotesDir;
+
+    public static string AssistantRemindersPath => Path.Combine(ConfigDir, "assistant-reminders.json");
 
     public static string MediaRoot => Current.MediaRoot;
     public static string StoriesRoot => Current.StoriesRoot;

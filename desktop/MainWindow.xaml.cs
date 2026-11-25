@@ -16,6 +16,7 @@ namespace LocalAIHub;
 public partial class MainWindow : Window
 {
     private readonly AiServiceManager _manager = new();
+    private readonly AssistantReminderService _reminderService = new();
     private readonly DispatcherTimer _pollTimer;
     private DispatcherTimer? _toastTimer;
     private readonly Dictionary<string, ServiceCardUi> _cards = new();
@@ -25,6 +26,7 @@ public partial class MainWindow : Window
     private Forms.NotifyIcon? _trayIcon;
     private Forms.NotifyIcon? _assistantTrayIcon;
     private AssistantOverlayWindow? _assistantOverlay;
+    private NotesViewerWindow? _notesViewer;
     private HwndSource? _hwndSource;
     private bool _hotkeyRegistered;
     private bool _pollInFlight;
@@ -87,6 +89,8 @@ public partial class MainWindow : Window
         ApplyInitialTabSelection();
         SetupTrayIcon();
         RefreshDesktopAssistantHooks();
+        _reminderService.ReminderTriggered += OnAssistantReminderTriggered;
+        _reminderService.Start();
 
         _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
         _pollTimer.Tick += async (_, _) => await RefreshStatusAsync();
@@ -129,7 +133,8 @@ public partial class MainWindow : Window
             Visible = true
         };
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("Ассистент ПК (экран / голос / сеть)", null, (_, _) => Dispatcher.Invoke(() => _ = OpenDesktopAssistantOverlayAsync()));
+        menu.Items.Add("Ассистент ПК (заметки / таймер / экран / сеть)", null, (_, _) => Dispatcher.Invoke(() => _ = OpenDesktopAssistantOverlayAsync()));
+        menu.Items.Add("Заметки ассистента (.md)", null, (_, _) => Dispatcher.Invoke(() => OpenNotesViewer(null)));
         menu.Items.Add("Открыть Brazhnichenko Hub", null, (_, _) => Dispatcher.Invoke(RestoreFromTray));
         menu.Items.Add("Освободить GPU (остановить всё)", null, async (_, _) =>
         {
@@ -182,6 +187,7 @@ public partial class MainWindow : Window
                 };
                 var amenu = new Forms.ContextMenuStrip();
                 amenu.Items.Add("Открыть Ассистента ПК", null, (_, _) => Dispatcher.Invoke(() => _ = OpenDesktopAssistantOverlayAsync()));
+                amenu.Items.Add("Заметки ассистента (.md)", null, (_, _) => Dispatcher.Invoke(() => OpenNotesViewer(null)));
                 amenu.Items.Add("Открыть Brazhnichenko Hub", null, (_, _) => Dispatcher.Invoke(RestoreFromTray));
                 amenu.Items.Add("Освободить GPU", null, async (_, _) => await Dispatcher.InvokeAsync(async () => await StopAllAsync()));
                 amenu.Items.Add(new Forms.ToolStripSeparator());
@@ -302,13 +308,65 @@ public partial class MainWindow : Window
     internal async void OpenDesktopAssistantBtn_Click(object sender, RoutedEventArgs e) =>
         await OpenDesktopAssistantOverlayAsync();
 
+    internal void OpenNotesViewerBtn_Click(object sender, RoutedEventArgs e) =>
+        OpenNotesViewer(null);
+
+    internal void OpenNotesViewer(string? selectFilePath = null)
+    {
+        try
+        {
+            if (_notesViewer is null || !_notesViewer.IsLoaded)
+            {
+                _notesViewer = new NotesViewerWindow();
+                _notesViewer.Closed += (_, _) => _notesViewer = null;
+                _notesViewer.Show();
+            }
+            else
+            {
+                if (_notesViewer.WindowState == WindowState.Minimized)
+                    _notesViewer.WindowState = WindowState.Normal;
+                _notesViewer.Activate();
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectFilePath))
+                _notesViewer.SelectNoteByPath(selectFilePath);
+            else
+                _notesViewer.ReloadNotes();
+        }
+        catch (Exception ex)
+        {
+            StatusFooterText.Text = $"Не удалось открыть Заметки: {ex.Message}";
+            ShowToast("Не удалось открыть Заметки", "warn");
+        }
+    }
+
+    private void OnAssistantReminderTriggered(AssistantReminderItem item)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            try { System.Media.SystemSounds.Exclamation.Play(); } catch { }
+            try
+            {
+                var icon = _assistantTrayIcon ?? _trayIcon;
+                icon?.ShowBalloonTip(9000, "Напоминание — Brazhnichenko Hub", item.Text, Forms.ToolTipIcon.Info);
+            }
+            catch { }
+            StatusFooterText.Text = $"Напоминание ({item.FireAtLocal:HH:mm}): {item.Text}";
+            ShowToast($"Напоминание: {item.Text}", "info");
+        });
+    }
+
     internal async Task OpenDesktopAssistantOverlayAsync()
     {
         try
         {
             if (_assistantOverlay is null || !_assistantOverlay.IsLoaded)
             {
-                _assistantOverlay = new AssistantOverlayWindow(_manager, _voiceService);
+                _assistantOverlay = new AssistantOverlayWindow(
+                    _manager,
+                    _voiceService,
+                    _reminderService,
+                    path => Dispatcher.Invoke(() => OpenNotesViewer(path)));
                 _assistantOverlay.Closed += (_, _) => _assistantOverlay = null;
             }
             await _assistantOverlay.OpenAndActivateAsync();
@@ -367,6 +425,12 @@ public partial class MainWindow : Window
         {
             _hwndSource.RemoveHook(DesktopAssistantWndProc);
             _hwndSource = null;
+        }
+        _reminderService.Dispose();
+        if (_notesViewer is not null)
+        {
+            try { _notesViewer.Close(); } catch { }
+            _notesViewer = null;
         }
         if (_assistantOverlay is not null)
         {

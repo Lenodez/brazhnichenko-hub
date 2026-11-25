@@ -48,5 +48,7 @@ public partial class SystemTabView : System.Windows.Controls.UserControl
     private void UpdateServerSaveBtn_Click(object sender, RoutedEventArgs e) => Host?.UpdateServerSaveBtn_Click(sender, e);
     private void UpdateServerToggleBtn_Click(object sender, RoutedEventArgs e) => Host?.UpdateServerToggleBtn_Click(sender, e);
     private void OpenDesktopAssistantBtn_Click(object sender, RoutedEventArgs e) => Host?.OpenDesktopAssistantBtn_Click(sender, e);
+    private void OpenNotesViewerBtn_Click(object sender, RoutedEventArgs e) => Host?.OpenNotesViewerBtn_Click(sender, e);
+    private void BrowseAssistNotesDirBtn_Click(object sender, RoutedEventArgs e) => Host?.BrowseAssistNotesDirBtn_Click(sender, e);
     private void SaveDesktopAssistantBtn_Click(object sender, RoutedEventArgs e) => Host?.SaveDesktopAssistantBtn_Click(sender, e);
 }

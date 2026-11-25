@@ -121,14 +121,16 @@ public sealed class RuntimeInstaller
     public static bool IsNvidiaGpu(HardwareProfile? hw)
     {
         if (hw is null) return true;
-        if (hw.IsAppleSilicon) return false;
+        if (hw.IsAppleSilicon || hw.IsVulkanGpu) return false;
         if (hw.MatchedWiki is not null) return true;
         string name = hw.DetectedGpuName ?? "";
         if (name.Contains("no nvidia", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("не обнаруж", StringComparison.OrdinalIgnoreCase)
             || name.Contains("cpu", StringComparison.OrdinalIgnoreCase)
             || name.Contains("amd", StringComparison.OrdinalIgnoreCase)
             || name.Contains("radeon", StringComparison.OrdinalIgnoreCase)
             || name.Contains("intel", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("arc", StringComparison.OrdinalIgnoreCase)
             || name.Contains("apple", StringComparison.OrdinalIgnoreCase))
             return false;
         return string.IsNullOrWhiteSpace(name)
@@ -208,14 +210,54 @@ public sealed class RuntimeInstaller
         return null;
     }
 
+    public static ResolvedLlamaPlan? SelectWindowsLlamaPlan(
+        string tag,
+        IReadOnlyList<ResolvedReleaseAsset> assets,
+        HardwareProfile? hw)
+    {
+        if (IsNvidiaGpu(hw))
+        {
+            bool preferCuda13 = PreferCuda13(hw);
+            var cudaOrder = preferCuda13
+                ? new[] { ("cuda-13.", "NVIDIA CUDA 13 (Blackwell / RTX 50)"), ("cuda-12.4", "NVIDIA CUDA 12.4") }
+                : new[] { ("cuda-12.4", "NVIDIA CUDA 12.4"), ("cuda-13.", "NVIDIA CUDA 13") };
+
+            foreach (var (marker, label) in cudaOrder)
+            {
+                var mainZip = assets.FirstOrDefault(a =>
+                    a.Name.StartsWith("llama-", StringComparison.OrdinalIgnoreCase) &&
+                    a.Name.Contains($"bin-win-{marker}", StringComparison.OrdinalIgnoreCase) &&
+                    a.Name.EndsWith("-x64.zip", StringComparison.OrdinalIgnoreCase));
+
+                var cudartZip = assets.FirstOrDefault(a =>
+                    a.Name.StartsWith("cudart-llama-bin-win-", StringComparison.OrdinalIgnoreCase) &&
+                    a.Name.Contains(marker, StringComparison.OrdinalIgnoreCase) &&
+                    a.Name.EndsWith("-x64.zip", StringComparison.OrdinalIgnoreCase));
+
+                if (mainZip is not null)
+                {
+                    var list = new List<ResolvedReleaseAsset> { mainZip };
+                    if (cudartZip is not null) list.Add(cudartZip);
+                    return new ResolvedLlamaPlan(tag, label, list);
+                }
+            }
+        }
+
+        // Native Vulkan x64 for Intel Arc / AMD Radeon / Universal GPUs
+        var vulkanZip = assets.FirstOrDefault(a =>
+            a.Name.StartsWith("llama-", StringComparison.OrdinalIgnoreCase) &&
+            a.Name.Contains("bin-win-vulkan-x64.zip", StringComparison.OrdinalIgnoreCase));
+        if (vulkanZip is not null)
+            return new ResolvedLlamaPlan(tag, "Windows Vulkan x64 (Intel Arc / AMD / Универсальный)", [vulkanZip]);
+
+        return null;
+    }
+
     public async Task<ResolvedLlamaPlan> ResolveLatestLlamaPlanAsync(HardwareProfile? hw, CancellationToken ct = default)
     {
         using var resp = await _apiHttp.GetAsync("https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=10", ct);
         resp.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
-
-        bool useNvidia = IsNvidiaGpu(hw);
-        bool preferCuda13 = PreferCuda13(hw);
 
         foreach (var rel in doc.RootElement.EnumerateArray())
         {
@@ -254,40 +296,9 @@ public sealed class RuntimeInstaller
                 continue;
             }
 
-            if (useNvidia)
-            {
-                // Prefer CUDA 13.x for RTX 50-series (Blackwell), CUDA 12.4 for GTX 10..RTX 40 (with cross-fallback)
-                var cudaOrder = preferCuda13
-                    ? new[] { ("cuda-13.", "NVIDIA CUDA 13 (Blackwell / RTX 50)"), ("cuda-12.4", "NVIDIA CUDA 12.4") }
-                    : new[] { ("cuda-12.4", "NVIDIA CUDA 12.4"), ("cuda-13.", "NVIDIA CUDA 13") };
-
-                foreach (var (marker, label) in cudaOrder)
-                {
-                    var mainZip = assets.FirstOrDefault(a =>
-                        a.Name.StartsWith("llama-", StringComparison.OrdinalIgnoreCase) &&
-                        a.Name.Contains($"bin-win-{marker}", StringComparison.OrdinalIgnoreCase) &&
-                        a.Name.EndsWith("-x64.zip", StringComparison.OrdinalIgnoreCase));
-
-                    var cudartZip = assets.FirstOrDefault(a =>
-                        a.Name.StartsWith("cudart-llama-bin-win-", StringComparison.OrdinalIgnoreCase) &&
-                        a.Name.Contains(marker, StringComparison.OrdinalIgnoreCase) &&
-                        a.Name.EndsWith("-x64.zip", StringComparison.OrdinalIgnoreCase));
-
-                    if (mainZip is not null)
-                    {
-                        var list = new List<ResolvedReleaseAsset> { mainZip };
-                        if (cudartZip is not null) list.Add(cudartZip);
-                        return new ResolvedLlamaPlan(tag, label, list);
-                    }
-                }
-            }
-
-            // Fallback: Vulkan x64 (works on any GPU)
-            var vulkanZip = assets.FirstOrDefault(a =>
-                a.Name.StartsWith("llama-", StringComparison.OrdinalIgnoreCase) &&
-                a.Name.Contains("bin-win-vulkan-x64.zip", StringComparison.OrdinalIgnoreCase));
-            if (vulkanZip is not null)
-                return new ResolvedLlamaPlan(tag, "Vulkan x64 (универсальный)", [vulkanZip]);
+            var winPlan = SelectWindowsLlamaPlan(tag, assets, hw);
+            if (winPlan is not null)
+                return winPlan;
         }
 
         throw new InvalidOperationException("Не удалось найти подходящую Windows-сборку llama.cpp в релизах GitHub.");
