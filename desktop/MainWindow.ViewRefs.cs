@@ -230,6 +230,11 @@ public partial class MainWindow
     private System.Windows.Controls.Button CatTabWikiBtn => CatalogTabView?.CatTabWikiBtn!;
     private System.Windows.Controls.Button CatTabHfSearchBtn => CatalogTabView?.CatTabHfSearchBtn!;
     private System.Windows.Controls.Button CatTabDiskBtn => CatalogTabView?.CatTabDiskBtn!;
+    private System.Windows.Controls.Grid CatalogModelsContainer => CatalogTabView?.CatalogModelsContainer!;
+    private System.Windows.Controls.WrapPanel CatalogTextFilterBar => CatalogTabView?.CatalogTextFilterBar!;
+    private System.Windows.Controls.Button CatFilterAllBtn => CatalogTabView?.CatFilterAllBtn!;
+    private System.Windows.Controls.Button CatFilterAssistantBtn => CatalogTabView?.CatFilterAssistantBtn!;
+    private System.Windows.Controls.Button CatFilterVisionBtn => CatalogTabView?.CatFilterVisionBtn!;
     private System.Windows.Controls.ScrollViewer CatalogModelsScroll => CatalogTabView?.CatalogModelsScroll!;
     private System.Windows.Controls.StackPanel CatalogCardsPanel => CatalogTabView?.CatalogCardsPanel!;
     private System.Windows.Controls.Grid CatalogWikiView => CatalogTabView?.CatalogWikiView!;
@@ -237,6 +242,8 @@ public partial class MainWindow
     private System.Windows.Controls.DataGrid GpuWikiGrid => CatalogTabView?.GpuWikiGrid!;
     private System.Windows.Controls.Grid CatalogHfSearchView => CatalogTabView?.CatalogHfSearchView!;
     private System.Windows.Controls.Button HfModeLlmBtn => CatalogTabView?.HfModeLlmBtn!;
+    private System.Windows.Controls.Button HfModeVisionBtn => CatalogTabView?.HfModeVisionBtn!;
+    private System.Windows.Controls.Button HfModeAssistantBtn => CatalogTabView?.HfModeAssistantBtn!;
     private System.Windows.Controls.Button HfModeLoraBtn => CatalogTabView?.HfModeLoraBtn!;
     private System.Windows.Controls.Button HfModeMediaBtn => CatalogTabView?.HfModeMediaBtn!;
     private System.Windows.Controls.Button HfModeAllBtn => CatalogTabView?.HfModeAllBtn!;

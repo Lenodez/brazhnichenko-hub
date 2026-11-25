@@ -97,10 +97,25 @@ public sealed class HuggingFaceClient
 
     public async Task<List<HfRepoSearchItem>> FetchTopPopularModelsAsync(string mode = "llm", int limit = 50, CancellationToken ct = default)
     {
-        int lim = Math.Clamp(limit, 5, 60);
+        int lim = Math.Clamp(limit, 5, 80);
+        if (mode == "vision")
+        {
+            // Combine official image-text-to-text GGUF repos with popular VL / Gemma-3 GGUF repos
+            var t1 = FetchModelListAsync($"https://huggingface.co/api/models?filter=gguf&pipeline_tag=image-text-to-text&sort=downloads&direction=-1&limit={lim}", ct);
+            var t2 = FetchModelListAsync($"https://huggingface.co/api/models?search=VL+GGUF&sort=downloads&direction=-1&limit=40", ct);
+            var t3 = FetchModelListAsync($"https://huggingface.co/api/models?search=gemma-3+GGUF&sort=downloads&direction=-1&limit=25", ct);
+            await Task.WhenAll(t1, t2, t3);
+            return t1.Result.Concat(t2.Result).Concat(t3.Result)
+                .GroupBy(r => r.RepoId, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .OrderByDescending(r => r.Downloads)
+                .ToList();
+        }
+
         string url = mode switch
         {
             "llm" => $"https://huggingface.co/api/models?filter=gguf&pipeline_tag=text-generation&sort=downloads&direction=-1&limit={lim}",
+            "assistant" => $"https://huggingface.co/api/models?filter=gguf&pipeline_tag=text-generation&sort=downloads&direction=-1&limit={Math.Max(lim, 75)}",
             "lora" => $"https://huggingface.co/api/models?search=lora&sort=downloads&direction=-1&limit={lim}",
             "media" => $"https://huggingface.co/api/models?filter=diffusers&sort=downloads&direction=-1&limit={lim}",
             _ => $"https://huggingface.co/api/models?sort=downloads&direction=-1&limit={lim}"

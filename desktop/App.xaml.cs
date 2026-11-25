@@ -79,21 +79,46 @@ public partial class App : System.Windows.Application
             new MouseWheelEventHandler(OnScrollViewerPreviewMouseWheel));
     }
 
+    private sealed class FractionalScrollBucket
+    {
+        public double Remainder;
+    }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ScrollViewer, FractionalScrollBucket> LogicalScrollBuckets = new();
+
     private static void OnScrollViewerPreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         if (e.Handled || e.Delta == 0 || sender is not ScrollViewer sv) return;
         if (Keyboard.Modifiers != ModifierKeys.None) return; // preserve Ctrl+Wheel zoom etc.
-        if (sv.CanContentScroll || sv.ScrollableHeight <= 0) return;
+        if (sv.ScrollableHeight <= 0) return;
 
         // Only handle on the innermost scrollable viewer under the pointer so nested boxes/lists still scroll first
         var innermost = FindInnermostScrollableViewer(e.OriginalSource as DependencyObject, e.Delta);
         if (!ReferenceEquals(innermost, sv)) return;
 
         double lines = Math.Clamp(SystemParameters.WheelScrollLines, 1, 6);
-        double pxPerDetent = lines * 16.0; // standard 48 px per 120-delta mouse notch
-        double deltaPx = -(e.Delta / 120.0) * pxPerDetent;
-        double target = Math.Clamp(sv.VerticalOffset + deltaPx, 0, sv.ScrollableHeight);
-        sv.ScrollToVerticalOffset(target);
+        if (!sv.CanContentScroll)
+        {
+            double pxPerDetent = lines * 16.0; // standard 48 px per 120-delta mouse notch
+            double deltaPx = -(e.Delta / 120.0) * pxPerDetent;
+            double target = Math.Clamp(sv.VerticalOffset + deltaPx, 0, sv.ScrollableHeight);
+            sv.ScrollToVerticalOffset(target);
+        }
+        else
+        {
+            // Logical item-based ScrollViewer (e.g. virtualized DataGrid/ListBox):
+            // Accumulate fractional Precision Touchpad deltas so tiny ticks don't jump whole rows.
+            var bucket = LogicalScrollBuckets.GetOrCreateValue(sv);
+            double itemsPerDetent = Math.Clamp(lines * 0.5, 1.0, 2.5);
+            double raw = bucket.Remainder + (-(e.Delta / 120.0) * itemsPerDetent);
+            int wholeSteps = (int)Math.Truncate(raw);
+            bucket.Remainder = raw - wholeSteps;
+            if (wholeSteps != 0)
+            {
+                double target = Math.Clamp(sv.VerticalOffset + wholeSteps, 0, sv.ScrollableHeight);
+                sv.ScrollToVerticalOffset(target);
+            }
+        }
         e.Handled = true;
     }
 

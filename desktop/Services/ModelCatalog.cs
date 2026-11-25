@@ -26,7 +26,10 @@ public sealed record CatalogModelSpec(
     bool IsGated,
     double TotalSizeGB,
     CatalogFileSpec[] Files,
-    bool IsMoe = false
+    bool IsMoe = false,
+    bool HasVision = false,
+    bool IsAssistantRecommended = false,
+    string? ParentModelId = null
 );
 
 public static class ModelCatalog
@@ -37,70 +40,173 @@ public static class ModelCatalog
         Id: AssistantModelId,
         Category: "text",
         Name: "Qwen 3 4B Instruct (Помощник по Хабу • быстрый)",
-        ShortTag: "4+ ГБ VRAM / CPU • 2.33 ГБ • Встроенный Помощник",
-        SummaryRu: "Сверхлёгкая и быстрая русскоязычная модель-помощник для вкладки «AI-Помощник»: подбирает модели по GPU Вики, запускает установку и диагностирует ошибки сети/HF.",
-        WhyChooseRu: "Занимает всего 2.33 ГБ, стартует за ~2 сек даже на GTX 1060 или CPU, мгновенно отвечает без долгих размышлений.",
+        ShortTag: "4+ ГБ VRAM / CPU • 2.33 ГБ • Быстрый ассистент",
+        SummaryRu: "Сверхлёгкая и быстрая русскоязычная модель для ассистента Alt+Space и заметок: мгновенно отвечает на ноутбуках (35 tok/s на Intel Arc 140V) без лишнего расхода батареи.",
+        WhyChooseRu: "Занимает всего 2.33 ГБ, стартует за секунды даже на встройке/Vulkan и идеально форматирует заметки.",
         MinVramGB: 4, IdealVramGB: 6, MinRamGB: 8, IdealRamGB: 16,
         PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 2.33,
-        Files: [new("unsloth/Qwen3-4B-Instruct-2507-GGUF", "Qwen3-4B-Instruct-2507-Q4_K_M.gguf", "llm_models", "Qwen3-4B-Instruct-2507-Q4_K_M.gguf", 2.33)]
+        Files: [new("unsloth/Qwen3-4B-Instruct-2507-GGUF", "Qwen3-4B-Instruct-2507-Q4_K_M.gguf", "llm_models", "Qwen3-4B-Instruct-2507-Q4_K_M.gguf", 2.33)],
+        IsAssistantRecommended: true
     );
 
     public static IReadOnlyList<CatalogModelSpec> All { get; } =
     [
-        // ===================== 1. ТЕКСТОВЫЕ (LLM) =====================
+        // ===================== 1. ТЕКСТОВЫЕ (LLM & VISION) =====================
         AssistantSpec,
+        new(
+            Id: "llm-qwen3-vl-4b-vision",
+            Category: "text",
+            Name: "Qwen 3 VL 4B Vision (Топ ассистент экрана • Q4_K_M + mmproj)",
+            ShortTag: "Vision + Ассистент • 4–8 ГБ GPU • 3.11 ГБ комплект",
+            SummaryRu: "Новейшая компактная Vision-модель семейства Qwen 3: отлично читает скриншоты, интерфейсы, код, таблицы и идеально подходит для Alt+Space ассистента на ноутбуке!",
+            WhyChooseRu: "Лучший лёгкий Vision-ассистент (3.11 ГБ с mmproj): мгновенно разбирает экран и заметки на Intel Arc, RTX и Apple Silicon.",
+            MinVramGB: 4, IdealVramGB: 6, MinRamGB: 8, IdealRamGB: 16,
+            PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 3.11,
+            Files: [
+                new("unsloth/Qwen3-VL-4B-Instruct-GGUF", "Qwen3-VL-4B-Instruct-Q4_K_M.gguf", "llm_models", "Qwen3-VL-4B-Instruct-Q4_K_M.gguf", 2.33),
+                new("unsloth/Qwen3-VL-4B-Instruct-GGUF", "mmproj-F16.gguf", "llm_models", "mmproj-Qwen3-VL-4B-Instruct-F16.gguf", 0.78)
+            ],
+            HasVision: true,
+            IsAssistantRecommended: true
+        ),
+        new(
+            Id: "llm-gemma3-4b-vision",
+            Category: "text",
+            Name: "Gemma 3 4B Vision (Google • Лёгкий экран + русский • Q4_K_M + mmproj)",
+            ShortTag: "Google Vision + Ассистент • 4–8 ГБ GPU • 3.11 ГБ комплект",
+            SummaryRu: "Компактная мультимодальная модель от Google с естественным русским языком: видит экран и фото, быстро переводит и отвечает в Alt+Space ассистенте.",
+            WhyChooseRu: "Всего 3.11 ГБ вместе со зрением mmproj — отличный живой слог на ноутбуках и картах 6–8 ГБ.",
+            MinVramGB: 4, IdealVramGB: 6, MinRamGB: 8, IdealRamGB: 16,
+            PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 3.11,
+            Files: [
+                new("unsloth/gemma-3-4b-it-GGUF", "gemma-3-4b-it-Q4_K_M.gguf", "llm_models", "gemma-3-4b-it-Q4_K_M.gguf", 2.32),
+                new("unsloth/gemma-3-4b-it-GGUF", "mmproj-F16.gguf", "llm_models", "mmproj-gemma-3-4b-it-F16.gguf", 0.79)
+            ],
+            HasVision: true,
+            IsAssistantRecommended: true
+        ),
+        new(
+            Id: "llm-qwen25-vl-3b-vision",
+            Category: "text",
+            Name: "Qwen 2.5 VL 3B Vision (Сверхбыстрый OCR экрана • Q4_K_M + mmproj)",
+            ShortTag: "Vision + OCR • 4+ ГБ GPU • 2.59 ГБ комплект",
+            SummaryRu: "Самая лёгкая и быстрая Vision-модель для распознавания текста со скриншотов, документов и мгновенных подсказок по экрану.",
+            WhyChooseRu: "Минимум памяти (2.59 ГБ вместе с mmproj) и максимальная скорость отклика даже на скромных GPU.",
+            MinVramGB: 4, IdealVramGB: 6, MinRamGB: 8, IdealRamGB: 16,
+            PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 2.59,
+            Files: [
+                new("ggml-org/Qwen2.5-VL-3B-Instruct-GGUF", "Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf", "llm_models", "Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf", 1.80),
+                new("ggml-org/Qwen2.5-VL-3B-Instruct-GGUF", "mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf", "llm_models", "mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf", 0.79)
+            ],
+            HasVision: true,
+            IsAssistantRecommended: true
+        ),
+        new(
+            Id: "llm-qwen3-vl-8b-vision",
+            Category: "text",
+            Name: "Qwen 3 VL 8B Vision (Мощный экран и OCR • Q4_K_M + mmproj)",
+            ShortTag: "Vision + Ассистент • 8–16 ГБ GPU • 5.76 ГБ комплект",
+            SummaryRu: "Флагманский компактный Vision Qwen 3 (8B + mmproj): высокая точность разбора сложных интерфейсов, графиков, ошибок кода и фото на русском и английском.",
+            WhyChooseRu: "Оптимальный баланс ума и скорости для 12–16 ГБ GPU (и Intel Arc 140V 16–18 ГБ) в роли главного ассистента экрана.",
+            MinVramGB: 8, IdealVramGB: 12, MinRamGB: 16, IdealRamGB: 16,
+            PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 5.76,
+            Files: [
+                new("unsloth/Qwen3-VL-8B-Instruct-GGUF", "Qwen3-VL-8B-Instruct-Q4_K_M.gguf", "llm_models", "Qwen3-VL-8B-Instruct-Q4_K_M.gguf", 4.68),
+                new("unsloth/Qwen3-VL-8B-Instruct-GGUF", "mmproj-F16.gguf", "llm_models", "mmproj-Qwen3-VL-8B-Instruct-F16.gguf", 1.08)
+            ],
+            HasVision: true,
+            IsAssistantRecommended: true
+        ),
         new(
             Id: "llm-qwen25-vl-7b-vision",
             Category: "text",
             Name: "Qwen 2.5 VL 7B Vision (Чат с картинками • Q4_K_M + mmproj)",
             ShortTag: "Vision (анализ фото) • 8–16 ГБ VRAM • 5.16 ГБ комплект",
             SummaryRu: "Мультимодальная Vision-LLM (видит и анализирует картинки в Чате 2.0!): распознаёт текст на фото/скриншотах (OCR), описывает сцены, помогает по интерфейсам. Включает и саму модель, и файл зрения mmproj.",
-            WhyChooseRu: "Самый быстрый способ включить картинки в Чате 2.0: всё в одном комплекте (5.16 ГБ), 100% влезает в 8–16 ГБ VRAM.",
+            WhyChooseRu: "Проверенный временем Vision-комплект (5.16 ГБ), 100% влезает в 8–16 ГБ VRAM.",
             MinVramGB: 8, IdealVramGB: 12, MinRamGB: 16, IdealRamGB: 16,
             PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 5.16,
             Files: [
                 new("ggml-org/Qwen2.5-VL-7B-Instruct-GGUF", "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf", "llm_models", "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf", 4.36),
                 new("ggml-org/Qwen2.5-VL-7B-Instruct-GGUF", "mmproj-Qwen2.5-VL-7B-Instruct-Q8_0.gguf", "llm_models", "mmproj-Qwen2.5-VL-7B-Instruct-Q8_0.gguf", 0.80)
-            ]
+            ],
+            HasVision: true,
+            IsAssistantRecommended: true
         ),
         new(
             Id: "llm-gemma3-12b-vision",
             Category: "text",
             Name: "Gemma 3 12B Vision (Google • Чат с картинками • Q4_K_M + mmproj)",
-            ShortTag: "Google Vision • 10–16 ГБ VRAM • 7.59 ГБ комплект",
-            SummaryRu: "Умная мультимодальная модель от Google (12B) с файлом зрения mmproj в комплекте: отлично понимает фото, схемы, скриншоты и пишет живой русский текст в Чате 2.0.",
-            WhyChooseRu: "Золотой стандарт Vision для RTX 3060 12GB / 4070 / 4080 / 5080 — 100% в видеопамяти вместе с mmproj.",
+            ShortTag: "Google Vision + Ассистент • 10–16 ГБ GPU • 7.59 ГБ комплект",
+            SummaryRu: "Умная мультимодальная модель от Google (12B) с файлом зрения mmproj в комплекте: отлично понимает фото, схемы, скриншоты и пишет живой русский текст.",
+            WhyChooseRu: "Золотой стандарт Vision для RTX 3060 12GB / 4070 / 4080 / 5080 и Intel Arc 140V 16–18 ГБ — 100% в видеопамяти.",
             MinVramGB: 10, IdealVramGB: 16, MinRamGB: 16, IdealRamGB: 32,
             PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 7.59,
             Files: [
                 new("unsloth/gemma-3-12b-it-GGUF", "gemma-3-12b-it-Q4_K_M.gguf", "llm_models", "gemma-3-12b-it-Q4_K_M.gguf", 6.80),
                 new("unsloth/gemma-3-12b-it-GGUF", "mmproj-F16.gguf", "llm_models", "mmproj-gemma-3-12b-it-F16.gguf", 0.79)
-            ]
+            ],
+            HasVision: true,
+            IsAssistantRecommended: true
+        ),
+        new(
+            Id: "llm-gemma3-27b-vision",
+            Category: "text",
+            Name: "Gemma 3 27B Vision (Google • Флагманский Dense Vision • Q4_K_M + mmproj)",
+            ShortTag: "Google Vision 27B • 18–24 ГБ GPU • 16.21 ГБ комплект",
+            SummaryRu: "Крупная мультимодальная модель от Google (27B + mmproj): глубокий анализ документов, схем, фото и эталонный русский язык.",
+            WhyChooseRu: "Для мощных систем 24 ГБ VRAM или 16–18 ГБ GPU + 32 ГБ RAM, когда нужно максимальное качество Vision.",
+            MinVramGB: 16, IdealVramGB: 24, MinRamGB: 32, IdealRamGB: 32,
+            PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 16.21,
+            Files: [
+                new("unsloth/gemma-3-27b-it-GGUF", "gemma-3-27b-it-Q4_K_M.gguf", "llm_models", "gemma-3-27b-it-Q4_K_M.gguf", 15.41),
+                new("unsloth/gemma-3-27b-it-GGUF", "mmproj-F16.gguf", "llm_models", "mmproj-gemma-3-27b-it-F16.gguf", 0.80)
+            ],
+            HasVision: true
+        ),
+        new(
+            Id: "llm-qwen3-vl-30b-a3b-vision",
+            Category: "text",
+            Name: "Qwen 3 VL 30B-A3B MoE Vision (Быстрый 30B Vision • UD-Q4_K_XL + mmproj)",
+            ShortTag: "MoE Vision 30B (акт. 3B) • 17.51 ГБ комплект",
+            SummaryRu: "Флагманская MoE Vision-модель нового поколения (30B параметров, активно всего 3B): глубочайшее понимание скриншотов, UI, кода и графиков при высокой скорости даже с оффлоадом в ОЗУ!",
+            WhyChooseRu: "Топовый мультимодальный интеллект 30B на скорости 4B-модели для систем с 16–24 ГБ GPU и 32 ГБ RAM.",
+            MinVramGB: 12, IdealVramGB: 24, MinRamGB: 32, IdealRamGB: 32,
+            PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 17.51,
+            Files: [
+                new("unsloth/Qwen3-VL-30B-A3B-Instruct-GGUF", "Qwen3-VL-30B-A3B-Instruct-UD-Q4_K_XL.gguf", "llm_models", "Qwen3-VL-30B-A3B-Instruct-UD-Q4_K_XL.gguf", 16.50),
+                new("unsloth/Qwen3-VL-30B-A3B-Instruct-GGUF", "mmproj-F16.gguf", "llm_models", "mmproj-Qwen3-VL-30B-A3B-Instruct-F16.gguf", 1.01)
+            ],
+            IsMoe: true,
+            HasVision: true
         ),
         new(
             Id: "llm-qwen36-35b-hauhau-vision-mmproj",
             Category: "text",
             Name: "Vision-модуль (mmproj) для Qwen 3.6 35B HauhauCS",
-            ShortTag: "Дополнение к Qwen 3.6 35B • 0.84 ГБ • Включает картинки в Чате",
-            SummaryRu: "Официальный файл зрения (mmproj-f16) для модели Qwen 3.6 35B-A3B HauhauCS: после скачивания и перезапуска LLM эта 35B-модель начинает видеть и разбирать картинки прямо в Чате 2.0!",
+            ShortTag: "Дополнение к Qwen 3.6 35B • 0.84 ГБ • Требует основную 35B модель",
+            SummaryRu: "Официальный файл зрения (mmproj-f16) для модели Qwen 3.6 35B-A3B HauhauCS: после скачивания и перезапуска LLM эта 35B-модель начинает видеть и разбирать картинки! Не работает отдельно без Qwen 3.6 35B.",
             WhyChooseRu: "Если у тебя уже стоит Qwen 3.6 35B HauhauCS — докачай всего 0.84 ГБ вместо целой новой модели, и Vision заработает.",
             MinVramGB: 12, IdealVramGB: 24, MinRamGB: 32, IdealRamGB: 32,
             PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 0.84,
             Files: [
                 new("HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive", "mmproj-Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf", "llm_models", "mmproj-Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf", 0.84)
             ],
-            IsMoe: true
+            IsMoe: true,
+            HasVision: true,
+            ParentModelId: "llm-qwen36-35b-moe-hauhau-q4"
         ),
         new(
             Id: "llm-qwen3-8b-q4",
             Category: "text",
             Name: "Qwen 3 8B (Unsloth Q4_K_M)",
-            ShortTag: "6–8 ГБ VRAM • Быстрый старт",
-            SummaryRu: "Компактная умная LLM 8B: отлично работает даже на GTX 1060 / RTX 2060 / 3060 / 4060 (6–8 ГБ VRAM).",
-            WhyChooseRu: "Идеальна для карт 6–8 ГБ: целиком влезает в видеопамять с длинным контекстом и высокой скоростью.",
+            ShortTag: "6–8 ГБ VRAM • Быстрый старт и ассистент",
+            SummaryRu: "Компактная умная LLM 8B: отлично работает даже на GTX 1060 / RTX 2060 / 3060 / 4060 (6–8 ГБ VRAM) и ноутбуках Intel Arc.",
+            WhyChooseRu: "Идеальна для карт 6–8 ГБ и быстрого ассистента: целиком влезает в видеопамять с длинным контекстом.",
             MinVramGB: 6, IdealVramGB: 8, MinRamGB: 16, IdealRamGB: 16,
             PrefersFp8: false, PrefersBf16: false, IsGated: false, TotalSizeGB: 4.68,
-            Files: [new("unsloth/Qwen3-8B-GGUF", "Qwen3-8B-Q4_K_M.gguf", "llm_models", "Qwen3-8B-Q4_K_M.gguf", 4.68)]
+            Files: [new("unsloth/Qwen3-8B-GGUF", "Qwen3-8B-Q4_K_M.gguf", "llm_models", "Qwen3-8B-Q4_K_M.gguf", 4.68)],
+            IsAssistantRecommended: true
         ),
         new(
             Id: "llm-deepseek-r1-0528-8b",

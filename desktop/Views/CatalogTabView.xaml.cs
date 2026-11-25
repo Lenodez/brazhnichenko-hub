@@ -15,6 +15,7 @@ public partial class CatalogTabView : System.Windows.Controls.UserControl
 
     private void CatalogSim_Changed(object sender, SelectionChangedEventArgs e) => Host?.CatalogSim_Changed(sender, e);
     private void CatalogSortCombo_Changed(object sender, SelectionChangedEventArgs e) => Host?.CatalogSortCombo_Changed(sender, e);
+    private void CatalogTextFilterBtn_Click(object sender, RoutedEventArgs e) => Host?.CatalogTextFilterBtn_Click(sender, e);
     private void CatTabDiskBtn_Click(object sender, RoutedEventArgs e) => Host?.CatTabDiskBtn_Click(sender, e);
     private void CatTabHfSearchBtn_Click(object sender, RoutedEventArgs e) => Host?.CatTabHfSearchBtn_Click(sender, e);
     private void CatTabPhotoBtn_Click(object sender, RoutedEventArgs e) => Host?.CatTabPhotoBtn_Click(sender, e);

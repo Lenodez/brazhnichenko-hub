@@ -16,6 +16,7 @@ public partial class MainWindow
     private readonly RuntimeInstaller _runtimeInstaller = new();
     private HardwareProfile? _detectedHardware;
     private string _activeCatalogView = "text"; // text | photo | video | wiki | hf
+    private string _activeCatalogTextFilter = "all"; // all | assistant | vision
     private CancellationTokenSource? _catalogDlCts;
     private bool _catalogDownloading;
     private bool _suppressSimChanged;
@@ -100,6 +101,18 @@ public partial class MainWindow
         RenderCatalogRecommendations();
     }
 
+    internal void CatalogTextFilterBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button btn || btn.Tag is not string filter) return;
+        _activeCatalogTextFilter = filter;
+        var primary = (Style)FindResource("PrimaryButton");
+        var dark = (Style)FindResource("DarkButton");
+        if (CatFilterAllBtn is not null) CatFilterAllBtn.Style = filter == "all" ? primary : dark;
+        if (CatFilterAssistantBtn is not null) CatFilterAssistantBtn.Style = filter == "assistant" ? primary : dark;
+        if (CatFilterVisionBtn is not null) CatFilterVisionBtn.Style = filter == "vision" ? primary : dark;
+        RenderCatalogRecommendations();
+    }
+
     internal void CatTabTextBtn_Click(object sender, RoutedEventArgs e) => SetCatalogView("text");
     internal void CatTabPhotoBtn_Click(object sender, RoutedEventArgs e) => SetCatalogView("photo");
     internal void CatTabVideoBtn_Click(object sender, RoutedEventArgs e) => SetCatalogView("video");
@@ -120,7 +133,9 @@ public partial class MainWindow
         CatTabHfSearchBtn.Style = view == "hf" ? primary : dark;
         CatTabDiskBtn.Style = view == "disk" ? primary : dark;
 
-        CatalogModelsScroll.Visibility = view is "text" or "photo" or "video" ? Visibility.Visible : Visibility.Collapsed;
+        CatalogModelsContainer.Visibility = view is "text" or "photo" or "video" ? Visibility.Visible : Visibility.Collapsed;
+        if (CatalogTextFilterBar is not null)
+            CatalogTextFilterBar.Visibility = view == "text" ? Visibility.Visible : Visibility.Collapsed;
         if (CatalogSortPanel is not null)
             CatalogSortPanel.Visibility = view is "text" or "photo" or "video" ? Visibility.Visible : Visibility.Collapsed;
         CatalogWikiView.Visibility = view == "wiki" ? Visibility.Visible : Visibility.Collapsed;
@@ -155,6 +170,12 @@ public partial class MainWindow
 
         var items = ModelCatalog.All
             .Where(m => m.Category == _activeCatalogView)
+            .Where(m => _activeCatalogView != "text" || _activeCatalogTextFilter switch
+            {
+                "assistant" => m.IsAssistantRecommended,
+                "vision" => m.HasVision,
+                _ => true
+            })
             .Select(m => (Spec: m, Fit: HardwareAdvisor.EvaluateModel(m, hw), State: ModelCatalog.CheckInstallState(m)))
             .ToList();
 

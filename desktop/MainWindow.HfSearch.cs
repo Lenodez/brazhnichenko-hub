@@ -41,8 +41,7 @@ public partial class MainWindow
     {
         if (sender is not System.Windows.Controls.Button btn || btn.Tag is not string mode) return;
         SetHfSearchMode(mode);
-        if (!string.IsNullOrWhiteSpace(HfSearchQueryBox.Text))
-            HfSearchBtn_Click(this, new RoutedEventArgs());
+        _ = LoadTopPopularHfModelsAsync();
     }
 
     private void SetHfSearchMode(string mode)
@@ -51,6 +50,8 @@ public partial class MainWindow
         var primary = (Style)FindResource("PrimaryButton");
         var dark = (Style)FindResource("DarkButton");
         HfModeLlmBtn.Style = mode == "llm" ? primary : dark;
+        if (HfModeVisionBtn is not null) HfModeVisionBtn.Style = mode == "vision" ? primary : dark;
+        if (HfModeAssistantBtn is not null) HfModeAssistantBtn.Style = mode == "assistant" ? primary : dark;
         HfModeLoraBtn.Style = mode == "lora" ? primary : dark;
         HfModeMediaBtn.Style = mode == "media" ? primary : dark;
         HfModeAllBtn.Style = mode == "all" ? primary : dark;
@@ -59,7 +60,15 @@ public partial class MainWindow
         {
             case "llm":
                 SelectComboByTag(HfTargetFolderCombo, "llm_models");
-                HfModeHintText.Text = "Автофильтр: скрываем Mac/MLX и сырые серверные .safetensors — оставляем готовые GGUF.";
+                HfModeHintText.Text = "Автофильтр: готовые GGUF LLM под твои GPU + RAM (скрываем MLX и сырые веса).";
+                break;
+            case "vision":
+                SelectComboByTag(HfTargetFolderCombo, "llm_models");
+                HfModeHintText.Text = "Только Vision-модели (экран/фото, GGUF + mmproj), влезающие в твой ПК.";
+                break;
+            case "assistant":
+                SelectComboByTag(HfTargetFolderCombo, "llm_models");
+                HfModeHintText.Text = "Быстрые компактные модели (≤12B, 100% в GPU) для мгновенного ассистента Alt+Space.";
                 break;
             case "lora":
                 SelectComboByTag(HfTargetFolderCombo, "loras");
@@ -128,19 +137,27 @@ public partial class MainWindow
                 !r.RepoId.Contains("-mlx", StringComparison.OrdinalIgnoreCase) &&
                 !r.RepoId.Contains("mlx-", StringComparison.OrdinalIgnoreCase));
 
-            if (_hfSearchMode == "llm")
+            if (_hfSearchMode is "llm" or "vision" or "assistant")
             {
                 filtered = filtered.Where(r =>
                     !r.RepoId.Contains("embed", StringComparison.OrdinalIgnoreCase) &&
                     !r.RepoId.Contains("rerank", StringComparison.OrdinalIgnoreCase) &&
-                    !r.RepoId.Contains("bge-", StringComparison.OrdinalIgnoreCase));
+                    !r.RepoId.Contains("bge-", StringComparison.OrdinalIgnoreCase) &&
+                    !r.RepoId.Contains("whisper", StringComparison.OrdinalIgnoreCase));
+
+                if (_hfSearchMode == "vision")
+                {
+                    filtered = filtered.Where(IsLikelyVisionHfRepo);
+                }
 
                 var scored = filtered
                     .Select(r => (Repo: r, Fit: HardwareAdvisor.EstimateHfRepoFit(r.RepoId, hw)))
                     .Where(x => x.Fit.FitsOnHardware)
+                    .Where(x => _hfSearchMode != "assistant"
+                        || (x.Fit.SortPriority == 0 && x.Fit.EstimatedParamsB is >= 1.5 and <= 12.5))
                     .OrderBy(x => x.Fit.SortPriority)
                     .ThenByDescending(x => x.Repo.Downloads)
-                    .Take(30)
+                    .Take(35)
                     .Select(x => x.Repo)
                     .ToList();
 
@@ -161,11 +178,19 @@ public partial class MainWindow
             _hfSelectedRepo = null;
 
             string hwLabel = $"{hw.DetectedVramGB:F0} ГБ GPU / {hw.DetectedRamGB:F0} ГБ RAM";
-            HfReposHeaderText.Text = $"★ ТОП ПОПУЛЯРНЫХ HF ПОД ТВОЙ ПК ({_hfSearchResults.Count} · {hwLabel})";
+            string modeLabel = _hfSearchMode switch
+            {
+                "vision" => "ТОП VISION (ЭКРАН/ФОТО)",
+                "assistant" => "ТОП ДЛЯ АССИСТЕНТА (≤12B)",
+                "lora" => "ТОП LORA",
+                "media" => "ТОП ФОТО/ВИДЕО",
+                _ => "ТОП ПОПУЛЯРНЫХ HF"
+            };
+            HfReposHeaderText.Text = $"★ {modeLabel} ПОД ТВОЙ ПК ({_hfSearchResults.Count} · {hwLabel})";
             HfFilesHeaderText.Text = "02 · ВЫБЕРИ КВАНТ И СМОТРИ РЕКОМЕНДУЕМЫЙ КОНТЕКСТ";
             StatusFooterText.Text = _hfSearchResults.Count > 0
-                ? $"Топ популярных моделей Hugging Face отфильтрован под {hwLabel}: показано {_hfSearchResults.Count}."
-                : "Не удалось загрузить популярные модели с Hugging Face — проверь соединение.";
+                ? $"{modeLabel} отфильтрован под {hwLabel}: показано {_hfSearchResults.Count}."
+                : "Подходящих моделей не найдено — попробуй сменить фильтр или ввести запрос вручную.";
         }
         catch (Exception ex)
         {
@@ -178,14 +203,30 @@ public partial class MainWindow
         }
     }
 
+    private static bool IsLikelyVisionHfRepo(HfRepoSearchItem r)
+    {
+        if (string.Equals(r.PipelineTag, "image-text-to-text", StringComparison.OrdinalIgnoreCase))
+            return true;
+        string lower = r.RepoId.ToLowerInvariant();
+        return lower.Contains("-vl") || lower.Contains("vl-") || lower.Contains("vision")
+            || lower.Contains("llava") || lower.Contains("minicpm-v") || lower.Contains("minicpm_v")
+            || lower.Contains("pixtral") || lower.Contains("internvl") || lower.Contains("smolvlm")
+            || lower.Contains("moondream") || lower.Contains("gemma-3-") || lower.Contains("gemma-4-")
+            || lower.Contains("mistral-small-3.1");
+    }
+
     internal async void HfSearchBtn_Click(object sender, RoutedEventArgs e)
     {
         string rawQuery = HfSearchQueryBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(rawQuery)) return;
+        if (string.IsNullOrWhiteSpace(rawQuery))
+        {
+            await LoadTopPopularHfModelsAsync();
+            return;
+        }
 
         // Auto-append format keyword so HF API returns directly usable repos
         string apiQuery = rawQuery;
-        if (_hfSearchMode == "llm" && !rawQuery.Contains("gguf", StringComparison.OrdinalIgnoreCase))
+        if (_hfSearchMode is "llm" or "vision" or "assistant" && !rawQuery.Contains("gguf", StringComparison.OrdinalIgnoreCase))
             apiQuery += " GGUF";
         else if (_hfSearchMode == "lora" && !rawQuery.Contains("lora", StringComparison.OrdinalIgnoreCase))
             apiQuery += " lora";
@@ -196,17 +237,28 @@ public partial class MainWindow
         StatusFooterText.Text = $"Поиск «{apiQuery}» на Hugging Face...";
         try
         {
-            var rawResults = await _hfClient.SearchModelsAsync(apiQuery, 30);
+            var rawResults = await _hfClient.SearchModelsAsync(apiQuery, 40);
+            var hw = GetActiveCatalogHardware();
 
-            if (_hfSearchMode == "llm")
+            if (_hfSearchMode is "llm" or "vision" or "assistant")
             {
                 // Keep GGUF repos, hide Apple MLX and raw non-GGUF server checkpoints
-                var ggufOnly = rawResults.Where(r =>
+                IEnumerable<HfRepoSearchItem> ggufOnly = rawResults.Where(r =>
                     r.RepoId.Contains("gguf", StringComparison.OrdinalIgnoreCase) &&
                     !r.RepoId.Contains("-mlx", StringComparison.OrdinalIgnoreCase) &&
-                    !r.RepoId.Contains("mlx-", StringComparison.OrdinalIgnoreCase)).ToList();
+                    !r.RepoId.Contains("mlx-", StringComparison.OrdinalIgnoreCase));
 
-                _hfSearchResults = ggufOnly.Count > 0 ? ggufOnly : rawResults;
+                if (_hfSearchMode == "vision")
+                    ggufOnly = ggufOnly.Where(IsLikelyVisionHfRepo);
+                else if (_hfSearchMode == "assistant")
+                    ggufOnly = ggufOnly.Where(r =>
+                    {
+                        var f = HardwareAdvisor.EstimateHfRepoFit(r.RepoId, hw);
+                        return f.SortPriority == 0 && (f.EstimatedParamsB is null or <= 12.5);
+                    });
+
+                var list = ggufOnly.ToList();
+                _hfSearchResults = list.Count > 0 ? list : rawResults;
             }
             else if (_hfSearchMode == "lora")
             {
@@ -283,12 +335,14 @@ public partial class MainWindow
         else if (lower.Contains("lora"))
             AddBadge("LORA", "#11241C", "#34D399");
 
-        if (_hfSearchMode == "llm" && !lower.Contains("mlx"))
+        if (_hfSearchMode is "llm" or "vision" or "assistant" && !lower.Contains("mlx"))
         {
             var repoFit = HardwareAdvisor.EstimateHfRepoFit(r.RepoId, GetActiveCatalogHardware());
             if (repoFit.EstimatedParamsB.HasValue)
                 AddBadge(repoFit.BadgeText, repoFit.BgHex, repoFit.FgHex);
         }
+        if (IsLikelyVisionHfRepo(r))
+            AddBadge("VISION", "#151922", "#93C5FD");
 
         if (lower.Contains("abliterated") || lower.Contains("uncensored") || lower.Contains("hauhaucs") || lower.Contains("heretic"))
             AddBadge("UNCENSORED", "#24140F", "#FF521B");
@@ -364,7 +418,7 @@ public partial class MainWindow
 
         // Filter raw file list by search mode
         IEnumerable<HfRepoFileItem> filteredRaw = _hfCurrentFiles;
-        if (_hfSearchMode == "llm")
+        if (_hfSearchMode is "llm" or "vision" or "assistant")
         {
             var ggufs = _hfCurrentFiles.Where(f => f.Path.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)).ToList();
             if (ggufs.Count > 0) filteredRaw = ggufs;

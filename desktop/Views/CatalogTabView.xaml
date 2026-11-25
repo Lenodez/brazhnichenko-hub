@@ -57,9 +57,23 @@
         </Border>
 
         <!-- View A: Curated Model Recommendations -->
-        <ScrollViewer x:Name="CatalogModelsScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0" x:FieldModifier="internal">
-            <StackPanel x:Name="CatalogCardsPanel" x:FieldModifier="internal" />
-        </ScrollViewer>
+        <Grid x:Name="CatalogModelsContainer" Grid.Row="2" x:FieldModifier="internal">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <WrapPanel x:Name="CatalogTextFilterBar" Grid.Row="0" Margin="0,0,0,8" x:FieldModifier="internal">
+                <TextBlock Text="ФИЛЬТР LLM:" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" FontSize="10.5" VerticalAlignment="Center" Margin="0,0,7,2" />
+                <Button x:Name="CatFilterAllBtn" Content="Все LLM" Style="{StaticResource PrimaryButton}" Padding="10,4" FontSize="11.5" Margin="0,0,5,2" Tag="all" Click="CatalogTextFilterBtn_Click" x:FieldModifier="internal" />
+                <Button x:Name="CatFilterAssistantBtn" Content="Для ассистента (Alt+Space)" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="11.5" Margin="0,0,5,2" Tag="assistant" Click="CatalogTextFilterBtn_Click" x:FieldModifier="internal" />
+                <Button x:Name="CatFilterVisionBtn" Content="Только Vision (экран / фото)" Style="{StaticResource DarkButton}" Padding="10,4" FontSize="11.5" Margin="0,0,0,2" Tag="vision" Click="CatalogTextFilterBtn_Click" x:FieldModifier="internal" />
+            </WrapPanel>
+
+            <ScrollViewer x:Name="CatalogModelsScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0" x:FieldModifier="internal">
+                <StackPanel x:Name="CatalogCardsPanel" x:FieldModifier="internal" />
+            </ScrollViewer>
+        </Grid>
 
         <!-- View B: NVIDIA GPU Matrix -->
         <Grid x:Name="CatalogWikiView" Grid.Row="2" Visibility="Collapsed" x:FieldModifier="internal">
@@ -125,6 +139,18 @@
                             <TextBlock Text="LLM (GGUF)" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
+                    <Button x:Name="HfModeVisionBtn" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,5,0" Tag="vision" Click="HfSearchModeBtn_Click" x:FieldModifier="internal">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconPhoto}" Margin="0,0,6,0" />
+                            <TextBlock Text="Vision (экран)" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="HfModeAssistantBtn" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,5,0" Tag="assistant" Click="HfSearchModeBtn_Click" x:FieldModifier="internal">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconSparkles}" Margin="0,0,6,0" />
+                            <TextBlock Text="Ассистент (≤12B)" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="HfModeLoraBtn" Style="{StaticResource DarkButton}" Padding="10,5" FontSize="12" Margin="0,0,5,0" Tag="lora" Click="HfSearchModeBtn_Click" x:FieldModifier="internal">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource UiIcon14}" Data="{StaticResource IconLayers}" Margin="0,0,6,0" />
@@ -174,7 +200,7 @@
                 <Border Grid.Column="0" Background="{StaticResource Surface1Brush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,6,0">
                     <DockPanel>
                         <TextBlock x:Name="HfReposHeaderText" Text="01 · РЕПОЗИТОРИЙ" FontSize="11" FontFamily="{StaticResource MonoFontFamily}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" DockPanel.Dock="Top" Margin="0,0,0,6" x:FieldModifier="internal" />
-                        <ListBox x:Name="HfReposList" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="HfReposList_SelectionChanged" x:FieldModifier="internal" />
+                        <ListBox x:Name="HfReposList" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" HorizontalContentAlignment="Stretch" ScrollViewer.CanContentScroll="False" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="HfReposList_SelectionChanged" x:FieldModifier="internal" />
                     </DockPanel>
                 </Border>
 
@@ -205,7 +231,7 @@
                             </DockPanel>
                         </StackPanel>
 
-                        <ListBox x:Name="HfFilesList" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="HfFilesList_SelectionChanged" x:FieldModifier="internal" />
+                        <ListBox x:Name="HfFilesList" Background="{StaticResource WellBrush}" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" HorizontalContentAlignment="Stretch" ScrollViewer.CanContentScroll="False" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="HfFilesList_SelectionChanged" x:FieldModifier="internal" />
                     </DockPanel>
                 </Border>
             </Grid>

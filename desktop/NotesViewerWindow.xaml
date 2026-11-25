@@ -63,6 +63,7 @@
 
                     <ListBox x:Name="NotesListBox" Grid.Row="2"
                              Background="Transparent" BorderThickness="0"
+                             ScrollViewer.CanContentScroll="False"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              SelectionChanged="NotesListBox_SelectionChanged">
                         <ListBox.ItemContainerStyle>

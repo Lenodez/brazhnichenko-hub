@@ -559,6 +559,29 @@ public static class HardwareAdvisor
 
     public static ModelFitAssessment EvaluateModel(CatalogModelSpec model, HardwareProfile hw)
     {
+        // Standalone add-on modules (e.g. mmproj for a 35B parent model) MUST inherit their parent's
+        // placement group so a 0.8 GB Vision add-on never falsely shows up in the "100% GPU" section
+        // when its parent model is in "VRAM + ОЗУ" or "SWAP"!
+        if (!string.IsNullOrWhiteSpace(model.ParentModelId))
+        {
+            var parent = ModelCatalog.FindById(model.ParentModelId);
+            if (parent is not null)
+            {
+                var combined = parent with { TotalSizeGB = Math.Round(parent.TotalSizeGB + model.TotalSizeGB, 2), ParentModelId = null };
+                var parentFit = EvaluateModel(combined, hw);
+                return parentFit with
+                {
+                    BadgeText = parentFit.Placement switch
+                    {
+                        ModelPlacementGroup.FullVram => "■ МОДУЛЬ (GPU)",
+                        ModelPlacementGroup.VramPlusRam => "◧ МОДУЛЬ (GPU+ОЗУ)",
+                        _ => "□ МОДУЛЬ (SWAP)"
+                    },
+                    ReasonRu = $"Дополнение к «{parent.Name}» (вместе ~{combined.TotalSizeGB:0.##} ГБ). {parentFit.ReasonRu}"
+                };
+            }
+        }
+
         if (hw.IsAppleSilicon)
             return EvaluateModelForAppleSilicon(model, hw);
 
