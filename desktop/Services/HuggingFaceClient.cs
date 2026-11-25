@@ -91,7 +91,25 @@ public sealed class HuggingFaceClient
     public async Task<List<HfRepoSearchItem>> SearchModelsAsync(string query, int limit = 12, CancellationToken ct = default)
     {
         string q = Uri.EscapeDataString(query.Trim());
-        string url = $"https://huggingface.co/api/models?search={q}&sort=downloads&direction=-1&limit={Math.Clamp(limit, 1, 30)}";
+        string url = $"https://huggingface.co/api/models?search={q}&sort=downloads&direction=-1&limit={Math.Clamp(limit, 1, 50)}";
+        return await FetchModelListAsync(url, ct);
+    }
+
+    public async Task<List<HfRepoSearchItem>> FetchTopPopularModelsAsync(string mode = "llm", int limit = 50, CancellationToken ct = default)
+    {
+        int lim = Math.Clamp(limit, 5, 60);
+        string url = mode switch
+        {
+            "llm" => $"https://huggingface.co/api/models?filter=gguf&pipeline_tag=text-generation&sort=downloads&direction=-1&limit={lim}",
+            "lora" => $"https://huggingface.co/api/models?search=lora&sort=downloads&direction=-1&limit={lim}",
+            "media" => $"https://huggingface.co/api/models?filter=diffusers&sort=downloads&direction=-1&limit={lim}",
+            _ => $"https://huggingface.co/api/models?sort=downloads&direction=-1&limit={lim}"
+        };
+        return await FetchModelListAsync(url, ct);
+    }
+
+    private static async Task<List<HfRepoSearchItem>> FetchModelListAsync(string url, CancellationToken ct)
+    {
         using var req = CreateAuthRequest(HttpMethod.Get, url);
         using var resp = await ApiHttp.SendAsync(req, ct);
         resp.EnsureSuccessStatusCode();

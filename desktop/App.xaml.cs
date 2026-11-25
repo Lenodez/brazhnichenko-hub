@@ -6,6 +6,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace LocalAIHub;
@@ -58,7 +61,58 @@ public partial class App : System.Windows.Application
         }
 
         StartActivationListener();
+        RegisterPrecisionTouchpadScrollHandler();
         base.OnStartup(e);
+    }
+
+    /// <summary>
+    /// Fixes WPF's infamous Precision Touchpad overscroll bug: WPF's default ScrollViewer.OnMouseWheel
+    /// scrolls a full 3 lines (~48px) per WM_MOUSEWHEEL message even when a touchpad sends tiny
+    /// fractional deltas (10..30 instead of 120). Scaling proportionally by (Delta / 120.0) keeps
+    /// normal mouse wheels identical while making laptop touchpads smooth and controllable everywhere.
+    /// </summary>
+    private static void RegisterPrecisionTouchpadScrollHandler()
+    {
+        EventManager.RegisterClassHandler(
+            typeof(ScrollViewer),
+            UIElement.PreviewMouseWheelEvent,
+            new MouseWheelEventHandler(OnScrollViewerPreviewMouseWheel));
+    }
+
+    private static void OnScrollViewerPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (e.Handled || e.Delta == 0 || sender is not ScrollViewer sv) return;
+        if (Keyboard.Modifiers != ModifierKeys.None) return; // preserve Ctrl+Wheel zoom etc.
+        if (sv.CanContentScroll || sv.ScrollableHeight <= 0) return;
+
+        // Only handle on the innermost scrollable viewer under the pointer so nested boxes/lists still scroll first
+        var innermost = FindInnermostScrollableViewer(e.OriginalSource as DependencyObject, e.Delta);
+        if (!ReferenceEquals(innermost, sv)) return;
+
+        double lines = Math.Clamp(SystemParameters.WheelScrollLines, 1, 6);
+        double pxPerDetent = lines * 16.0; // standard 48 px per 120-delta mouse notch
+        double deltaPx = -(e.Delta / 120.0) * pxPerDetent;
+        double target = Math.Clamp(sv.VerticalOffset + deltaPx, 0, sv.ScrollableHeight);
+        sv.ScrollToVerticalOffset(target);
+        e.Handled = true;
+    }
+
+    private static ScrollViewer? FindInnermostScrollableViewer(DependencyObject? node, int wheelDelta)
+    {
+        while (node is not null)
+        {
+            if (node is ScrollViewer sv && sv.ScrollableHeight > 0)
+            {
+                bool canMove = wheelDelta > 0
+                    ? sv.VerticalOffset > 0.5
+                    : sv.VerticalOffset < sv.ScrollableHeight - 0.5;
+                if (canMove) return sv;
+            }
+            node = node is Visual || node is System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(node)
+                : LogicalTreeHelper.GetParent(node);
+        }
+        return null;
     }
 
     private void RegisterGlobalExceptionHandlers()

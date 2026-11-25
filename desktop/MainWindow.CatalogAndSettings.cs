@@ -94,6 +94,12 @@ public partial class MainWindow
         RenderCatalogRecommendations();
     }
 
+    internal void CatalogSortCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        RenderCatalogRecommendations();
+    }
+
     internal void CatTabTextBtn_Click(object sender, RoutedEventArgs e) => SetCatalogView("text");
     internal void CatTabPhotoBtn_Click(object sender, RoutedEventArgs e) => SetCatalogView("photo");
     internal void CatTabVideoBtn_Click(object sender, RoutedEventArgs e) => SetCatalogView("video");
@@ -115,12 +121,16 @@ public partial class MainWindow
         CatTabDiskBtn.Style = view == "disk" ? primary : dark;
 
         CatalogModelsScroll.Visibility = view is "text" or "photo" or "video" ? Visibility.Visible : Visibility.Collapsed;
+        if (CatalogSortPanel is not null)
+            CatalogSortPanel.Visibility = view is "text" or "photo" or "video" ? Visibility.Visible : Visibility.Collapsed;
         CatalogWikiView.Visibility = view == "wiki" ? Visibility.Visible : Visibility.Collapsed;
         CatalogHfSearchView.Visibility = view == "hf" ? Visibility.Visible : Visibility.Collapsed;
         CatalogDiskView.Visibility = view == "disk" ? Visibility.Visible : Visibility.Collapsed;
 
         if (view is "text" or "photo" or "video")
             RenderCatalogRecommendations();
+        else if (view == "hf" && _hfSearchResults.Count == 0)
+            _ = LoadTopPopularHfModelsAsync();
         else if (view == "disk")
             LoadModelsTable();
     }
@@ -175,14 +185,19 @@ public partial class MainWindow
             )
         };
 
+        string sortMode = (CatalogSortCombo?.SelectedItem as ComboBoxItem)?.Tag as string ?? "auto";
+
         foreach (var sec in sectionDefs)
         {
-            var groupItems = items
-                .Where(x => x.Fit.Placement == sec.Group)
-                .OrderBy(x => x.Fit.Level)
-                .ThenByDescending(x => x.Spec.IsMoe)
-                .ThenByDescending(x => x.Spec.TotalSizeGB)
-                .ToList();
+            var rawGroup = items.Where(x => x.Fit.Placement == sec.Group);
+            var groupItems = (sortMode switch
+            {
+                "size_desc" => rawGroup.OrderByDescending(x => x.Spec.TotalSizeGB).ThenBy(x => x.Spec.Name),
+                "size_asc" => rawGroup.OrderBy(x => x.Spec.TotalSizeGB).ThenBy(x => x.Spec.Name),
+                "installed" => rawGroup.OrderByDescending(x => x.State.allInstalled).ThenByDescending(x => x.Spec.TotalSizeGB),
+                "name" => rawGroup.OrderBy(x => x.Spec.Name, StringComparer.OrdinalIgnoreCase),
+                _ => rawGroup.OrderBy(x => x.Fit.Level).ThenByDescending(x => x.Spec.IsMoe).ThenByDescending(x => x.Spec.TotalSizeGB)
+            }).ToList();
 
             if (groupItems.Count == 0) continue;
 
@@ -246,6 +261,28 @@ public partial class MainWindow
                 var top = new DockPanel { Margin = new Thickness(0, 0, 0, 5) };
                 var rightBadges = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
                 DockPanel.SetDock(rightBadges, Dock.Right);
+
+                if (!string.IsNullOrWhiteSpace(fit.RecommendedCtxHint))
+                {
+                    rightBadges.Children.Add(new Border
+                    {
+                        Background = BrushFromHex("#151922"),
+                        BorderBrush = BrushFromHex("#2E3748"),
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(3),
+                        Padding = new Thickness(7, 2.5, 7, 2.5),
+                        Margin = new Thickness(0, 0, 6, 0),
+                        ToolTip = $"Рекомендуемый контекст ({fit.RecommendedCtxTokens:N0} токенов) под твои {hw.DetectedVramGB:F0} ГБ GPU + {hw.DetectedRamGB:F0} ГБ RAM при KV-кэше Q8_0",
+                        Child = new TextBlock
+                        {
+                            Text = fit.RecommendedCtxHint,
+                            FontSize = 10.5,
+                            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                            FontWeight = FontWeights.SemiBold,
+                            Foreground = BrushFromHex("#93C5FD")
+                        }
+                    });
+                }
 
                 if (!string.IsNullOrWhiteSpace(fit.EstimatedSpeedHint) && fit.EstimatedSpeedHint != "—")
                 {
@@ -472,11 +509,14 @@ public partial class MainWindow
 
     private Border BuildMissingRuntimeBannerCard(bool isTextSection, HardwareProfile hw)
     {
+        bool isNvidia = RuntimeInstaller.IsNvidiaGpu(hw);
         string engineName = isTextSection ? "llama.cpp" : "ComfyUI Portable";
         string cudaHint = isTextSection
-            ? (RuntimeInstaller.PreferCuda13(hw) ? "NVIDIA CUDA 13 (Blackwell / RTX 50)" : "NVIDIA CUDA 12.4")
+            ? (isNvidia
+                ? (RuntimeInstaller.PreferCuda13(hw) ? "NVIDIA CUDA 13 (Blackwell / RTX 50)" : "NVIDIA CUDA 12.4")
+                : "Windows Vulkan x64 (Intel Arc / AMD)")
             : (hw.MatchedWiki?.Series == "10" ? "NVIDIA Portable (CUDA 12.6)" : "NVIDIA Portable (CUDA 12.8+)");
-        string sizeHint = isTextSection ? "~620 МБ" : "~2.0 ГБ";
+        string sizeHint = isTextSection ? (isNvidia ? "~620 МБ" : "~50 МБ") : "~2.0 ГБ";
         string purpose = isTextSection
             ? "Без движка llama.cpp скачанные текстовые веса (.gguf) не смогут запуститься."
             : "Без движка ComfyUI Portable генерация фото, видео и историй не сможет запуститься.";

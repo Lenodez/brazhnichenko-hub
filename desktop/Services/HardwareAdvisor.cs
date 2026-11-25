@@ -63,7 +63,19 @@ public sealed record ModelFitAssessment(
     string BadgeText,
     string ReasonRu,
     string EstimatedSpeedHint,
-    ModelPlacementGroup Placement = ModelPlacementGroup.FullVram
+    ModelPlacementGroup Placement = ModelPlacementGroup.FullVram,
+    int RecommendedCtxTokens = 0,
+    string RecommendedCtxHint = ""
+);
+
+public sealed record HfRepoFitAssessment(
+    bool FitsOnHardware,
+    int SortPriority, // 0 = Full GPU, 1 = GPU+RAM, 2 = Unknown size, 3 = Too heavy
+    double? EstimatedParamsB,
+    double? EstimatedQ4GB,
+    string BadgeText,
+    string BgHex,
+    string FgHex
 );
 
 public static class HardwareAdvisor
@@ -435,6 +447,116 @@ public static class HardwareAdvisor
             "Огромный запас под кэширование слоёв DynamicVRAM, параллельную загрузку High/Low экспертов Wan 2.2 без подкачки с диска, и крупные Q6_K/Q8_0 MoE-LLM.");
     }
 
+    /// <summary>
+    /// Estimates a practical KV-cache-safe context window (tokens) for llama.cpp with Q8_0 KV cache + Flash Attention.
+    /// </summary>
+    public static (int Tokens, string BadgeText) EstimateRecommendedContext(
+        double modelSizeGB,
+        bool isMoe,
+        HardwareProfile hw,
+        ModelPlacementGroup placement)
+    {
+        if (placement == ModelPlacementGroup.TooHeavy || modelSizeGB <= 0)
+            return (0, "");
+
+        double vram = hw.DetectedVramGB;
+        double ram = hw.DetectedRamGB;
+
+        // Free memory available for KV-cache + compute buffers
+        double kvBudgetGB;
+        if (placement == ModelPlacementGroup.FullVram)
+        {
+            kvBudgetGB = Math.Max(0.35, vram - modelSizeGB - 1.0);
+        }
+        else
+        {
+            double ramUsable = Math.Max(0, ram - 10.0);
+            kvBudgetGB = Math.Max(0.35, (vram + ramUsable) - modelSizeGB - 1.5);
+        }
+
+        // Approximate KV-cache footprint per 1K tokens under Q8_0 KV quantization (GQA models)
+        double gbPer1K = modelSizeGB switch
+        {
+            <= 5.0 => 0.036,
+            <= 10.5 => 0.055,
+            _ when isMoe => 0.068,
+            <= 22.0 => 0.105,
+            _ => 0.140
+        };
+
+        double rawK = kvBudgetGB / gbPer1K;
+        // Cap practical context for RAM-offloaded models so prompt prefill remains responsive
+        double maxK = placement == ModelPlacementGroup.FullVram
+            ? (modelSizeGB <= 5.0 && hw.IsVulkanGpu ? 32.0 : 128.0)
+            : (isMoe ? 64.0 : 32.0);
+        double effK = Math.Min(rawK, maxK);
+
+        if (effK >= 120) return (131072, "CTX ~128K");
+        if (effK >= 60) return (65536, "CTX ~64K");
+        if (effK >= 30) return (32768, "CTX ~32K");
+        if (effK >= 15) return (16384, "CTX ~16K");
+        if (effK >= 7.5) return (8192, "CTX ~8K");
+        if (effK >= 3.5) return (4096, "CTX ~4K");
+        return (2048, "CTX ~2K");
+    }
+
+    /// <summary>
+    /// Parses parameter count from a Hugging Face repo ID (e.g. Qwen3-8B-GGUF, Gemma-3-12B-it-GGUF, Qwen3-30B-A3B-GGUF)
+    /// and assesses whether a Q4_K_M quantization will fit on the given hardware without SSD swap.
+    /// </summary>
+    public static HfRepoFitAssessment EstimateHfRepoFit(string repoId, HardwareProfile hw)
+    {
+        if (string.IsNullOrWhiteSpace(repoId))
+            return new(true, 2, null, null, "? ФАЙЛЫ", "#19191F", "#A1A1AA");
+
+        string lower = repoId.ToLowerInvariant();
+        bool isMoe = lower.Contains("moe")
+            || System.Text.RegularExpressions.Regex.IsMatch(lower, @"a\d+(?:\.\d+)?b")
+            || lower.Contains("mixtral")
+            || System.Text.RegularExpressions.Regex.IsMatch(lower, @"\d+x\d+b");
+
+        double? paramsB = null;
+        // Handle 8x7B / 8x22B MoE naming first
+        var moeMult = System.Text.RegularExpressions.Regex.Match(lower, @"(?<![a-z0-9])(\d+)x(\d+(?:\.\d+)?)b(?![a-z0-9])");
+        if (moeMult.Success &&
+            double.TryParse(moeMult.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture, out double experts) &&
+            double.TryParse(moeMult.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture, out double eachB))
+        {
+            paramsB = experts * eachB * 0.85; // shared layers overlap
+        }
+        else
+        {
+            // Match main model parameter size (exclude active-param tokens like "a3b" / "a4b")
+            var matches = System.Text.RegularExpressions.Regex.Matches(lower, @"(?<![a-z0-9])(\d+(?:\.\d+)?)b(?![a-z0-9])");
+            foreach (System.Text.RegularExpressions.Match m in matches)
+            {
+                if (double.TryParse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture, out double b) && b is >= 0.4 and <= 1000)
+                {
+                    if (paramsB is null || b > paramsB.Value)
+                        paramsB = b;
+                }
+            }
+        }
+
+        if (paramsB is null)
+            return new(true, 2, null, null, "? ПРОВЕРЬ", "#19191F", "#A1A1AA");
+
+        double estQ4GB = Math.Round(paramsB.Value * 0.62, 1);
+        double vramUsable = Math.Max(0, hw.DetectedVramGB - 1.5);
+        double ramUsable = Math.Max(0, hw.DetectedRamGB - 10.0);
+        double totalPool = hw.IsAppleSilicon
+            ? hw.DetectedVramGB + 1.0
+            : vramUsable + ramUsable + (isMoe ? 2.5 : 0.0);
+
+        if (hw.DetectedVramGB >= 4 && estQ4GB <= vramUsable)
+            return new(true, 0, paramsB, estQ4GB, $"■ GPU (~{estQ4GB:0.#} ГБ)", "#11241C", "#34D399");
+
+        if (hw.DetectedVramGB >= 6 && estQ4GB <= totalPool)
+            return new(true, 1, paramsB, estQ4GB, isMoe ? $"◧ MoE+ОЗУ (~{estQ4GB:0.#} ГБ)" : $"◧ GPU+ОЗУ (~{estQ4GB:0.#} ГБ)", "#241D0E", "#F59E0B");
+
+        return new(false, 3, paramsB, estQ4GB, $"□ ТЯЖЁЛАЯ (~{estQ4GB:0.#} ГБ)", "#261416", "#F87171");
+    }
+
     public static ModelFitAssessment EvaluateModel(CatalogModelSpec model, HardwareProfile hw)
     {
         if (hw.IsAppleSilicon)
@@ -466,6 +588,7 @@ public static class HardwareAdvisor
                 int lo = Math.Max(hw.IsVulkanGpu ? 8 : 15, (int)(estTok * 0.80));
                 int hi = Math.Max(lo + 6, (int)(estTok * 1.15));
                 string speed = hw.IsVulkanGpu ? $"~{lo}–{hi} tok/s (Vulkan)" : $"~{lo}–{hi} tok/s (100% VRAM)";
+                var (ctxTok, ctxBadge) = EstimateRecommendedContext(model.TotalSizeGB, model.IsMoe, hw, ModelPlacementGroup.FullVram);
 
                 return new(
                     ModelFitLevel.Ideal,
@@ -474,7 +597,9 @@ public static class HardwareAdvisor
                         ? $"Целиком помещается в {vram:F0} ГБ памяти Vulkan GPU (весит {model.TotalSizeGB:0.##} ГБ) — быстрый локальный отклик."
                         : $"Целиком помещается в твои {vram:F0} ГБ VRAM (весит {model.TotalSizeGB:0.##} ГБ) — максимальная скорость и мгновенный отклик.",
                     speed,
-                    ModelPlacementGroup.FullVram);
+                    ModelPlacementGroup.FullVram,
+                    ctxTok,
+                    ctxBadge);
             }
 
             // Case B: Fits into GPU VRAM + System RAM (without heavy SSD swap)
@@ -482,6 +607,7 @@ public static class HardwareAdvisor
             if (fitsVramPlusRam)
             {
                 double inRamGb = Math.Max(1.0, model.TotalSizeGB - Math.Max(2.0, vramUsable - 1.5));
+                var (ctxTok, ctxBadge) = EstimateRecommendedContext(model.TotalSizeGB, model.IsMoe, hw, ModelPlacementGroup.VramPlusRam);
                 if (model.IsMoe)
                 {
                     // MoE only activates ~3B weights per token -> surprisingly fast even with RAM offload!
@@ -493,7 +619,9 @@ public static class HardwareAdvisor
                         "◧ VRAM + ОЗУ (MoE)",
                         $"Влезет в связку {vram:F0} ГБ VRAM + {ram:F0} ГБ ОЗУ (~{inRamGb:F0} ГБ в RAM). Т.к. это MoE (активно ~3B параметров), скорость останется высокой.",
                         speed,
-                        ModelPlacementGroup.VramPlusRam);
+                        ModelPlacementGroup.VramPlusRam,
+                        ctxTok,
+                        ctxBadge);
                 }
                 else
                 {
@@ -505,7 +633,9 @@ public static class HardwareAdvisor
                         "◧ VRAM + ОЗУ (Dense)",
                         $"Запустится через --fit on (~{inRamGb:F0} ГБ слоёв в ОЗУ из {ram:F0} ГБ). Для плотной модели скорость составит {speed.Split('(')[0].Trim()} — подходит, если важнее макс. качество.",
                         speed,
-                        ModelPlacementGroup.VramPlusRam);
+                        ModelPlacementGroup.VramPlusRam,
+                        ctxTok,
+                        ctxBadge);
                 }
             }
 
@@ -603,24 +733,30 @@ public static class HardwareAdvisor
                 double estTok = Math.Clamp((bw * 0.72) / activeGB, 8, 130);
                 int lo = Math.Max(6, (int)(estTok * 0.80));
                 int hi = Math.Max(lo + 5, (int)(estTok * 1.15));
+                var (ctxTok, ctxBadge) = EstimateRecommendedContext(model.TotalSizeGB, model.IsMoe, hw, ModelPlacementGroup.FullVram);
                 return new(
                     ModelFitLevel.Ideal,
                     "■ 100% METAL GPU",
                     $"Целиком помещается в Unified Memory ({unified:F0} ГБ → ~{metalBudget:F0} ГБ Metal на {chip}, {bw} ГБ/с). Отличная скорость без свопа.",
                     $"~{lo}–{hi} tok/s (Metal)",
-                    ModelPlacementGroup.FullVram);
+                    ModelPlacementGroup.FullVram,
+                    ctxTok,
+                    ctxBadge);
             }
 
             if (model.TotalSizeGB <= metalBudget + 1.5)
             {
                 double activeGB = model.IsMoe ? Math.Min(model.TotalSizeGB, 3.5) : Math.Max(2.5, model.TotalSizeGB);
                 double estTok = Math.Clamp((bw * 0.55) / activeGB, 5, 80);
+                var (ctxTok, ctxBadge) = EstimateRecommendedContext(model.TotalSizeGB, model.IsMoe, hw, ModelPlacementGroup.VramPlusRam);
                 return new(
                     ModelFitLevel.Tight,
                     "▲ ВПРИТЫК (METAL)",
                     $"Весит {model.TotalSizeGB:0.##} ГБ при лимите Metal ~{metalBudget:F0} ГБ из {unified:F0} ГБ Unified RAM — закрой лишние вкладки браузера или уменьши контекст.",
                     $"~{Math.Max(4, (int)(estTok * 0.8))}–{Math.Max(8, (int)(estTok * 1.1))} tok/s",
-                    ModelPlacementGroup.VramPlusRam);
+                    ModelPlacementGroup.VramPlusRam,
+                    ctxTok,
+                    ctxBadge);
             }
 
             return new(

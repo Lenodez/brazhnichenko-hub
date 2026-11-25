@@ -30,6 +30,7 @@ public partial class MainWindow
         public required string QuantHint { get; init; }
         public required string DetailedHint { get; init; }
         public required int SortTier { get; init; } // 0 = fits GPU, 1 = fits GPU+RAM, 2 = mmproj/aux, 3 = too heavy
+        public string RecommendedCtxBadge { get; init; } = "";
     }
 
     private static readonly Regex SplitGgufRegex = new(
@@ -106,6 +107,75 @@ public partial class MainWindow
     {
         if (!IsLoaded || string.IsNullOrWhiteSpace(_hfSelectedRepo)) return;
         RenderHfFileList();
+    }
+
+    internal async void HfTopPopularBtn_Click(object sender, RoutedEventArgs e) =>
+        await LoadTopPopularHfModelsAsync();
+
+    private async Task LoadTopPopularHfModelsAsync()
+    {
+        if (HfTopPopularBtn is not null) HfTopPopularBtn.IsEnabled = false;
+        HfSearchBtn.IsEnabled = false;
+        HfOpenRepoWebBtn.Visibility = Visibility.Collapsed;
+        HfSelectedFileHintBorder.Visibility = Visibility.Collapsed;
+
+        var hw = GetActiveCatalogHardware();
+        StatusFooterText.Text = $"Загрузка топа популярных моделей Hugging Face под {hw.DetectedGpuName} ({hw.DetectedVramGB:F0} ГБ GPU + {hw.DetectedRamGB:F0} ГБ RAM)...";
+        try
+        {
+            var rawResults = await _hfClient.FetchTopPopularModelsAsync(_hfSearchMode, 60);
+            IEnumerable<HfRepoSearchItem> filtered = rawResults.Where(r =>
+                !r.RepoId.Contains("-mlx", StringComparison.OrdinalIgnoreCase) &&
+                !r.RepoId.Contains("mlx-", StringComparison.OrdinalIgnoreCase));
+
+            if (_hfSearchMode == "llm")
+            {
+                filtered = filtered.Where(r =>
+                    !r.RepoId.Contains("embed", StringComparison.OrdinalIgnoreCase) &&
+                    !r.RepoId.Contains("rerank", StringComparison.OrdinalIgnoreCase) &&
+                    !r.RepoId.Contains("bge-", StringComparison.OrdinalIgnoreCase));
+
+                var scored = filtered
+                    .Select(r => (Repo: r, Fit: HardwareAdvisor.EstimateHfRepoFit(r.RepoId, hw)))
+                    .Where(x => x.Fit.FitsOnHardware)
+                    .OrderBy(x => x.Fit.SortPriority)
+                    .ThenByDescending(x => x.Repo.Downloads)
+                    .Take(30)
+                    .Select(x => x.Repo)
+                    .ToList();
+
+                _hfSearchResults = scored;
+            }
+            else
+            {
+                _hfSearchResults = filtered.Take(30).ToList();
+            }
+
+            HfReposList.Items.Clear();
+            foreach (var r in _hfSearchResults)
+                HfReposList.Items.Add(BuildHfRepoListItem(r));
+
+            HfFilesList.Items.Clear();
+            _hfCurrentFiles = [];
+            _hfDisplayedFileGroups = [];
+            _hfSelectedRepo = null;
+
+            string hwLabel = $"{hw.DetectedVramGB:F0} ГБ GPU / {hw.DetectedRamGB:F0} ГБ RAM";
+            HfReposHeaderText.Text = $"★ ТОП ПОПУЛЯРНЫХ HF ПОД ТВОЙ ПК ({_hfSearchResults.Count} · {hwLabel})";
+            HfFilesHeaderText.Text = "02 · ВЫБЕРИ КВАНТ И СМОТРИ РЕКОМЕНДУЕМЫЙ КОНТЕКСТ";
+            StatusFooterText.Text = _hfSearchResults.Count > 0
+                ? $"Топ популярных моделей Hugging Face отфильтрован под {hwLabel}: показано {_hfSearchResults.Count}."
+                : "Не удалось загрузить популярные модели с Hugging Face — проверь соединение.";
+        }
+        catch (Exception ex)
+        {
+            StatusFooterText.Text = $"Ошибка загрузки топа HF: {ex.Message}";
+        }
+        finally
+        {
+            if (HfTopPopularBtn is not null) HfTopPopularBtn.IsEnabled = true;
+            HfSearchBtn.IsEnabled = true;
+        }
     }
 
     internal async void HfSearchBtn_Click(object sender, RoutedEventArgs e)
@@ -212,6 +282,13 @@ public partial class MainWindow
             AddBadge("MLX / MAC", "#261416", "#F87171");
         else if (lower.Contains("lora"))
             AddBadge("LORA", "#11241C", "#34D399");
+
+        if (_hfSearchMode == "llm" && !lower.Contains("mlx"))
+        {
+            var repoFit = HardwareAdvisor.EstimateHfRepoFit(r.RepoId, GetActiveCatalogHardware());
+            if (repoFit.EstimatedParamsB.HasValue)
+                AddBadge(repoFit.BadgeText, repoFit.BgHex, repoFit.FgHex);
+        }
 
         if (lower.Contains("abliterated") || lower.Contains("uncensored") || lower.Contains("hauhaucs") || lower.Contains("heretic"))
             AddBadge("UNCENSORED", "#24140F", "#FF521B");
@@ -333,6 +410,7 @@ public partial class MainWindow
 
             string quantHint = DescribeQuantization(displayName, parts.Count);
             string badge, bg, fg, detail;
+            string ctxBadge = "";
             bool fits;
             int tier;
 
@@ -358,7 +436,9 @@ public partial class MainWindow
             {
                 badge = "■ В GPU";
                 bg = "#11241C"; fg = "#34D399"; fits = true; tier = 0;
-                detail = $"Файл ({gb:F1} ГБ) целиком поместится в {vramGb:F0} ГБ VRAM — максимальная скорость генерации.";
+                var (ctxTok, cBadge) = HardwareAdvisor.EstimateRecommendedContext(gb, isMoeRepo, hw, ModelPlacementGroup.FullVram);
+                ctxBadge = cBadge;
+                detail = $"Файл ({gb:F1} ГБ) целиком поместится в {vramGb:F0} ГБ GPU — максимальная скорость. Рекомендуемый контекст: ~{ctxTok:N0} токенов (KV Q8_0).";
             }
             else if (gb <= totalNoSwapMax + (isMoeRepo ? 2.5 : 0.0))
             {
@@ -366,9 +446,11 @@ public partial class MainWindow
                 bg = "#241D0E";
                 fg = "#F59E0B";
                 fits = true; tier = 1;
+                var (ctxTok, cBadge) = HardwareAdvisor.EstimateRecommendedContext(gb, isMoeRepo, hw, ModelPlacementGroup.VramPlusRam);
+                ctxBadge = cBadge;
                 detail = isMoeRepo
-                    ? $"Поместится в связку {vramGb:F0} ГБ GPU + {ramGb:F0} ГБ ОЗУ ({gb:F1} ГБ). MoE-архитектура (~3B активных параметров) сохранит скорость ~20–35 tok/s."
-                    : $"Поместится в {vramGb:F0} ГБ GPU + {ramGb:F0} ГБ ОЗУ, но часть слоёв пойдёт через оперативку (~3–6 tok/s).";
+                    ? $"Поместится в связку {vramGb:F0} ГБ GPU + {ramGb:F0} ГБ ОЗУ ({gb:F1} ГБ). MoE (~3B акт.) сохранит ~20–35 tok/s. Рекомендуемый контекст: ~{ctxTok:N0} токенов."
+                    : $"Поместится в {vramGb:F0} ГБ GPU + {ramGb:F0} ГБ ОЗУ, часть слоёв пойдёт через ОЗУ (~3–6 tok/s). Рекомендуемый контекст: ~{ctxTok:N0} токенов.";
             }
             else
             {
@@ -390,7 +472,8 @@ public partial class MainWindow
                 FitsWithoutSwap = fits,
                 QuantHint = quantHint,
                 DetailedHint = detail,
-                SortTier = tier
+                SortTier = tier,
+                RecommendedCtxBadge = ctxBadge
             });
         }
 
@@ -441,6 +524,27 @@ public partial class MainWindow
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 6, 0)
         });
+        if (!string.IsNullOrWhiteSpace(g.RecommendedCtxBadge))
+        {
+            rightPanel.Children.Add(new Border
+            {
+                Background = BrushFromHex("#151922"),
+                BorderBrush = BrushFromHex("#2E3748"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(5, 1.5, 5, 1.5),
+                Margin = new Thickness(0, 0, 5, 0),
+                Child = new TextBlock
+                {
+                    Text = g.RecommendedCtxBadge,
+                    FontSize = 9.5,
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = BrushFromHex("#93C5FD")
+                }
+            });
+        }
+
         rightPanel.Children.Add(new Border
         {
             Background = BrushFromHex(g.FitBgHex),

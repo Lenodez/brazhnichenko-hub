@@ -222,6 +222,8 @@ public partial class MainWindow
     private System.Windows.Controls.TextBlock CatalogRamAdviceText => CatalogTabView?.CatalogRamAdviceText!;
     private System.Windows.Controls.ComboBox CatalogSimGpuCombo => CatalogTabView?.CatalogSimGpuCombo!;
     private System.Windows.Controls.ComboBox CatalogSimRamCombo => CatalogTabView?.CatalogSimRamCombo!;
+    private System.Windows.Controls.StackPanel CatalogSortPanel => CatalogTabView?.CatalogSortPanel!;
+    private System.Windows.Controls.ComboBox CatalogSortCombo => CatalogTabView?.CatalogSortCombo!;
     private System.Windows.Controls.Button CatTabTextBtn => CatalogTabView?.CatTabTextBtn!;
     private System.Windows.Controls.Button CatTabPhotoBtn => CatalogTabView?.CatTabPhotoBtn!;
     private System.Windows.Controls.Button CatTabVideoBtn => CatalogTabView?.CatTabVideoBtn!;
@@ -239,6 +241,7 @@ public partial class MainWindow
     private System.Windows.Controls.Button HfModeMediaBtn => CatalogTabView?.HfModeMediaBtn!;
     private System.Windows.Controls.Button HfModeAllBtn => CatalogTabView?.HfModeAllBtn!;
     private System.Windows.Controls.TextBlock HfModeHintText => CatalogTabView?.HfModeHintText!;
+    private System.Windows.Controls.Button HfTopPopularBtn => CatalogTabView?.HfTopPopularBtn!;
     private System.Windows.Controls.Button HfSearchBtn => CatalogTabView?.HfSearchBtn!;
     private System.Windows.Controls.TextBox HfSearchQueryBox => CatalogTabView?.HfSearchQueryBox!;
     private System.Windows.Controls.TextBlock HfReposHeaderText => CatalogTabView?.HfReposHeaderText!;

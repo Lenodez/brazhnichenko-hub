@@ -14,6 +14,7 @@ public partial class CatalogTabView : System.Windows.Controls.UserControl
     private MainWindow? Host => IsLoaded ? Window.GetWindow(this) as MainWindow : null;
 
     private void CatalogSim_Changed(object sender, SelectionChangedEventArgs e) => Host?.CatalogSim_Changed(sender, e);
+    private void CatalogSortCombo_Changed(object sender, SelectionChangedEventArgs e) => Host?.CatalogSortCombo_Changed(sender, e);
     private void CatTabDiskBtn_Click(object sender, RoutedEventArgs e) => Host?.CatTabDiskBtn_Click(sender, e);
     private void CatTabHfSearchBtn_Click(object sender, RoutedEventArgs e) => Host?.CatTabHfSearchBtn_Click(sender, e);
     private void CatTabPhotoBtn_Click(object sender, RoutedEventArgs e) => Host?.CatTabPhotoBtn_Click(sender, e);
@@ -27,6 +28,7 @@ public partial class CatalogTabView : System.Windows.Controls.UserControl
     private void HfOpenRepoWebBtn_Click(object sender, RoutedEventArgs e) => Host?.HfOpenRepoWebBtn_Click(sender, e);
     private void HfQuickChip_Click(object sender, RoutedEventArgs e) => Host?.HfQuickChip_Click(sender, e);
     private void HfReposList_SelectionChanged(object sender, SelectionChangedEventArgs e) => Host?.HfReposList_SelectionChanged(sender, e);
+    private void HfTopPopularBtn_Click(object sender, RoutedEventArgs e) => Host?.HfTopPopularBtn_Click(sender, e);
     private void HfSearchBtn_Click(object sender, RoutedEventArgs e) => Host?.HfSearchBtn_Click(sender, e);
     private void HfSearchModeBtn_Click(object sender, RoutedEventArgs e) => Host?.HfSearchModeBtn_Click(sender, e);
     private void HfSearchQueryBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e) => Host?.HfSearchQueryBox_PreviewKeyDown(sender, e);
