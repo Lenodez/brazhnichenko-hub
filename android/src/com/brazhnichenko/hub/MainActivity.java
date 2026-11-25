@@ -375,8 +375,61 @@ public class MainActivity extends Activity {
                 if (pdfUri != null) {
                     new Thread(() -> handleDocumentPick(pdfUri)).start();
                 }
+            } else if (mime.startsWith("audio/") || mime.equals("application/ogg") || mime.equals("video/mp4")) {
+                Uri audioUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                if (audioUri != null) {
+                    handleAudioImport(audioUri);
+                }
             }
         }
+    }
+
+    private static boolean isAudioFileName(String lowerName) {
+        return lowerName.endsWith(".ogg") || lowerName.endsWith(".oga") || lowerName.endsWith(".opus")
+                || lowerName.endsWith(".m4a") || lowerName.endsWith(".mp3") || lowerName.endsWith(".wav")
+                || lowerName.endsWith(".aac") || lowerName.endsWith(".flac") || lowerName.endsWith(".mp4");
+    }
+
+    private void handleAudioImport(Uri uri) {
+        String displayName = queryDisplayName(uri);
+        evalJsWhenReady("window.switchView && window.switchView('chat')");
+        evalJsWhenReady("window.onAndroidAudioProgress && window.onAndroidAudioProgress("
+                + JSONObject.quote("Подготовка аудио: " + displayName) + ", 2)");
+        OfflineVoiceEngine.transcribeAudioUri(this, uri, displayName, new OfflineVoiceEngine.AudioTranscribeCallback() {
+            @Override
+            public void onProgress(String stage, int percent) {
+                evalJsWhenReady("window.onAndroidAudioProgress && window.onAndroidAudioProgress("
+                        + JSONObject.quote(stage) + ", " + percent + ")");
+            }
+
+            @Override
+            public void onSuccess(String transcript, double durationSec, long decodeMs, String modelName, int segmentsCount) {
+                evalJsWhenReady("window.onAndroidAudioProgress && window.onAndroidAudioProgress('', -1)");
+                try {
+                    int m = ((int) durationSec) / 60;
+                    int s = ((int) durationSec) % 60;
+                    String durLabel = String.format(Locale.US, "%02d:%02d", m, s);
+                    JSONObject payload = new JSONObject();
+                    payload.put("name", displayName + " (" + durLabel + ")");
+                    payload.put("kind", "audio_transcript");
+                    payload.put("text", transcript);
+                    payload.put("durationSec", Math.round(durationSec));
+                    payload.put("decodeSec", Math.round(decodeMs / 100.0) / 10.0);
+                    payload.put("modelName", modelName);
+                    payload.put("segments", segmentsCount);
+                    evalJsWhenReady("window.onAndroidDocAttached && window.onAndroidDocAttached(" + payload.toString() + ")");
+                } catch (Exception ignored) { }
+            }
+
+            @Override
+            public void onError(String message) {
+                evalJsWhenReady("window.onAndroidAudioProgress && window.onAndroidAudioProgress('', -1)");
+                showToast(message);
+                if (message != null && message.contains("скачай модель речи")) {
+                    evalJsWhenReady("window.switchView && window.switchView('system')");
+                }
+            }
+        });
     }
 
     private void handleSharedImage(Uri uri) {
@@ -498,6 +551,12 @@ public class MainActivity extends Activity {
         try {
             String name = queryDisplayName(uri);
             String lower = name.toLowerCase(Locale.ROOT);
+            String resolvedMime = getContentResolver().getType(uri);
+            if (isAudioFileName(lower)
+                    || (resolvedMime != null && (resolvedMime.startsWith("audio/") || resolvedMime.equals("application/ogg")))) {
+                handleAudioImport(uri);
+                return;
+            }
 
             if (lower.endsWith(".pdf")) {
                 byte[] pdfBytes = readUriBytes(uri, 12 * 1024 * 1024);
@@ -790,7 +849,9 @@ public class MainActivity extends Activity {
                         "text/markdown",
                         "text/csv",
                         "application/json",
-                        "text/xml"
+                        "text/xml",
+                        "audio/*",
+                        "application/ogg"
                 });
                 startActivityForResult(doc, DOC_REQ);
             } catch (Exception e) {

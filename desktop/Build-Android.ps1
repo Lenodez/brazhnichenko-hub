@@ -116,6 +116,14 @@ if (Test-Path $SherpaSo) {
     Write-Warning "libsherpa-onnx-jni.so missing after extract"
 }
 
+# 2d. Bundle lightweight Silero VAD ONNX (~1.8 MB) into assets/silero_vad.onnx for accurate speech boundary detection & long-audio chunking
+$VadCache = Join-Path $CacheDir "silero_vad.onnx"
+if (-not (Test-Path $VadCache)) {
+    Write-Host "==> Downloading Silero VAD (~1.8 MB)..." -ForegroundColor Cyan
+    Invoke-WebRequest -Uri "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx" -OutFile $VadCache -Headers @{"User-Agent"="BrazhnichenkoHub/5.1"}
+}
+Copy-Item $VadCache (Join-Path $AndroidProj "assets\silero_vad.onnx") -Force
+
 # Sync versionCode & versionName into AndroidManifest.xml and static HTML badges so APK metadata never goes stale!
 $ManifestPath = Join-Path $AndroidProj "AndroidManifest.xml"
 $manifestRaw = Get-Content $ManifestPath -Raw -Encoding UTF8

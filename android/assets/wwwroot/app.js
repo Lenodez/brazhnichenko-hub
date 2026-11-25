@@ -1202,6 +1202,20 @@ function pickDocument() {
   if (window.AndroidHub && window.AndroidHub.pickDocument) window.AndroidHub.pickDocument();
   else toast('Выбор документов доступен в Android APK');
 }
+window.onAndroidAudioProgress = function(stage, pct) {
+  const strip = document.getElementById('attachStrip');
+  const lbl = document.getElementById('attachLabel');
+  const imgEl = document.getElementById('imgPreview');
+  if (!strip || !lbl) return;
+  if (pct < 0 || !stage) {
+    if (!attachedDoc && !attachedImg) strip.classList.remove('show');
+    return;
+  }
+  if (imgEl) imgEl.style.display = 'none';
+  lbl.textContent = `${stage} (${pct}%)`;
+  strip.classList.add('show');
+};
+
 window.onAndroidDocAttached = function(doc) {
   if (!doc) return;
   if (doc.kind === 'image' && doc.imageDataUrl) {
@@ -1209,6 +1223,18 @@ window.onAndroidDocAttached = function(doc) {
     attachedImg = doc.imageDataUrl;
     updateAttachStrip('PDF (Vision): ' + doc.name, doc.imageDataUrl);
     toast('Скан-PDF прикреплён как изображение для Vision');
+  } else if (doc.kind === 'audio_transcript' && doc.text) {
+    attachedImg = null;
+    attachedDoc = { name: doc.name || 'Голосовое', text: doc.text };
+    const chars = doc.text.length;
+    const secInfo = doc.decodeSec ? ` · ${doc.decodeSec}с` : '';
+    updateAttachStrip(`Аудио расшифровано: ${attachedDoc.name} (${chars} симв.${secInfo})`, null);
+    const inp = document.getElementById('chatInput');
+    if (inp && !inp.value.trim()) {
+      inp.value = 'Сделай краткую выжимку и выдели ключевые пункты из этой аудиозаписи.';
+      autoResize(inp);
+    }
+    toast(`Аудио расшифровано офлайн (${doc.segments || 1} сегм.${secInfo})`);
   } else if (doc.text) {
     attachedImg = null;
     attachedDoc = { name: doc.name || 'document.txt', text: doc.text };
@@ -1579,7 +1605,8 @@ async function loadSttStatus() {
 
     if (modeSel) modeSel.value = st.sttMode === 'system' ? 'system' : 'auto';
     if (pill) {
-      pill.textContent = st.offlineReady ? 'Офлайн ✓' : 'Системный';
+      const vadTag = st.vadReady ? ' + Silero VAD' : '';
+      pill.textContent = st.offlineReady ? `Офлайн${vadTag} ✓` : (st.vadReady ? 'Системный · VAD' : 'Системный');
       pill.className = 'pill ' + (st.offlineReady ? 'ok' : '');
     }
     if (dlWrap) {
