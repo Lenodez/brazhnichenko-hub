@@ -321,7 +321,7 @@ public partial class AssistantOverlayWindow : Window
             var st = LocalVoiceService.GetStatus();
             if (!st.WhisperReady)
             {
-                StatusText.Text = "Установи Whisper в «Система → Настройки → Компоненты и голос»";
+                ShowWhisperMissingCard();
                 return;
             }
             try
@@ -447,10 +447,12 @@ public partial class AssistantOverlayWindow : Window
 
             ModelBadgeText.Text = $"{AiServiceManager.FriendlyLlmName(modelFile)}{(hasVision ? " · Vision" : "")}";
 
-            // Safe-Tools system prompt (strictly informational, zero system-modification capability)
+            // Safe-Tools system prompt (strictly informational + whitelisted note/reminder action tags)
             string sysPrompt =
                 $"Ты приватный локальный ассистент пользователя на ПК (Brazhnichenko Hub). Текущая дата: {DateTime.Now:yyyy-MM-dd (dddd)}.\n" +
-                "Работаешь в безопасном режиме: ты можешь объяснять содержимое экрана, переводить текст, искать факты и отвечать на вопросы. У тебя нет доступа к терминалу, настройкам или сторонним файлам ПК.\n" +
+                "Работаешь в безопасном режиме: ты можешь объяснять содержимое экрана, переводить текст, искать факты, а также сохранять заметки и ставить напоминания. У тебя нет доступа к терминалу, настройкам или сторонним файлам ПК.\n" +
+                "Если пользователь просит сохранить заметку, добавь в конец ответа ровно один тег: <hub_action>{\"action\":\"save_note\",\"title\":\"Заголовок\",\"content\":\"Текст заметки\",\"tags\":[\"тег\"]}</hub_action>.\n" +
+                "Если пользователь просит поставить напоминание/таймер, добавь тег: <hub_action>{\"action\":\"set_reminder\",\"minutes\":15,\"text\":\"О чём напомнить\"}</hub_action>.\n" +
                 "Отвечай чётко, компактно, структурированно и на языке пользователя.";
             if (!string.IsNullOrEmpty(webBlock))
                 sysPrompt += "\n\n" + webBlock;
@@ -535,7 +537,31 @@ public partial class AssistantOverlayWindow : Window
             }
 
             sw.Stop();
-            string finalReply = fullText.ToString().Trim();
+            var (finalReply, llmAction) = AssistantActionRouter.ExtractLlmAction(fullText.ToString().Trim());
+            if (llmAction is not null)
+            {
+                if (llmAction.Action == "save_note")
+                {
+                    var saved = AssistantNotesService.SaveNote(llmAction.Title, llmAction.Content, llmAction.Tags);
+                    RenderNoteSavedCard(asstContainer, bodyHost, metaText, saved, usedLlm: true);
+                    StatusText.Text = $"Заметка сохранена: {saved.FileName}";
+                    _history.Add(("user", userText));
+                    _history.Add(("assistant", $"Заметка «{saved.Title}» сохранена."));
+                    if (AutoTtsCheck.IsChecked == true)
+                        _ = SpeakReplyAsync($"Заметка {saved.Title} сохранена.");
+                    return;
+                }
+                if (llmAction.Action == "set_reminder" && llmAction.ReminderMinutes is > 0)
+                {
+                    var item = _reminders.AddReminder(llmAction.Content, DateTime.Now.AddMinutes(llmAction.ReminderMinutes.Value));
+                    RenderReminderSavedCard(asstContainer, bodyHost, metaText, item);
+                    StatusText.Text = $"Напоминание установлено на {item.FireAtLocal:HH:mm}";
+                    _history.Add(("user", userText));
+                    _history.Add(("assistant", $"Напоминание на {item.FireAtLocal:HH:mm}: {item.Text}"));
+                    return;
+                }
+            }
+
             bodyHost.Child = MarkdownUiRenderer.Build(string.IsNullOrEmpty(finalReply) ? "(пустой ответ)" : finalReply, 13);
             double tps = tok / Math.Max(0.15, sw.Elapsed.TotalSeconds);
             metaText.Text = $"{tps:F1} tok/s · {tok} ток · {AiServiceManager.FriendlyLlmName(modelFile)}";
@@ -906,6 +932,73 @@ public partial class AssistantOverlayWindow : Window
             }
         };
         container.Children.Add(cancelBtn);
+    }
+
+    private void ShowWhisperMissingCard()
+    {
+        StatusText.Text = "Нужен модуль Whisper STT (~150 МБ) для голосового ввода";
+        var card = new Border
+        {
+            Background = new SolidColorBrush(MediaColor.FromRgb(26, 20, 14)),
+            BorderBrush = new SolidColorBrush(MediaColor.FromRgb(245, 158, 11)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(12, 10, 12, 10),
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        var sp = new StackPanel();
+        sp.Children.Add(new TextBlock
+        {
+            Text = "ДЛЯ ГОЛОСОВОГО ВВОДА НУЖЕН WHISPER STT",
+            FontSize = 10.5,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(245, 158, 11))
+        });
+        var desc = new TextBlock
+        {
+            Text = "Модуль распознавания речи (Whisper, ~150 МБ) ещё не установлен. Установи его в 1 клик — после этого диктовка заработает полностью офлайн.",
+            FontSize = 12,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(212, 212, 216)),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 4, 0, 8)
+        };
+        sp.Children.Add(desc);
+        var installBtn = new System.Windows.Controls.Button
+        {
+            Content = "Установить Whisper (~150 МБ)",
+            Style = (Style)FindResource("SuccessButton"),
+            Padding = new Thickness(12, 5, 12, 5),
+            FontSize = 12,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Left
+        };
+        installBtn.Click += async (_, _) =>
+        {
+            installBtn.IsEnabled = false;
+            installBtn.Content = "Установка Whisper...";
+            try
+            {
+                await _voice.InstallWhisperAsync(msg => Dispatcher.Invoke(() =>
+                {
+                    desc.Text = msg;
+                    StatusText.Text = msg;
+                }));
+                installBtn.Content = "✓ Whisper установлен — нажми «Голос»";
+                desc.Text = "Whisper STT успешно установлен! Теперь нажми кнопку «Голос» ниже, чтобы начать диктовку.";
+                StatusText.Text = "Whisper готов — можно диктовать";
+            }
+            catch (Exception ex)
+            {
+                installBtn.IsEnabled = true;
+                installBtn.Content = "Повторить установку Whisper";
+                desc.Text = "Ошибка установки: " + ex.Message;
+                StatusText.Text = "Ошибка установки Whisper";
+            }
+        };
+        sp.Children.Add(installBtn);
+        card.Child = sp;
+        MessagesPanel.Children.Add(card);
+        MessagesScroll.ScrollToEnd();
     }
 
     private async Task SpeakReplyAsync(string raw)

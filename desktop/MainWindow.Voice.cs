@@ -298,7 +298,10 @@ public partial class MainWindow
         }
     }
 
-    internal async void InstallPiperBtn_Click(object sender, RoutedEventArgs e)
+    internal async void InstallPiperBtn_Click(object sender, RoutedEventArgs e) =>
+        await InstallPiperWithUiAsync();
+
+    private async Task InstallPiperWithUiAsync()
     {
         if (_voiceBusy) return;
         _voiceBusy = true;

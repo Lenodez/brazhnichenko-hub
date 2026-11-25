@@ -35,6 +35,9 @@
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="OpenFirstStartBtn" Style="{StaticResource DarkButton}" Padding="10,5" Margin="0,0,6,0" ToolTip="Чек-лист первого запуска: что нужно установить для чата, голоса, ассистента и студии" Click="OpenFirstStartChecklistBtn_Click">
+                            <TextBlock Text="Модули старта" VerticalAlignment="Center" FontSize="12" />
+                        </Button>
                         <Button x:Name="OpenNotesHeaderBtn" Style="{StaticResource DarkButton}" Padding="10,5" Margin="0,0,6,0" ToolTip="Открыть заметки ассистента (Документы\Notes · .md)" Click="OpenNotesViewerBtn_Click">
                             <TextBlock Text="Заметки" VerticalAlignment="Center" FontSize="12" />
                         </Button>

@@ -1,0 +1,55 @@
+<Window x:Class="LocalAIHub.FirstStartChecklistWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Первый запуск и готовность модулей — Brazhnichenko Hub"
+        Icon="pack://application:,,,/Assets/app.ico"
+        Width="740" Height="610" MinWidth="620" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgCanvasBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource UiFontFamily}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Grid SnapsToDevicePixels="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Header -->
+        <Border Grid.Row="0" Background="#0E0E11" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="18,14">
+            <DockPanel>
+                <Border DockPanel.Dock="Right" Background="#18181C" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5" VerticalAlignment="Center">
+                    <TextBlock x:Name="ReadinessSummaryBadge" Text="Проверка..." FontSize="11" FontFamily="{StaticResource MonoFontFamily}" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" />
+                </Border>
+                <StackPanel Margin="0,0,14,0">
+                    <TextBlock Text="ПЕРВЫЙ ЗАПУСК · ЧТО УСТАНОВИТЬ ДЛЯ ФУНКЦИЙ ХАБА" FontSize="12" FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock x:Name="HwLineText" Text="Каждая функция работает 100% локально — установи только то, чем планируешь пользоваться." FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Row 1: Checklist Cards -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="18,14">
+            <StackPanel x:Name="ChecklistPanel" />
+        </ScrollViewer>
+
+        <!-- Row 2: Footer -->
+        <Border Grid.Row="2" Background="#0E0E11" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="0,1,0,0" Padding="18,11">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                    <Button Content="Обновить статусы" Style="{StaticResource DarkButton}" Padding="11,5" FontSize="12" Margin="0,0,8,0" Click="RefreshBtn_Click" />
+                    <Button Content="Готово" Style="{StaticResource PrimaryButton}" Padding="16,5" FontSize="12" Click="CloseBtn_Click" />
+                </StackPanel>
+
+                <StackPanel VerticalAlignment="Center">
+                    <CheckBox x:Name="ShowOnStartupCheck" Content="Напоминать при запуске, если базовые модули (LLM / Whisper) не установлены"
+                              Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
+                              Checked="ShowOnStartupCheck_Changed" Unchecked="ShowOnStartupCheck_Changed" />
+                    <TextBlock x:Name="LiveStatusText" Text="Открыть этот экран позже можно в любой момент через «Система → Модули старта»." FontSize="11" FontFamily="{StaticResource MonoFontFamily}" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

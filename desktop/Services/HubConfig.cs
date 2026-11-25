@@ -60,6 +60,7 @@ public sealed class HubConfigData
 
     // UX state
     public bool FirstRunCompleted { get; set; } = false;
+    public bool ShowFirstStartGuideOnLaunch { get; set; } = true;
 }
 
 public static class HubConfig

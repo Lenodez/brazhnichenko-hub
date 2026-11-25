@@ -128,11 +128,11 @@ public sealed class AssistantReminderService : IDisposable
         reminderText = "";
         if (string.IsNullOrWhiteSpace(input)) return false;
 
-        string working = input.Trim();
-        // Strip leading command verb
+        string working = AssistantActionRouter.StripConversationalLeadIn(input);
+        // Strip leading command verb (imperative or infinitive)
         working = Regex.Replace(
             working,
-            @"^(?:пожалуйста[,\s]+)?(?:напомни(?:\s+мне)?|поставь\s+(?:таймер|напоминание)|заведи\s+таймер|таймер|remind(?:\s+me)?|set\s+(?:a\s+)?(?:timer|reminder))\s*",
+            @"^(?:напомни(?:ть)?(?:\s+мне)?|постав(?:ь|ить)\s+(?:мне\s+)?(?:таймер|напоминание)|завед(?:и|сти)\s+таймер|таймер|remind(?:\s+me)?|set\s+(?:a\s+)?(?:timer|reminder))\s*",
             "",
             RegexOptions.IgnoreCase).Trim();
 

@@ -99,6 +99,7 @@ public partial class MainWindow : Window
             await RefreshStatusAsync();
             _pollTimer.Start();
             _ = CheckUpdatesSilentlyOnStartupAsync();
+            MaybeShowFirstStartChecklistOnLaunch();
         };
     }
 
@@ -310,6 +311,52 @@ public partial class MainWindow : Window
 
     internal void OpenNotesViewerBtn_Click(object sender, RoutedEventArgs e) =>
         OpenNotesViewer(null);
+
+    internal void OpenFirstStartChecklistBtn_Click(object sender, RoutedEventArgs e) =>
+        OpenFirstStartChecklist();
+
+    private void MaybeShowFirstStartChecklistOnLaunch()
+    {
+        var cfg = HubConfig.Current;
+        if (!cfg.ShowFirstStartGuideOnLaunch && cfg.FirstRunCompleted)
+            return;
+
+        bool coreMissing = !RuntimeInstaller.IsLlamaInstalled()
+            || _manager.GetAvailableLlmModels().Count == 0
+            || !LocalVoiceService.GetStatus().WhisperReady;
+
+        if (!cfg.FirstRunCompleted || coreMissing)
+        {
+            OpenFirstStartChecklist();
+        }
+    }
+
+    internal void OpenFirstStartChecklist()
+    {
+        try
+        {
+            var win = new FirstStartChecklistWindow(
+                _manager,
+                () => _detectedHardware,
+                async () => await InstallRuntimeWithUiAsync("llama"),
+                () =>
+                {
+                    MainTabs.SelectedItem = CatalogTab;
+                    SetCatalogView("text");
+                },
+                async () => await InstallWhisperWithUiAsync(),
+                async () => await InstallPiperWithUiAsync(),
+                async () => await InstallRuntimeWithUiAsync("comfyui"));
+            win.Owner = this;
+            win.ShowDialog();
+            RefreshRuntimeStatusUi();
+            RefreshVoiceStatusUi();
+        }
+        catch (Exception ex)
+        {
+            StatusFooterText.Text = $"Не удалось открыть Мастер старта: {ex.Message}";
+        }
+    }
 
     internal void OpenNotesViewer(string? selectFilePath = null)
     {
