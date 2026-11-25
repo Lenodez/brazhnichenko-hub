@@ -582,19 +582,21 @@ async function pollStatus() {
     const mp = document.getElementById('modelsPathText');
     if (mp) mp.textContent = 'Папка моделей: ' + st.modelsDir;
 
-    // Unified LLM Power Toggle Pill (Off / Loading into RAM-NPU / Active)
+    // Unified LLM Power Toggle Pill (Off / Loading into selected backend / Active)
     const btn = document.getElementById('llmToggleBtn');
     const txt = document.getElementById('llmTopText');
     if (btn && txt) {
       const isRun = !!st.llmRunning;
       const isStart = !isRun && !!st.llmStarting;
+      const bkRaw = String(st.activeBackend || 'hexagon').toLowerCase();
+      const bkShort = bkRaw === 'hexagon' ? 'NPU' : bkRaw === 'opencl' ? 'GPU' : bkRaw === 'eco' ? 'ECO' : 'CPU';
       btn.classList.toggle('running', isRun);
       btn.classList.toggle('starting', isStart);
       if (isRun) {
-        txt.textContent = `${String(st.activeBackend || 'NPU').toUpperCase()} · СТОП`;
+        txt.textContent = `${bkShort} · СТОП`;
       } else if (isStart) {
         const el = st.llmLoadElapsedSec ? ` ${st.llmLoadElapsedSec}с` : '';
-        txt.textContent = `ЗАГРУЗКА В NPU ·${el}`;
+        txt.textContent = `ЗАГРУЗКА ${bkShort} ·${el} · ✕`;
       } else {
         txt.textContent = 'СТАРТ LLM';
       }
@@ -635,7 +637,8 @@ async function pollStatus() {
 }
 
 async function toggleLlmPower() {
-  if (lastStatus && lastStatus.llmRunning) {
+  if (lastStatus && (lastStatus.llmRunning || lastStatus.llmStarting)) {
+    if (abortCtrl) abortChat();
     await stopLlm();
   } else {
     await startLlm();
@@ -1437,7 +1440,12 @@ async function sendChat(opts) {
   }
 }
 
-function abortChat() { if (abortCtrl) abortCtrl.abort(); }
+function abortChat() {
+  if (abortCtrl) abortCtrl.abort();
+  if (lastStatus && lastStatus.llmStarting) {
+    fetch('/api/llm/stop', { method: 'POST' }).catch(() => {});
+  }
+}
 
 // ==================== SETTINGS & LOGS ====================
 function populateAssistModelSelect(llms) {

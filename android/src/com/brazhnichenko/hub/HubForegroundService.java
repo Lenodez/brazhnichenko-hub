@@ -82,7 +82,8 @@ public class HubForegroundService extends Service {
         } else if (st.startsWith("Загрузка")) {
             sLlmStarting = true;
             sLlmRunning = false;
-            sShortModelLabel = "Запуск NPU...";
+            String bk = llamaManager != null ? LlamaProcessManager.backendDisplayName(llamaManager.getActiveBackend()) : "LLM";
+            sShortModelLabel = "Запуск " + bk + "...";
             sWidgetStatus = st;
         } else {
             sLlmStarting = false;

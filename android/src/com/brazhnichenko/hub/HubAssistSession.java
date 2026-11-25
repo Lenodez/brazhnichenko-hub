@@ -782,17 +782,18 @@ public class HubAssistSession extends VoiceInteractionSession {
                     } else if (starting) {
                         String shortM = shortModel(startingModel.isEmpty() ? target : startingModel);
                         String secStr = elapsed > 0 ? (" · " + String.format(Locale.US, "%.1fс", elapsed)) : "";
-                        engineBadge.setText("◧ ПРОГРЕВ NPU" + secStr);
+                        String bkLabel = "HEXAGON".equals(backend) ? "NPU" : "OPENCL".equals(backend) ? "GPU" : backend;
+                        engineBadge.setText("◧ ЗАГРУЗКА " + bkLabel + secStr);
                         styleEngineBadge("starting");
                         if (warmupBanner != null) {
                             warmupBanner.setVisibility(View.VISIBLE);
-                            warmupText.setText("Модель " + shortM + " загружается в память ("
+                            warmupText.setText("Модель " + shortM + " загружается в " + bkLabel + " ("
                                     + String.format(Locale.US, "%.1f с", elapsed)
-                                    + ") и пока не готова отвечать — говорите или пишите, ответ стартует сразу после загрузки");
+                                    + ") — говорите или пишите, ответ стартует сразу после загрузки");
                         }
                         setTopBarColor("#F59E0B");
                     } else {
-                        engineBadge.setText("◧ ПОДГОТОВКА NPU...");
+                        engineBadge.setText("◧ ПОДГОТОВКА LLM...");
                         styleEngineBadge("starting");
                     }
                     syncToggleChips();

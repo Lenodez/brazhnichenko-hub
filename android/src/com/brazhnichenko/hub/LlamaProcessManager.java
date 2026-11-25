@@ -1,5 +1,6 @@
 package com.brazhnichenko.hub;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -40,6 +41,8 @@ public class LlamaProcessManager {
     private volatile String activeBackend = "hexagon";
     private volatile boolean runningWithMmproj = false;
     private volatile boolean starting = false;
+    private volatile boolean cancelRequested = false;
+    private volatile int activeLlamaPid = -1;
     private volatile String startingModelFile = "";
     private volatile String startupStage = "";
     private volatile long startupStartedMs = 0L;
@@ -145,44 +148,92 @@ public class LlamaProcessManager {
         }
     }
 
-    public void stop() {
-        synchronized (lock) {
-            String st = readState();
-            if (st.startsWith("RUNNING:")) {
-                try {
-                    int pid = Integer.parseInt(st.substring("RUNNING:".length()).trim());
-                    if (pid > 1 && pid != Process.myPid()) {
-                        Process.killProcess(pid);
+    private int findLlamaServicePid() {
+        try {
+            ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+                if (procs != null) {
+                    String targetProc = ctx.getPackageName() + ":llama";
+                    for (ActivityManager.RunningAppProcessInfo p : procs) {
+                        if (targetProc.equals(p.processName) && p.pid > 1) {
+                            return p.pid;
+                        }
                     }
-                } catch (Exception ignored) { }
+                }
             }
-            if (pingHealth()) {
-                try {
-                    Intent stopIntent = new Intent(ctx, LlamaServiceProcess.class);
-                    stopIntent.setAction(LlamaServiceProcess.ACTION_STOP);
-                    ctx.startService(stopIntent);
-                } catch (Exception ignored) { }
-            }
-            try { ctx.stopService(new Intent(ctx, LlamaServiceProcess.class)); } catch (Exception ignored) { }
-            if (stateFile.exists()) stateFile.delete();
+        } catch (Exception ignored) { }
+        return -1;
+    }
 
-            for (int i = 0; i < 10; i++) {
-                if (!pingHealth()) break;
-                try { Thread.sleep(200); } catch (Exception ignored) { }
-            }
+    private boolean isLlamaProcessAlive(int pid) {
+        if (pid > 1 && new File("/proc/" + pid).exists()) {
+            return true;
+        }
+        int runningPid = findLlamaServicePid();
+        return runningPid > 1 && (pid <= 1 || runningPid == pid);
+    }
 
-            runningModelFile = "";
-            runningWithMmproj = false;
-            starting = false;
-            startingModelFile = "";
-            startupStage = "";
-            startupStartedMs = 0L;
-            if (listener != null) listener.onStatusChanged("LLM остановлена • RAM/NPU свободны");
+    private void killLlamaProcessNow() {
+        try { ctx.stopService(new Intent(ctx, LlamaServiceProcess.class)); } catch (Exception ignored) { }
+        int pid = activeLlamaPid;
+        if (pid > 1 && pid != Process.myPid()) {
+            try { Process.killProcess(pid); } catch (Exception ignored) { }
+        }
+        String st = readState();
+        if (st.startsWith("RUNNING:")) {
+            try {
+                int spid = Integer.parseInt(st.substring("RUNNING:".length()).trim());
+                if (spid > 1 && spid != Process.myPid()) {
+                    Process.killProcess(spid);
+                }
+            } catch (Exception ignored) { }
+        }
+        int foundPid = findLlamaServicePid();
+        if (foundPid > 1 && foundPid != Process.myPid()) {
+            try { Process.killProcess(foundPid); } catch (Exception ignored) { }
+        }
+        if (stateFile.exists()) {
+            try { stateFile.delete(); } catch (Exception ignored) { }
+        }
+        activeLlamaPid = -1;
+    }
+
+    public static String backendDisplayName(String backend) {
+        if ("hexagon".equalsIgnoreCase(backend)) return "Hexagon NPU";
+        if ("opencl".equalsIgnoreCase(backend)) return "Adreno GPU";
+        if ("eco".equalsIgnoreCase(backend)) return "CPU Eco";
+        return "CPU";
+    }
+
+    public void stop() {
+        // Non-blocking immediate abort so UI / notification "Stop" NEVER softlocks during model loading!
+        cancelRequested = true;
+        boolean wasStarting = starting;
+        starting = false;
+        startingModelFile = "";
+        startupStage = "";
+        startupStartedMs = 0L;
+        runningModelFile = "";
+        runningWithMmproj = false;
+
+        killLlamaProcessNow();
+        if (wasStarting) {
+            appendLog("[Hub] Загрузка модели отменена пользователем.");
+        }
+        if (listener != null) listener.onStatusChanged("LLM остановлена • RAM/NPU свободны");
+
+        // Wait briefly for port release without deadlocking against start()
+        for (int i = 0; i < 10; i++) {
+            if (checkHealthCode() < 0 && findLlamaServicePid() <= 0) break;
+            killLlamaProcessNow();
+            try { Thread.sleep(150); } catch (Exception ignored) { break; }
         }
     }
 
     public void start(String requestedModelFile) throws Exception {
         synchronized (lock) {
+            cancelRequested = false;
             String modelFile = (requestedModelFile != null && !requestedModelFile.trim().isEmpty())
                     ? requestedModelFile.trim() : models.getActiveModelFile();
             if (modelFile.isEmpty()) {
@@ -198,7 +249,14 @@ public class LlamaProcessManager {
                 return;
             }
 
-            stop();
+            killLlamaProcessNow();
+            for (int i = 0; i < 12; i++) {
+                if (checkHealthCode() < 0 && findLlamaServicePid() <= 0) break;
+                killLlamaProcessNow();
+                try { Thread.sleep(150); } catch (Exception ignored) { }
+            }
+            runningModelFile = "";
+            runningWithMmproj = false;
             clearLog();
             models.setActiveModelFile(modelFile);
 
@@ -210,19 +268,41 @@ public class LlamaProcessManager {
             double temp = Double.parseDouble(prefs.getString("temp", "0.7"));
             double presence = Double.parseDouble(prefs.getString("presence_penalty", "1.2"));
 
+            // Protect against Android LMK OOM on large 7B-8B models when available RAM is tight
+            long modelBytes = modelPath.length();
+            ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+            ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) am.getMemoryInfo(mi);
+            if (modelBytes > 4_000_000_000L && mi.availMem > 0 && mi.availMem < (modelBytes + 1_200_000_000L)) {
+                if (ctxSize > 4096) {
+                    appendLog("[Hub] Мало свободной RAM (" + String.format("%.1f", mi.availMem / (1024.0 * 1024.0 * 1024.0))
+                            + " ГБ) для модели " + String.format("%.2f", modelBytes / (1024.0 * 1024.0 * 1024.0))
+                            + " ГБ — снижаю контекст с " + ctxSize + " до 4096 для защиты от OOM.");
+                    ctxSize = 4096;
+                }
+            }
+
             File mmproj = models.findMatchingMmproj(modelFile);
 
             if ("auto".equals(desiredBackend)) {
-                for (String candidate : new String[]{"hexagon", "opencl", "cpu"}) {
+                // On Snapdragon, Hexagon NPU -> CPU is fast and reliable (OpenCL stays available as manual option)
+                for (String candidate : new String[]{"hexagon", "cpu"}) {
+                    if (cancelRequested) {
+                        throw new RuntimeException("Загрузка модели отменена.");
+                    }
                     try {
                         launchAndWait(modelPath, mmproj, candidate, ctxSize, threads, temp, presence);
                         return;
                     } catch (Exception err) {
+                        if (cancelRequested) {
+                            throw new RuntimeException("Загрузка модели отменена.");
+                        }
                         appendLog("[Hub] Бэкенд " + candidate + " не подошёл (" + err.getMessage() + "), пробую следующий...");
-                        stop();
+                        killLlamaProcessNow();
+                        try { Thread.sleep(250); } catch (Exception ignored) { }
                     }
                 }
-                throw new RuntimeException("Не удалось запустить модель ни на одном бэкенде. Смотри логи во вкладке Система.");
+                throw new RuntimeException("Не удалось запустить модель (" + modelFile + "). Проверь свободную RAM или логи во вкладке Система.");
             }
 
             launchAndWait(modelPath, mmproj, desiredBackend, ctxSize,
@@ -243,8 +323,10 @@ public class LlamaProcessManager {
         args.add("--ctx-size"); args.add(String.valueOf(ctxSize));
         args.add("--threads"); args.add(String.valueOf(threads));
         args.add("--parallel"); args.add("1");
-        args.add("--cache-type-k"); args.add("q8_0");
-        args.add("--cache-type-v"); args.add("q8_0");
+        if (!"opencl".equals(backend)) {
+            args.add("--cache-type-k"); args.add("q8_0");
+            args.add("--cache-type-v"); args.add("q8_0");
+        }
         args.add("--jinja");
         args.add("--no-webui");
         args.add("--no-reasoning-preserve");
@@ -260,31 +342,49 @@ public class LlamaProcessManager {
         } else if ("opencl".equals(backend)) {
             args.add("-ngl"); args.add("99");
             args.add("--device"); args.add("GPUOpenCL");
-            args.add("--flash-attn"); args.add("auto");
+            args.add("--flash-attn"); args.add("off");
         } else {
             args.add("-ngl"); args.add("99");
         }
 
         if (stateFile.exists()) stateFile.delete();
+        String bLabel = backendDisplayName(backend);
         appendLog("[Hub] Запуск (" + backend + "): " + modelPath.getName() + (mmproj != null ? " + Vision mmproj" : ""));
         activeBackend = backend;
+        activeLlamaPid = -1;
         starting = true;
         startingModelFile = modelPath.getName();
         startupStartedMs = System.currentTimeMillis();
-        startupStage = "Инициализация " + backend.toUpperCase() + "...";
+        startupStage = "Инициализация " + bLabel + "...";
 
         Intent startIntent = new Intent(ctx, LlamaServiceProcess.class);
         startIntent.setAction(LlamaServiceProcess.ACTION_START);
         startIntent.putExtra(LlamaServiceProcess.EXTRA_ARGS, args.toArray(new String[0]));
         startIntent.putExtra(LlamaServiceProcess.EXTRA_LOG_PATH, logFile.getAbsolutePath());
         startIntent.putExtra(LlamaServiceProcess.EXTRA_STATE_PATH, stateFile.getAbsolutePath());
-        ctx.startService(startIntent);
+        try {
+            ctx.startService(startIntent);
+        } catch (Exception startEx) {
+            appendLog("[Hub] Ошибка startService(:llama): " + startEx.toString());
+            throw new RuntimeException("Не удалось запустить сервис :llama: " + startEx.getMessage());
+        }
 
-        if (listener != null) listener.onStatusChanged("Загрузка (" + backend.toUpperCase() + "): " + modelPath.getName() + "...");
+        if (listener != null) listener.onStatusChanged("Загрузка (" + bLabel + "): " + modelPath.getName() + "...");
 
         try {
-            long deadline = System.currentTimeMillis() + 90_000L;
+            long timeoutMs = "opencl".equals(backend) ? 45_000L : 60_000L;
+            long startedAt = System.currentTimeMillis();
+            long deadline = startedAt + timeoutMs;
+            int seenPid = -1;
+            int missingPidChecks = 0;
+            boolean retriedServiceStart = false;
+
             while (System.currentTimeMillis() < deadline) {
+                if (cancelRequested) {
+                    killLlamaProcessNow();
+                    throw new RuntimeException("Загрузка модели отменена.");
+                }
+
                 int hc = checkHealthCode();
                 if (hc == 200) {
                     starting = false;
@@ -293,28 +393,76 @@ public class LlamaProcessManager {
                     runningModelFile = modelPath.getName();
                     runningWithMmproj = (mmproj != null && mmproj.exists());
                     touchActivity();
-                    String label = "hexagon".equals(backend) ? "Hexagon NPU"
-                            : "opencl".equals(backend) ? "Adreno GPU" : "CPU";
                     if (listener != null) {
-                        listener.onStatusChanged("Активна (" + label + "): " + modelPath.getName());
+                        listener.onStatusChanged("Активна (" + bLabel + "): " + modelPath.getName());
                     }
                     return;
                 } else if (hc == 503) {
-                    startupStage = "Загрузка весов в память (" + backend.toUpperCase() + ")"
+                    startupStage = "Загрузка весов в память (" + bLabel + ")"
                             + (mmproj != null && mmproj.exists() ? " + Vision" : "") + "...";
                 }
+
                 String st = readState();
                 if (st.startsWith("EXITED:") || st.startsWith("ERROR:")) {
                     throw new RuntimeException("llama-server завершился (" + st + "). Смотри логи во вкладке Система.");
                 }
-                Thread.sleep(300);
+                if (st.startsWith("RUNNING:")) {
+                    try {
+                        int parsed = Integer.parseInt(st.substring("RUNNING:".length()).trim());
+                        if (parsed > 1) {
+                            seenPid = parsed;
+                            activeLlamaPid = parsed;
+                        }
+                    } catch (Exception ignored) { }
+                } else if (seenPid <= 1) {
+                    int discovered = findLlamaServicePid();
+                    if (discovered > 1) {
+                        seenPid = discovered;
+                        activeLlamaPid = discovered;
+                    }
+                }
+
+                long waitedMs = System.currentTimeMillis() - startedAt;
+                if (seenPid <= 1 && hc < 0) {
+                    if (!retriedServiceStart && waitedMs > 4_000L) {
+                        retriedServiceStart = true;
+                        appendLog("[Hub] Повторный запуск сервиса :llama...");
+                        try { ctx.startService(startIntent); } catch (Exception ignored) { }
+                    } else if (waitedMs > 12_000L) {
+                        appendLog("[Hub] Сервис :llama не стартовал за 12 с.");
+                        throw new RuntimeException("Процесс :llama не запустился (возможно, Android ограничил запуск после остановки). Попробуй ещё раз.");
+                    }
+                }
+
+                // Detect silent Android OOM kill (SIGKILL) immediately instead of hanging 60-90s!
+                if (seenPid > 1 && !isLlamaProcessAlive(seenPid)) {
+                    missingPidChecks++;
+                    if (missingPidChecks >= 3) {
+                        String tailCheck = readState();
+                        if (tailCheck.startsWith("EXITED:") || tailCheck.startsWith("ERROR:")) {
+                            throw new RuntimeException("llama-server завершился (" + tailCheck + ").");
+                        }
+                        appendLog("[Hub] Процесс :llama (PID=" + seenPid + ") внезапно исчез — вероятнее всего Android OOM kill (не хватило RAM для " + modelPath.getName() + ").");
+                        throw new RuntimeException("Android завершил процесс модели из-за нехватки RAM (OOM kill для "
+                                + modelPath.getName() + "). Нажми «Освободить RAM» или выбери модель 4B.");
+                    }
+                } else {
+                    missingPidChecks = 0;
+                }
+
+                Thread.sleep(250);
             }
-            stop();
-            throw new RuntimeException("Таймаут запуска модели (90 с).");
+            killLlamaProcessNow();
+            throw new RuntimeException("Таймаут запуска модели на " + bLabel + " (" + (timeoutMs / 1000) + " с). Попробуй Hexagon NPU или CPU.");
         } catch (Exception ex) {
             starting = false;
             startingModelFile = "";
             startupStage = "";
+            startupStartedMs = 0L;
+            killLlamaProcessNow();
+            if (listener != null && !cancelRequested) {
+                listener.onStatusChanged("Ошибка загрузки (" + bLabel + ")");
+            }
             throw ex;
         }
     }
