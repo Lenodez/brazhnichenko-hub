@@ -68,6 +68,7 @@ public class MainActivity extends Activity {
     public static final String ACTION_SHORTCUT_DOC = "com.brazhnichenko.hub.SHORTCUT_DOC";
     public static final String ACTION_SHORTCUT_NEW_CHAT = "com.brazhnichenko.hub.SHORTCUT_NEW_CHAT";
     public static final String ACTION_ASSIST_LAUNCH = "com.brazhnichenko.hub.ASSIST_LAUNCH";
+    public static final String ACTION_OPEN_ASSIST_SESSION = "com.brazhnichenko.hub.OPEN_ASSIST_SESSION";
     public static final String ACTION_INSTALL_UPDATE = "com.brazhnichenko.hub.INSTALL_UPDATE";
     public static final String EXTRA_HAS_SCREENSHOT = "has_screenshot";
 
@@ -288,6 +289,10 @@ public class MainActivity extends Activity {
         }
         if (ACTION_SHORTCUT_ASK.equals(action)) {
             evalJsWhenReady("window.onAndroidQuickAction && window.onAndroidQuickAction('ask')");
+            return;
+        }
+        if (ACTION_OPEN_ASSIST_SESSION.equals(action)) {
+            evalJsWhenReady("window.openAssistSessionInChat && window.openAssistSessionInChat()");
             return;
         }
         if (ACTION_INSTALL_UPDATE.equals(action)) {

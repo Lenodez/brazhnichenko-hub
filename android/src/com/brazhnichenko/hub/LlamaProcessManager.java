@@ -39,6 +39,10 @@ public class LlamaProcessManager {
     private volatile String runningModelFile = "";
     private volatile String activeBackend = "hexagon";
     private volatile boolean runningWithMmproj = false;
+    private volatile boolean starting = false;
+    private volatile String startingModelFile = "";
+    private volatile String startupStage = "";
+    private volatile long startupStartedMs = 0L;
     private volatile long lastActivityMs = System.currentTimeMillis();
     private volatile boolean streamingActive = false;
 
@@ -46,6 +50,32 @@ public class LlamaProcessManager {
     public void setStreamingActive(boolean active) {
         streamingActive = active;
         lastActivityMs = System.currentTimeMillis();
+    }
+
+    public boolean isStarting() { return starting; }
+    public String getStartingModelFile() { return starting ? startingModelFile : ""; }
+    public String getStartupStage() { return starting ? startupStage : ""; }
+    public double getStartupElapsedSec() {
+        if (!starting || startupStartedMs <= 0L) return 0.0;
+        return Math.round(((System.currentTimeMillis() - startupStartedMs) / 100.0)) / 10.0;
+    }
+
+    public void startAsyncIfNeeded(final String requestedModelFile) {
+        final String target = (requestedModelFile != null && !requestedModelFile.trim().isEmpty())
+                ? requestedModelFile.trim() : models.getActiveModelFile();
+        if (target.isEmpty()) return;
+        if (starting && target.equalsIgnoreCase(startingModelFile)) return;
+        if (isRunning() && target.equalsIgnoreCase(runningModelFile)) {
+            touchActivity();
+            return;
+        }
+        Thread t = new Thread(() -> {
+            try {
+                start(target);
+            } catch (Exception ignored) { }
+        }, "LlamaWarmupThread");
+        t.setDaemon(true);
+        t.start();
     }
 
     public void checkIdleUnload() {
@@ -143,6 +173,10 @@ public class LlamaProcessManager {
 
             runningModelFile = "";
             runningWithMmproj = false;
+            starting = false;
+            startingModelFile = "";
+            startupStage = "";
+            startupStartedMs = 0L;
             if (listener != null) listener.onStatusChanged("LLM остановлена • RAM/NPU свободны");
         }
     }
@@ -234,6 +268,10 @@ public class LlamaProcessManager {
         if (stateFile.exists()) stateFile.delete();
         appendLog("[Hub] Запуск (" + backend + "): " + modelPath.getName() + (mmproj != null ? " + Vision mmproj" : ""));
         activeBackend = backend;
+        starting = true;
+        startingModelFile = modelPath.getName();
+        startupStartedMs = System.currentTimeMillis();
+        startupStage = "Инициализация " + backend.toUpperCase() + "...";
 
         Intent startIntent = new Intent(ctx, LlamaServiceProcess.class);
         startIntent.setAction(LlamaServiceProcess.ACTION_START);
@@ -244,39 +282,57 @@ public class LlamaProcessManager {
 
         if (listener != null) listener.onStatusChanged("Загрузка (" + backend.toUpperCase() + "): " + modelPath.getName() + "...");
 
-        long deadline = System.currentTimeMillis() + 90_000L;
-        while (System.currentTimeMillis() < deadline) {
-            if (pingHealth()) {
-                runningModelFile = modelPath.getName();
-                runningWithMmproj = (mmproj != null && mmproj.exists());
-                touchActivity();
-                String label = "hexagon".equals(backend) ? "Hexagon NPU"
-                        : "opencl".equals(backend) ? "Adreno GPU" : "CPU";
-                if (listener != null) {
-                    listener.onStatusChanged("Активна (" + label + "): " + modelPath.getName());
+        try {
+            long deadline = System.currentTimeMillis() + 90_000L;
+            while (System.currentTimeMillis() < deadline) {
+                int hc = checkHealthCode();
+                if (hc == 200) {
+                    starting = false;
+                    startingModelFile = "";
+                    startupStage = "";
+                    runningModelFile = modelPath.getName();
+                    runningWithMmproj = (mmproj != null && mmproj.exists());
+                    touchActivity();
+                    String label = "hexagon".equals(backend) ? "Hexagon NPU"
+                            : "opencl".equals(backend) ? "Adreno GPU" : "CPU";
+                    if (listener != null) {
+                        listener.onStatusChanged("Активна (" + label + "): " + modelPath.getName());
+                    }
+                    return;
+                } else if (hc == 503) {
+                    startupStage = "Загрузка весов в память (" + backend.toUpperCase() + ")"
+                            + (mmproj != null && mmproj.exists() ? " + Vision" : "") + "...";
                 }
-                return;
+                String st = readState();
+                if (st.startsWith("EXITED:") || st.startsWith("ERROR:")) {
+                    throw new RuntimeException("llama-server завершился (" + st + "). Смотри логи во вкладке Система.");
+                }
+                Thread.sleep(300);
             }
-            String st = readState();
-            if (st.startsWith("EXITED:") || st.startsWith("ERROR:")) {
-                throw new RuntimeException("llama-server завершился (" + st + "). Смотри логи во вкладке Система.");
-            }
-            Thread.sleep(350);
+            stop();
+            throw new RuntimeException("Таймаут запуска модели (90 с).");
+        } catch (Exception ex) {
+            starting = false;
+            startingModelFile = "";
+            startupStage = "";
+            throw ex;
         }
-        stop();
-        throw new RuntimeException("Таймаут запуска модели (90 с).");
+    }
+
+    private int checkHealthCode() {
+        try {
+            HttpURLConnection conn = (HttpURLConnection) new URL("http://127.0.0.1:" + LLAMA_PORT + "/health").openConnection();
+            conn.setConnectTimeout(400);
+            conn.setReadTimeout(400);
+            int code = conn.getResponseCode();
+            conn.disconnect();
+            return code;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     private boolean pingHealth() {
-        try {
-            HttpURLConnection conn = (HttpURLConnection) new URL("http://127.0.0.1:" + LLAMA_PORT + "/health").openConnection();
-            conn.setConnectTimeout(450);
-            conn.setReadTimeout(450);
-            int code = conn.getResponseCode();
-            conn.disconnect();
-            return code == 200;
-        } catch (Exception e) {
-            return false;
-        }
+        return checkHealthCode() == 200;
     }
 }

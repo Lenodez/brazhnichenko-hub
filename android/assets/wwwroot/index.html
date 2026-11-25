@@ -269,6 +269,10 @@
         </div>
         <div class="toggle-list">
           <label class="toggle-row">
+            <span>Компактный оверлей поверх приложений (без смены экрана)</span>
+            <input id="cfgAssistOverlay" type="checkbox" checked onchange="saveAssistSettings()" />
+          </label>
+          <label class="toggle-row">
             <span>Сразу включать микрофон при вызове</span>
             <input id="cfgAssistAutoVoice" type="checkbox" checked onchange="saveAssistSettings()" />
           </label>
@@ -285,6 +289,16 @@
             <input id="cfgAssistAttachScreen" type="checkbox" onchange="saveAssistSettings()" />
           </label>
         </div>
+        <details class="assist-prompt-box">
+          <summary class="mono">Системный промпт ассистента (оптимизирован под оверлей и голос)</summary>
+          <div class="sys-field" style="margin-top:8px;">
+            <textarea id="cfgAssistPrompt" rows="4" placeholder="Промпт системного ассистента..."></textarea>
+            <div class="row" style="justify-content:flex-end;">
+              <button class="btn sm" onclick="resetAssistPrompt()">Сбросить к стандарту</button>
+              <button class="btn primary sm" onclick="saveAssistSettings()">Сохранить промпт</button>
+            </div>
+          </div>
+        </details>
       </div>
 
       <!-- Hybrid Web Search Settings -->

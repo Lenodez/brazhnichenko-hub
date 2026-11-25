@@ -582,12 +582,22 @@ async function pollStatus() {
     const mp = document.getElementById('modelsPathText');
     if (mp) mp.textContent = 'Папка моделей: ' + st.modelsDir;
 
-    // Unified LLM Power Toggle Pill
+    // Unified LLM Power Toggle Pill (Off / Loading into RAM-NPU / Active)
     const btn = document.getElementById('llmToggleBtn');
     const txt = document.getElementById('llmTopText');
     if (btn && txt) {
-      btn.classList.toggle('running', !!st.llmRunning);
-      txt.textContent = st.llmRunning ? `${String(st.activeBackend || 'NPU').toUpperCase()} · СТОП` : 'СТАРТ LLM';
+      const isRun = !!st.llmRunning;
+      const isStart = !isRun && !!st.llmStarting;
+      btn.classList.toggle('running', isRun);
+      btn.classList.toggle('starting', isStart);
+      if (isRun) {
+        txt.textContent = `${String(st.activeBackend || 'NPU').toUpperCase()} · СТОП`;
+      } else if (isStart) {
+        const el = st.llmLoadElapsedSec ? ` ${st.llmLoadElapsedSec}с` : '';
+        txt.textContent = `ЗАГРУЗКА В NPU ·${el}`;
+      } else {
+        txt.textContent = 'СТАРТ LLM';
+      }
     }
 
     updateVisionBadge(!!st.activeLlmHasVision);
@@ -1113,6 +1123,14 @@ window.onAndroidVoiceResult = function(text, autoSend, speakReply, forceWebSearc
   }
 };
 
+window.openAssistSessionInChat = async function() {
+  switchView('chat');
+  await loadSessions();
+  if (sessions.some(s => s.id === 'assist')) {
+    selectSession('assist');
+  }
+};
+
 window.onAndroidAssistLaunch = function(opts) {
   switchView('chat');
   opts = opts || {};
@@ -1446,15 +1464,21 @@ async function loadSettings() {
   assistSettings.assistAutoTts = s.assistAutoTts !== false;
   assistSettings.assistAttachScreen = !!s.assistAttachScreen;
   assistSettings.assistWebSearch = s.assistWebSearch !== false;
+  assistSettings.assistOverlayMode = s.assistOverlayMode !== false;
   assistSettings.assistModel = s.assistModel || '';
+  assistSettings.assistPrompt = s.assistPrompt || '';
+  const elO = document.getElementById('cfgAssistOverlay');
   const elV = document.getElementById('cfgAssistAutoVoice');
   const elT = document.getElementById('cfgAssistAutoTts');
   const elS = document.getElementById('cfgAssistAttachScreen');
   const elW = document.getElementById('cfgAssistWebSearch');
+  const elP = document.getElementById('cfgAssistPrompt');
+  if (elO) elO.checked = assistSettings.assistOverlayMode;
   if (elV) elV.checked = assistSettings.assistAutoVoice;
   if (elT) elT.checked = assistSettings.assistAutoTts;
   if (elS) elS.checked = assistSettings.assistAttachScreen;
   if (elW) elW.checked = assistSettings.assistWebSearch;
+  if (elP && document.activeElement !== elP) elP.value = assistSettings.assistPrompt;
   if (lastStatus && lastStatus.availableLlms) populateAssistModelSelect(lastStatus.availableLlms);
   const elM = document.getElementById('cfgAssistModel');
   if (elM) elM.value = assistSettings.assistModel;
@@ -1473,16 +1497,27 @@ async function loadSettings() {
 
 async function saveAssistSettings() {
   const elM = document.getElementById('cfgAssistModel');
+  const elO = document.getElementById('cfgAssistOverlay');
+  const elP = document.getElementById('cfgAssistPrompt');
   const body = {
+    assistOverlayMode: elO ? !!elO.checked : true,
     assistAutoVoice: !!document.getElementById('cfgAssistAutoVoice').checked,
     assistAutoTts: !!document.getElementById('cfgAssistAutoTts').checked,
     assistAttachScreen: !!document.getElementById('cfgAssistAttachScreen').checked,
     assistWebSearch: !!document.getElementById('cfgAssistWebSearch').checked,
     assistModel: elM ? elM.value : ''
   };
+  if (elP) body.assistPrompt = elP.value.trim();
   await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   Object.assign(assistSettings, body);
   toast('Настройки ассистента сохранены');
+}
+
+async function resetAssistPrompt() {
+  const elP = document.getElementById('cfgAssistPrompt');
+  if (elP) elP.value = '';
+  await saveAssistSettings();
+  await loadSettings();
 }
 
 async function saveSearchSettings() {

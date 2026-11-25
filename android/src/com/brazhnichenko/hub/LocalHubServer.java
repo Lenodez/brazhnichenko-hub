@@ -41,6 +41,14 @@ import java.util.concurrent.Executors;
 public class LocalHubServer {
     public static final int PORT = 17901;
 
+    public static final String DEFAULT_ASSISTANT_PROMPT =
+            "Ты системный голосовой и экранный AI-ассистент смартфона (компактный оверлей поверх открытого приложения).\n"
+            + "Правила работы:\n"
+            + "1. Отвечай сразу по сути с первого предложения (обычно 1–4 коротких абзаца или пункта), без приветствий, вступлений и фраз «Чем ещё могу помочь?».\n"
+            + "2. Формулируй ответ так, чтобы он легко читался в компактной карточке и естественно звучал при озвучке вслух (без громоздких таблиц и лишней разметки, если не просят код).\n"
+            + "3. Если приложен скриншот или текст экрана — отвечай именно по содержимому текущего экрана пользователя (сообщения, цены, ошибки, перевод, интерфейс), не пересказывая статус-бар.\n"
+            + "4. Учитывай, что запрос мог быть продиктован голосом без знаков препинания.";
+
     private final Context ctx;
     private final ModelManager models;
     private final LlamaProcessManager llama;
@@ -124,7 +132,7 @@ public class LocalHubServer {
                 JSONObject o = new JSONObject();
                 o.put("ok", true);
                 o.put("app", "Brazhnichenko Hub Android");
-                o.put("version", "4.9.0");
+                o.put("version", AppUpdater.getCurrentVersion(ctx));
                 sendJson(rawOut, 200, o.toString());
                 return;
             }
@@ -242,6 +250,31 @@ public class LocalHubServer {
                 sendJson(rawOut, 200, new JSONObject().put("jobId", jobId).toString());
                 return;
             }
+            if ("/api/llm/warmup".equals(path) && "POST".equals(method)) {
+                JSONObject req = bodyStr.isEmpty() ? new JSONObject() : new JSONObject(bodyStr);
+                String requested = req.optString("modelFile", "").trim();
+                if (requested.isEmpty()) {
+                    requested = models.getPrefs().getString("assist_model", "").trim();
+                }
+                if (requested.isEmpty()) {
+                    requested = models.getActiveModelFile();
+                }
+                boolean already = !requested.isEmpty()
+                        && llama.isRunning()
+                        && requested.equalsIgnoreCase(llama.getRunningModelFile());
+                if (!already && !requested.isEmpty()) {
+                    llama.startAsyncIfNeeded(requested);
+                } else if (already) {
+                    llama.touchActivity();
+                }
+                JSONObject res = new JSONObject();
+                res.put("ok", true);
+                res.put("targetModel", requested);
+                res.put("alreadyRunning", already);
+                res.put("starting", llama.isStarting());
+                sendJson(rawOut, 200, res.toString());
+                return;
+            }
             if ("/api/llm/start".equals(path) && "POST".equals(method)) {
                 try {
                     JSONObject req = bodyStr.isEmpty() ? new JSONObject() : new JSONObject(bodyStr);
@@ -277,7 +310,9 @@ public class LocalHubServer {
                     if (req.has("assistAutoTts")) ed.putBoolean("assist_auto_tts", req.getBoolean("assistAutoTts"));
                     if (req.has("assistAttachScreen")) ed.putBoolean("assist_attach_screen", req.getBoolean("assistAttachScreen"));
                     if (req.has("assistWebSearch")) ed.putBoolean("assist_web_search", req.getBoolean("assistWebSearch"));
+                    if (req.has("assistOverlayMode")) ed.putBoolean("assist_overlay_mode", req.getBoolean("assistOverlayMode"));
                     if (req.has("assistModel")) ed.putString("assist_model", req.getString("assistModel").trim());
+                    if (req.has("assistPrompt")) ed.putString("assist_prompt", req.getString("assistPrompt").trim());
                     if (req.has("searchProvider")) ed.putString("search_provider", req.getString("searchProvider"));
                     if (req.has("tavilyKey")) ed.putString("tavily_api_key", req.getString("tavilyKey").trim());
                     if (req.has("braveKey")) ed.putString("brave_api_key", req.getString("braveKey").trim());
@@ -297,7 +332,9 @@ public class LocalHubServer {
                 o.put("assistAutoTts", p.getBoolean("assist_auto_tts", true));
                 o.put("assistAttachScreen", p.getBoolean("assist_attach_screen", false));
                 o.put("assistWebSearch", p.getBoolean("assist_web_search", true));
+                o.put("assistOverlayMode", p.getBoolean("assist_overlay_mode", true));
                 o.put("assistModel", p.getString("assist_model", ""));
+                o.put("assistPrompt", p.getString("assist_prompt", DEFAULT_ASSISTANT_PROMPT));
                 o.put("searchProvider", p.getString("search_provider", "auto"));
                 o.put("tavilyConnected", !p.getString("tavily_api_key", "").trim().isEmpty());
                 o.put("braveConnected", !p.getString("brave_api_key", "").trim().isEmpty());
@@ -477,6 +514,11 @@ public class LocalHubServer {
             String docText = req.optString("docText", "").trim();
             boolean webSearch = req.optBoolean("webSearch", false);
             boolean temporaryModel = req.optBoolean("temporaryModel", false);
+            boolean assistantMode = req.optBoolean("assistantMode", false);
+            String screenContext = req.optString("screenContext", "").trim();
+            if (assistantMode && "default".equals(personaId)) {
+                personaId = "assistant";
+            }
 
             String activeFile;
             if (!modelFile.isEmpty() && temporaryModel) {
@@ -514,8 +556,34 @@ public class LocalHubServer {
             }
 
             if (!llama.isRunning() || !activeFile.equalsIgnoreCase(llama.getRunningModelFile())) {
-                sendSse(out, "status", "Запуск локальной модели " + activeFile + "...");
-                llama.start(activeFile);
+                sendSse(out, "status", "Загрузка модели " + activeFile + " в память (NPU/RAM)...");
+                final Thread progressTicker = new Thread(() -> {
+                    try {
+                        while (!Thread.currentThread().isInterrupted() && !llama.isRunning()) {
+                            Thread.sleep(600);
+                            if (llama.isStarting()) {
+                                String stg = llama.getStartupStage();
+                                double el = llama.getStartupElapsedSec();
+                                String msg = (stg.isEmpty() ? "Загрузка модели в память..." : stg)
+                                        + (el > 0 ? " (" + el + " с)" : "");
+                                synchronized (out) {
+                                    try { sendSse(out, "status", msg); } catch (Exception ignored) { break; }
+                                }
+                            }
+                        }
+                    } catch (InterruptedException ignored) { }
+                }, "SseWarmupTicker");
+                progressTicker.setDaemon(true);
+                progressTicker.start();
+                try {
+                    llama.start(activeFile);
+                } finally {
+                    progressTicker.interrupt();
+                    try { progressTicker.join(250); } catch (InterruptedException ignored) { }
+                }
+                synchronized (out) {
+                    sendSse(out, "status", "Модель загружена · генерация ответа...");
+                }
             }
 
             JSONArray sessions = loadSessions();
@@ -526,12 +594,15 @@ public class LocalHubServer {
             }
             if (session == null) {
                 session = new JSONObject();
-                session.put("id", UUID.randomUUID().toString().substring(0, 8));
-                session.put("title", "Новый чат");
+                session.put("id", assistantMode ? "assist" : UUID.randomUUID().toString().substring(0, 8));
+                session.put("title", assistantMode ? "■ Системный ассистент" : "Новый чат");
                 session.put("personaId", personaId);
                 session.put("temperature", temp);
                 session.put("messages", new JSONArray());
-                sessions.put(session);
+                JSONArray reordered = new JSONArray();
+                reordered.put(session);
+                for (int i = 0; i < sessions.length(); i++) reordered.put(sessions.get(i));
+                sessions = reordered;
             }
             session.put("personaId", personaId);
             session.put("temperature", temp);
@@ -547,6 +618,10 @@ public class LocalHubServer {
             if (!docText.isEmpty()) {
                 String header = "[Прикреплённый документ: " + (docName.isEmpty() ? "document" : docName) + "]\n" + docText + "\n\n";
                 effectivePrompt = header + (userText.isEmpty() ? "Сделай краткую структурированную выжимку этого документа." : userText);
+            }
+            if (!screenContext.isEmpty()) {
+                effectivePrompt = "[Контекст открытого экрана смартфона]\n" + screenContext + "\n\n[Запрос пользователя]\n"
+                        + (effectivePrompt.isEmpty() ? "Кратко объясни, что сейчас на экране, и выдели главное." : effectivePrompt);
             }
 
             int ctxSize = models.getPrefs().getInt("ctx_size", 8192);
@@ -737,7 +812,7 @@ public class LocalHubServer {
         }
 
         JSONObject o = new JSONObject();
-        o.put("version", "4.9.0");
+        o.put("version", AppUpdater.getCurrentVersion(ctx));
         o.put("device", models.getDeviceSocLabel());
         o.put("androidVersion", "Android " + Build.VERSION.RELEASE);
         o.put("cpuCores", Runtime.getRuntime().availableProcessors());
@@ -749,6 +824,10 @@ public class LocalHubServer {
         o.put("batteryPct", batPct);
         o.put("batteryTempC", batTemp);
         o.put("llmRunning", llama.isRunning());
+        o.put("llmStarting", llama.isStarting());
+        o.put("startingModel", llama.getStartingModelFile());
+        o.put("llmStage", llama.getStartupStage());
+        o.put("llmLoadElapsedSec", llama.getStartupElapsedSec());
         o.put("runningModel", llama.getRunningModelFile());
         o.put("activeBackend", llama.getActiveBackend());
         o.put("activeLlm", activeLlm);
@@ -1029,6 +1108,10 @@ public class LocalHubServer {
     }
 
     private String getPersonaPrompt(String id) {
+        if ("assistant".equals(id)) {
+            String customAssist = models.getPrefs().getString("assist_prompt", "").trim();
+            return customAssist.isEmpty() ? DEFAULT_ASSISTANT_PROMPT : customAssist;
+        }
         if ("coder".equals(id)) return "Ты senior software engineer. Отвечай чётко, с рабочим кодом и без лишней воды.";
         if ("translator".equals(id)) return "Ты профессиональный переводчик RU↔EN. Переводи естественно и точно, поясняя сложные термины при необходимости.";
         if ("concise".equals(id)) return "Отвечай максимально кратко, тезисно, по делу.";
