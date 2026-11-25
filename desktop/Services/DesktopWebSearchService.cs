@@ -109,7 +109,7 @@ public static class DesktopWebSearchService
             }
         }
 
-        if (collected.Count < 5)
+        if (collected.Count < 4)
         {
             var news = await SearchGoogleNewsRssAsync(clean, hasCyrillic, ct);
             if (news.Count > 0)

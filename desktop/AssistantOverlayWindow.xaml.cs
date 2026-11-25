@@ -559,7 +559,13 @@ public partial class AssistantOverlayWindow : Window
                 Content = new StringContent(payload, Encoding.UTF8, "application/json")
             };
             using var resp = await StreamHttp.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, _cts.Token);
-            resp.EnsureSuccessStatusCode();
+            if (!resp.IsSuccessStatusCode)
+            {
+                string errBody = "";
+                try { errBody = (await resp.Content.ReadAsStringAsync(_cts.Token)).Trim(); } catch { }
+                if (errBody.Length > 240) errBody = errBody[..240] + "…";
+                throw new InvalidOperationException($"HTTP {(int)resp.StatusCode} от llama-server{(string.IsNullOrEmpty(errBody) ? "" : ": " + errBody)}");
+            }
 
             using var stream = await resp.Content.ReadAsStreamAsync(_cts.Token);
             using var reader = new StreamReader(stream, Encoding.UTF8);

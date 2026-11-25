@@ -222,28 +222,57 @@ public sealed class AiServiceManager
             var mmprojs = Directory.GetFiles(dir, "*.gguf", SearchOption.TopDirectoryOnly)
                 .Where(f => Path.GetFileName(f).Contains("mmproj", StringComparison.OrdinalIgnoreCase))
                 .ToList();
-            if (mmprojs.Count == 0) return null;
-
-            string stem = Path.GetFileNameWithoutExtension(modelFileName).ToLowerInvariant();
-            string[] tokens = stem.Split(['-', '_', '.', ' '], StringSplitOptions.RemoveEmptyEntries)
-                .Where(t => t.Length >= 3 && !t.StartsWith("q4") && !t.StartsWith("q5") && !t.StartsWith("q6") && !t.StartsWith("iq"))
-                .ToArray();
-
-            string? best = null;
-            int bestScore = 0;
-            foreach (string mp in mmprojs)
-            {
-                string mpName = Path.GetFileNameWithoutExtension(mp).ToLowerInvariant();
-                int score = tokens.Count(t => mpName.Contains(t, StringComparison.Ordinal));
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    best = mp;
-                }
-            }
-            return bestScore > 0 ? best : (mmprojs.Count == 1 ? mmprojs[0] : null);
+            return MatchMmprojPath(modelFileName, mmprojs);
         }
         catch { return null; }
+    }
+
+    public static string? MatchMmprojPath(string? modelFileName, IReadOnlyList<string> mmprojPaths)
+    {
+        if (string.IsNullOrWhiteSpace(modelFileName) || mmprojPaths.Count == 0) return null;
+
+        string stem = Path.GetFileNameWithoutExtension(modelFileName).ToLowerInvariant();
+        string[] tokens = stem.Split(['-', '_', '.', ' '], StringSplitOptions.RemoveEmptyEntries)
+            .Where(t => t.Length >= 2
+                && !t.StartsWith("q4") && !t.StartsWith("q5") && !t.StartsWith("q6") && !t.StartsWith("q8")
+                && !t.StartsWith("iq") && !t.StartsWith("ud") && t != "instruct" && t != "it" && t != "gguf")
+            .ToArray();
+
+        // Family guard: never pair an mmproj belonging to a different model family or parameter size
+        string[] familyTokens = ["gemma", "qwen", "llama", "mistral", "minicpm", "llava", "pixtral", "internvl", "phi", "deepseek", "glm"];
+        string? modelFamily = familyTokens.FirstOrDefault(f => stem.Contains(f, StringComparison.Ordinal));
+        var modelSizeMatch = System.Text.RegularExpressions.Regex.Match(stem, @"(?<![a-z0-9])(\d+(?:\.\d+)?b)(?![a-z0-9])");
+        string? modelSizeTok = modelSizeMatch.Success ? modelSizeMatch.Groups[1].Value : null;
+
+        string? best = null;
+        int bestScore = 0;
+        foreach (string mp in mmprojPaths)
+        {
+            string mpName = Path.GetFileNameWithoutExtension(mp).ToLowerInvariant();
+            string? mpFamily = familyTokens.FirstOrDefault(f => mpName.Contains(f, StringComparison.Ordinal));
+            if (modelFamily is not null && mpFamily is not null && modelFamily != mpFamily)
+                continue;
+            if (modelFamily is null && mpFamily is not null)
+                continue;
+
+            var mpSizeMatch = System.Text.RegularExpressions.Regex.Match(mpName, @"(?<![a-z0-9])(\d+(?:\.\d+)?b)(?![a-z0-9])");
+            if (modelSizeTok is not null && mpSizeMatch.Success && mpSizeMatch.Groups[1].Value != modelSizeTok)
+                continue;
+
+            // Qwen3 text-only models (without "vl" or "3.6" vision) must not match a Qwen2.5-VL or Qwen3-VL mmproj
+            bool mpIsVl = mpName.Contains("-vl") || mpName.Contains("vl-");
+            bool modelIsVl = stem.Contains("-vl") || stem.Contains("vl-");
+            if (mpIsVl != modelIsVl)
+                continue;
+
+            int score = tokens.Count(t => mpName.Contains(t, StringComparison.Ordinal));
+            if (score > bestScore)
+            {
+                bestScore = score;
+                best = mp;
+            }
+        }
+        return bestScore >= 2 || (bestScore == 1 && modelFamily is not null) ? best : null;
     }
 
     public List<LlmModelOption> GetAvailableLlmModels()
